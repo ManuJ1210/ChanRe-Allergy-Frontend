@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const API = axios.create({
-  baseURL: 'http://localhost:5000/api',
+  baseURL: 'https://api.chanreallergyclinic.com/api',
   timeout: 10000, // 10 second timeout
 });
 
