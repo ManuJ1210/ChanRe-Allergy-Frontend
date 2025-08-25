@@ -9,7 +9,6 @@ import DashboardLayout from '../layouts/DashboardLayout';
 import PrivateRoute from '../components/PrivateRoute';
 import ErrorBoundary from '../components/ErrorBoundary';
 
-
 // Superadmin Pages
 import SuperadminDashboard from '../pages/Superadmin/Dashboard';
 import SuperadminBilling from '../pages/Superadmin/Billing';
@@ -189,7 +188,6 @@ export default function AppRoutes() {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/contact" element={<Contact />} />
       <Route path="/about" element={<About />} />
-
 
       {/* CenterAdmin Routes at Root Level (for direct navigation) */}
       <Route path="/CenterAdmin/patients/EditPatient/:id" element={<PrivateRoute><DashboardLayout><ErrorBoundary><CenterAdminEditPatient /></ErrorBoundary></DashboardLayout></PrivateRoute>} />
