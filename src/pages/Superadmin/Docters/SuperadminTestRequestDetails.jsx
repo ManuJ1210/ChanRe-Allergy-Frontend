@@ -52,7 +52,7 @@ const SuperadminTestRequestDetails = () => {
 
   const downloadReport = async () => {
     try {
-      const response = await API.get(`/test-requests/${id}/download-report`);
+      const response = await API.get(`/test-requests/download-report/${id}`);
       
       // Create a text file with the report data
       const reportData = response.data;

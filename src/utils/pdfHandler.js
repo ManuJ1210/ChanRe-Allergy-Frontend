@@ -10,7 +10,7 @@ import API from '../services/api';
  */
 export const downloadPDFReport = async (reportId, fileName = null) => {
   try {
-    const response = await API.get(`/test-requests/${reportId}/download-report`, {
+    const response = await API.get(`/test-requests/download-report/${reportId}`, {
       responseType: 'blob',
       headers: {
         'Accept': 'application/pdf',
@@ -67,7 +67,7 @@ export const downloadPDFReport = async (reportId, fileName = null) => {
  */
 export const viewPDFReport = async (reportId) => {
   try {
-    const response = await API.get(`/test-requests/${reportId}/download-report`, {
+    const response = await API.get(`/test-requests/download-report/${reportId}`, {
       responseType: 'blob',
       headers: {
         'Accept': 'application/pdf',

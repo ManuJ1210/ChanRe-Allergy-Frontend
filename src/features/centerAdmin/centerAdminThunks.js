@@ -855,5 +855,43 @@ export const createGPE = createAsyncThunk(
   }
 );
 
+// Update patient
+export const updatePatient = createAsyncThunk(
+  'centerAdmin/updatePatient',
+  async ({ patientId, patientData }, { rejectWithValue }) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await API.put(`/patients/${patientId}`, patientData, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      toast.success('Patient updated successfully!');
+      return response.data;
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || 'Failed to update patient';
+      toast.error(errorMsg);
+      return rejectWithValue(errorMsg);
+    }
+  }
+);
+
+// Delete patient
+export const deletePatient = createAsyncThunk(
+  'centerAdmin/deletePatient',
+  async (patientId, { rejectWithValue }) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await API.delete(`/patients/${patientId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      toast.success('Patient deleted successfully!');
+      return patientId; // Return the ID so we can remove it from state
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || 'Failed to delete patient';
+      toast.error(errorMsg);
+      return rejectWithValue(errorMsg);
+    }
+  }
+);
+
 // Re-export resetCenterAdminState from slice
 export { resetCenterAdminState } from './centerAdminSlice';

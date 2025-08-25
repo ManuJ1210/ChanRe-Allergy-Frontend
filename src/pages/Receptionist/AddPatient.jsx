@@ -120,8 +120,7 @@ export default function AddPatient() {
     setDoctorError("");
     try {
       const response = await API.get('/doctors');
-      const data = response.data;
-      setDoctors(data);
+      setDoctors(response.data);
     } catch (err) {
       setDoctorError("Failed to load doctors");
     } finally {
@@ -151,10 +150,10 @@ export default function AddPatient() {
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Patients
             </button>
-            <h1 className="text-xl font-bold text-slate-800 mb-2">
+            <h1 className="text-md font-bold text-slate-800 mb-2">
               Add New Patient
             </h1>
-            <p className="text-slate-600">
+            <p className="text-slate-600 text-sm">
               Register a new patient with complete information
             </p>
           </div>
@@ -176,11 +175,11 @@ export default function AddPatient() {
           {/* Form */}
           <div className="bg-white rounded-xl shadow-sm border border-blue-100">
             <div className="p-6 border-b border-blue-100">
-              <h2 className="text-lg font-semibold text-slate-800 flex items-center">
+              <h2 className="text-md font-semibold text-slate-800 flex items-center">
                 <User className="h-5 w-5 mr-2 text-blue-500" />
                 Patient Information
               </h2>
-              <p className="text-slate-600 mt-1">
+              <p className="text-slate-600 mt-1 text-sm">
                 Fill in the patient details below
               </p>
             </div>
@@ -198,7 +197,7 @@ export default function AddPatient() {
                     value={formData.name}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-sm"
                     placeholder="Enter patient's full name"
                   />
                 </div>
@@ -216,7 +215,7 @@ export default function AddPatient() {
                     required
                     min="0"
                     max="150"
-                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-sm"
                     placeholder="Enter age"
                   />
                 </div>
@@ -231,7 +230,7 @@ export default function AddPatient() {
                     value={formData.gender}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-sm"
                   >
                     <option value="">Select gender</option>
                     <option value="male">Male</option>
@@ -251,7 +250,7 @@ export default function AddPatient() {
                     value={formData.contact}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-sm"
                     placeholder="Enter contact number"
                   />
                 </div>
@@ -266,7 +265,7 @@ export default function AddPatient() {
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-sm"
                     placeholder="Enter email address"
                   />
                 </div>
@@ -285,7 +284,7 @@ export default function AddPatient() {
                         type="text"
                         value={centerInfo.name || 'Loading center...'}
                         readOnly
-                        className="w-full px-4 py-3 border border-slate-200 rounded-lg bg-slate-50 text-slate-700 cursor-not-allowed"
+                        className="w-full px-4 py-3 border border-slate-200 rounded-lg bg-slate-50 text-slate-700 cursor-not-allowed text-sm"
                         placeholder="Center name will be auto-filled"
                       />
                     </div>
@@ -297,7 +296,7 @@ export default function AddPatient() {
                         type="text"
                         value={centerInfo.code || 'Loading...'}
                         readOnly
-                        className="w-full px-4 py-3 border border-slate-200 rounded-lg bg-slate-50 text-slate-700 cursor-not-allowed"
+                        className="w-full px-4 py-3 border border-slate-200 rounded-lg bg-slate-50 text-slate-700 cursor-not-allowed text-sm"
                         placeholder="Center code will be auto-filled"
                       />
                     </div>
@@ -318,7 +317,7 @@ export default function AddPatient() {
                     name="assignedDoctor"
                     value={formData.assignedDoctor}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-sm"
                   >
                     <option value="">Select doctor</option>
                     {doctorLoading ? (
@@ -347,7 +346,7 @@ export default function AddPatient() {
                   onChange={handleChange}
                   required
                   rows={3}
-                  className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                  className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-sm  "
                   placeholder="Enter complete address"
                 />
               </div>

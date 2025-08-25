@@ -1,5 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { fetchAtopicDermatitis, fetchAllFollowUps, fetchCenterFollowUps, fetchPatientDetails, fetchPatientPrescriptions, fetchPatientHistory, fetchPatientMedications, addPatientHistory, addPatientMedication, createDoctor, updateDoctor, fetchAllergicRhinitis, fetchSingleAllergicRhinitis, fetchAllergicConjunctivitis, addAtopicDermatitis, addAllergicBronchitis, fetchAllergicBronchitis, addGPE, fetchGPE, addPatientPrescription, fetchPrescription, fetchSinglePrescription, deletePrescription, addFollowUp } from './centerAdminThunks';
+import { fetchAtopicDermatitis, fetchAllFollowUps, fetchCenterFollowUps, fetchPatientDetails, fetchPatientPrescriptions, fetchPatientHistory, fetchPatientMedications, addPatientHistory, addPatientMedication, createDoctor, updateDoctor, fetchAllergicRhinitis, fetchSingleAllergicRhinitis, fetchAllergicConjunctivitis, addAtopicDermatitis, addAllergicBronchitis, fetchAllergicBronchitis, addGPE, fetchGPE, addPatientPrescription, fetchPrescription, fetchSinglePrescription, deletePrescription, addFollowUp, updatePatient, deletePatient } from './centerAdminThunks';
 
 const initialState = {
   center: null,
@@ -532,6 +532,40 @@ const centerAdminSlice = createSlice({
         state.addFollowUpSuccess = true;
       })
       .addCase(addFollowUp.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      
+      // Update patient
+      .addCase(updatePatient.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updatePatient.fulfilled, (state, action) => {
+        state.loading = false;
+        state.updateSuccess = true;
+        // Update the patient details in state
+        if (state.patientDetails && state.patientDetails.patient) {
+          state.patientDetails.patient = { ...state.patientDetails.patient, ...action.payload.patient };
+        }
+      })
+      .addCase(updatePatient.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      
+      // Delete patient
+      .addCase(deletePatient.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(deletePatient.fulfilled, (state, action) => {
+        state.loading = false;
+        state.deleteSuccess = true;
+        // Clear patient details after deletion
+        state.patientDetails = null;
+      })
+      .addCase(deletePatient.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       });

@@ -1,19 +1,11 @@
 import axios from 'axios';
 
 const API = axios.create({
-  baseURL: 'https://api.chanreallergyclinic.com/api',
+  baseURL: '/api', // Use proxy instead of direct backend URL
   timeout: 10000, // 10 second timeout
 });
 
-// Test function to check API connectivity
-export const testAPIConnection = async () => {
-  try {
-    const response = await API.get('/auth/me');
-    return true;
-  } catch (error) {
-    return false;
-  }
-};
+
 
 API.interceptors.request.use((config) => {
   try {

@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useSelector, useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { updateReceptionistThunk } from '../../../features/centerAdmin/centerAdminThunks';
 import { resetCenterAdminState } from '../../../features/centerAdmin/centerAdminSlice';
 import { Eye, EyeOff, UserCheck, ArrowLeft, Save } from 'lucide-react';
 import { toast } from 'react-toastify';
+import API from '../../../services/api';
 
 const EditReceptionist = () => {
   const { id } = useParams();
@@ -51,12 +52,8 @@ const EditReceptionist = () => {
 
   const fetchReceptionist = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await API.get(`/receptionists/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = response.data;
-      setFormData({ ...data, password: '' });
+      const response = await API.get(`/receptionists/${id}`);
+      setFormData({ ...response.data, password: '' });
     } catch (err) {
       console.error('Failed to fetch receptionist:', err);
       toast.error('Failed to fetch receptionist details', {

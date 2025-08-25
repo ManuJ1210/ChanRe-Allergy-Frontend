@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchPatientDetails, fetchPatientMedications, fetchPatientHistory, fetchFollowUps, fetchAllergicRhinitis, fetchAllergicConjunctivitis, fetchAllergicBronchitis, fetchAtopicDermatitis, fetchGPE, fetchPrescriptions, fetchTests } from '../../../../features/centerAdmin/centerAdminThunks';
+import { toast } from "react-toastify";
+import { fetchPatientDetails, fetchPatientMedications, fetchPatientHistory, fetchFollowUps, fetchAllergicRhinitis, fetchAllergicConjunctivitis, fetchAllergicBronchitis, fetchAtopicDermatitis, fetchGPE, fetchPrescriptions, fetchTests, updatePatient, deletePatient } from '../../../../features/centerAdmin/centerAdminThunks';
 import { 
-  ArrowLeft, User, Phone, Calendar, MapPin, Activity, Pill, FileText, Eye, Edit, Plus, AlertCircle, Mail, UserCheck
+  ArrowLeft, User, Phone, Calendar, MapPin, Activity, Pill, FileText, Eye, Edit, Plus, AlertCircle, Mail, UserCheck, Trash2
 } from 'lucide-react';
 
 const TABS = ["Overview", "Follow Up", "Prescription"];
@@ -13,11 +14,13 @@ const ViewProfile = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const [activeTab, setActiveTab] = useState("Overview");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
 
 
   const { 
-    patientDetails: patient,
+    patientDetails,
     medications, 
     history, 
     tests,
@@ -30,8 +33,28 @@ const ViewProfile = () => {
     prescriptions,
     loading, error, medLoading, medError, historyLoading, historyError
   } = useSelector(state => state.centerAdmin);
+
+  // Extract patient data from the new structure
+  const patient = patientDetails?.patient || patientDetails;
   
 
+
+  // Handle patient deletion
+  const handleDeletePatient = async () => {
+    if (!patient?._id) return;
+    
+    setDeleteLoading(true);
+    try {
+      await dispatch(deletePatient(patient._id)).unwrap();
+      toast.success('Patient deleted successfully!');
+      navigate('/dashboard/CenterAdmin/patients/PatientList');
+    } catch (error) {
+      toast.error(error || 'Failed to delete patient');
+    } finally {
+      setDeleteLoading(false);
+      setShowDeleteConfirm(false);
+    }
+  };
 
   useEffect(() => {
     // Check if ID is valid (not undefined, null, or empty string)
@@ -179,13 +202,22 @@ const ViewProfile = () => {
                     </div>
                 </div>
             </div>
-              <button
-                onClick={() => navigate(`/dashboard/CenterAdmin/patients/EditPatient/${patient?._id}`)}
-                className="bg-blue-500 hover:bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 w-full md:w-auto justify-center mt-4 md:mt-0 text-xs"
-              >
-                <Edit className="h-4 w-4" />
-                Edit Patient
-              </button>
+              <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto mt-4 md:mt-0">
+                <button
+                  onClick={() => navigate(`/dashboard/CenterAdmin/patients/EditPatient/${patient?._id}`)}
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 justify-center text-xs"
+                >
+                  <Edit className="h-4 w-4" />
+                  Edit Patient
+                </button>
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="bg-red-500 hover:bg-red-600 text-white px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 justify-center text-xs"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete Patient
+                </button>
+              </div>
             </div>
           </div>
 

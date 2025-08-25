@@ -54,6 +54,14 @@ export default function SuperadminDashboard() {
               onClick: () => navigate('/dashboard/superadmin/centers/manageadmins')
     },
     {
+      title: 'Billing Management',
+      description: 'Monitor billing across all centers',
+      icon: <FileText className="h-6 w-6" />,
+      color: 'bg-indigo-500',
+      hoverColor: 'hover:bg-indigo-600',
+              onClick: () => navigate('/dashboard/superadmin/billing')
+    },
+    {
       title: 'View Reports',
       description: 'System analytics and reports',
       icon: <TrendingUp className="h-6 w-6" />,

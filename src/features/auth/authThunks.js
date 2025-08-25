@@ -4,9 +4,9 @@ import API from '../../services/api';
 
 export const loginUser = createAsyncThunk(
   'auth/login',
-  async ({ email, password }, { rejectWithValue }) => {
+  async ({ emailOrUsername, password }, { rejectWithValue }) => {
     try {
-      const res = await API.post('/auth/login', { email, password });
+      const res = await API.post('/auth/login', { emailOrUsername, password });
       toast.success('Login successful!');
       return res.data;
     } catch (err) {

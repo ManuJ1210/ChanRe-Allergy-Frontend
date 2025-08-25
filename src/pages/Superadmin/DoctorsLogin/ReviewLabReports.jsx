@@ -19,6 +19,7 @@ import {
   clearError,
   clearSuccess 
 } from '../../../features/superadmin/superAdminDoctorSlice';
+import API from '../../../services/api';
 
 const ReviewLabReports = () => {
   const dispatch = useDispatch();
@@ -96,49 +97,38 @@ const ReviewLabReports = () => {
       
       let pdfUrl;
       
-      // Use the correct endpoint for lab reports
-      pdfUrl = `/test-requests/${report._id}/download-report`;
-      console.log('🔍 Using correct PDF endpoint:', pdfUrl);
+      // Use the API service for consistent configuration
+      console.log('🔍 Using API service for PDF download');
       
-      console.log('🔍 Fetching PDF from:', pdfUrl);
-      
-      // Get the auth token from localStorage
-      const token = localStorage.getItem('token');
-      
-      if (!token) {
-        throw new Error('No authentication token found. Please login again.');
-      }
-      
-      // Fetch the PDF data with authentication headers
-      const response = await fetch(pdfUrl, {
-        method: 'GET',
+      // Use the API service instead of hardcoded fetch
+      const response = await API.get(`/test-requests/download-report/${report._id}`, {
+        responseType: 'blob',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Accept': 'application/pdf'
         }
       });
       
       console.log('🔍 Response status:', response.status);
       console.log('🔍 Response headers:', response.headers);
       
-      if (!response.ok) {
+      if (response.status !== 200) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
       let pdfBlob;
       
       // Check if response is already a PDF blob
-      const contentType = response.headers.get('content-type');
+      const contentType = response.headers['content-type'] || response.headers['Content-Type'];
       console.log('🔍 Response content-type:', contentType);
       
       if (contentType && contentType.includes('application/pdf')) {
         // Response is already a PDF blob
-        pdfBlob = await response.blob();
+        pdfBlob = response.data;
         console.log('🔍 Using response as PDF blob');
       } else {
         // Handle text/JSON response that needs conversion
         console.log('🔍 Converting text response to PDF blob');
-        const responseData = await response.text();
+        const responseData = response.data;
         console.log('🔍 Response data type:', typeof responseData);
         console.log('🔍 Response data length:', responseData.length);
         
@@ -204,33 +194,23 @@ const ReviewLabReports = () => {
       console.error('❌ Error viewing PDF:', error);
       alert('Failed to load PDF report. Please try again or contact support.');
     }
-  };
+      };
 
   const handleDownloadPDF = async (report) => {
     try {
-      // Get the auth token from localStorage
-      const token = localStorage.getItem('token');
-      
-      if (!token) {
-        throw new Error('No authentication token found. Please login again.');
-      }
-      
-      // Use the correct endpoint for lab reports
-      const downloadUrl = `/test-requests/${report._id}/download-report`;
-      
-      const response = await fetch(downloadUrl, {
-        method: 'GET',
+      // Use the API service for consistent configuration
+      const response = await API.get(`/test-requests/download-report/${report._id}`, {
+        responseType: 'blob',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Accept': 'application/pdf'
         }
       });
       
-      if (!response.ok) {
+      if (response.status !== 200) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      const blob = await response.blob();
+      const blob = response.data;
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;

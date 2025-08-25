@@ -130,7 +130,7 @@ Lab Team`,
 
   const downloadReport = async () => {
     try {
-      const response = await API.get(`/test-requests/${id}/download-report`, {
+      const response = await API.get(`/test-requests/download-report/${id}`, {
         responseType: 'blob', // This is crucial for binary data
         headers: {
           'Accept': 'application/pdf'
@@ -199,7 +199,7 @@ Lab Team`,
   // Alternative function to view PDF in browser instead of downloading
   const viewReport = async () => {
     try {
-      const response = await API.get(`/test-requests/${id}/download-report`, {
+      const response = await API.get(`/test-requests/download-report/${id}`, {
         responseType: 'blob',
         headers: {
           'Accept': 'application/pdf'

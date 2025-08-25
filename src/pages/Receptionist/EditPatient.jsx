@@ -5,6 +5,7 @@ import { fetchReceptionistSinglePatient, updateReceptionistPatient } from "../..
 import { resetReceptionistState } from "../../features/receptionist/receptionistSlice";
 import ReceptionistLayout from './ReceptionistLayout';
 import { User, Save, ArrowLeft, CheckCircle, AlertCircle, Mail, Phone, MapPin, Calendar, UserCheck, Building2 } from "lucide-react";
+import API from "../../services/api";
 
 export default function EditPatient() {
   const { id } = useParams();
@@ -64,10 +65,10 @@ export default function EditPatient() {
     setDoctorError("");
     try {
       const token = localStorage.getItem("token");
-      const response = await API.get('/doctors', {
+      const response = await fetch(`${API}/doctors`, { 
         headers: { Authorization: `Bearer ${token}` }
       });
-      const data = response.data;
+      const data = await response.json();
       setDoctors(data);
     } catch (err) {
       setDoctorError("Failed to load doctors");

@@ -139,7 +139,7 @@ const AllTestReports = () => {
 
   const handleDownloadReport = async (reportId) => {
     try {
-      const response = await API.get(`/test-requests/${reportId}/download-report`);
+      const response = await API.get(`/test-requests/download-report/${reportId}`);
       
       // Create a text file with the report data
       const reportData = response.data;

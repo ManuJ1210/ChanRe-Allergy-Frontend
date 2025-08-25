@@ -13,7 +13,6 @@ import {
 } from 'lucide-react';
 import API from '../../services/api';
 
-
 export default function CenterAdminDashboard() {
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
@@ -29,28 +28,10 @@ export default function CenterAdminDashboard() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const token = localStorage.getItem('token');
-        console.log('Fetching stats with token:', token ? 'Token exists' : 'No token');
-        
-        const response = await API.get('/dashboard/centeradmin/stats', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        console.log('API Response:', response);
-        
-        if (response.status === 200) {
-          const data = response.data;
-          console.log('Stats data:', data);
-          setStats(data);
-        } else {
-          console.error('Failed to fetch stats, status:', response.status);
-        }
+        const response = await API.get('/dashboard/centeradmin/stats');
+        setStats(response.data);
       } catch (error) {
         console.error('Error fetching stats:', error);
-        console.error('Error details:', error.response?.data);
       } finally {
         setLoading(false);
       }
@@ -83,6 +64,14 @@ export default function CenterAdminDashboard() {
       color: 'bg-purple-500',
       hoverColor: 'hover:bg-purple-600',
               onClick: () => navigate('/dashboard/centeradmin/receptionist/addreceptionist')
+    },
+    {
+      title: 'Billing Management',
+      description: 'Monitor and verify billing',
+      icon: <FileText className="h-6 w-6" />,
+      color: 'bg-indigo-500',
+      hoverColor: 'hover:bg-indigo-600',
+              onClick: () => navigate('/dashboard/centeradmin/billing')
     },
     {
       title: 'View Patients',
@@ -192,8 +181,6 @@ export default function CenterAdminDashboard() {
             </div>
           </div>
         </div>
-
-
 
         {/* Management Sections */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

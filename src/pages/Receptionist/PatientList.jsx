@@ -1,62 +1,46 @@
-import React, { useEffect, useState } from "react";
-import { useSelector, useDispatch } from "react-redux";
-import { useNavigate } from "react-router-dom";
-import { fetchReceptionistPatients, deleteReceptionistPatient } from "../../features/receptionist/receptionistThunks";
-import { resetReceptionistState } from "../../features/receptionist/receptionistSlice";
+import React, { useEffect, useState, useMemo } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import ReceptionistLayout from './ReceptionistLayout';
+import { fetchReceptionistPatients } from '../../features/receptionist/receptionistThunks';
 import { 
-  Users, 
   Search, 
   Plus, 
+  Users, 
+  User, 
   Eye, 
-  Edit, 
-  Trash2,
   Mail,
   Phone,
-  User,
   Calendar,
-  MapPin,
-  FileText
+  UserCheck,
+  MapPin
 } from 'lucide-react';
+import API from '../../services/api';
 
-export default function PatientList() {
+export default function ReceptionistPatientList() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { patients, loading, error, deleteSuccess } = useSelector((state) => state.receptionist);
-  
-
-  const [selectedPatient, setSelectedPatient] = useState(null);
+  const { patients, loading, error } = useSelector((state) => state.receptionist);
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredPatients, setFilteredPatients] = useState([]);
+
 
   useEffect(() => {
     dispatch(fetchReceptionistPatients());
   }, [dispatch]);
 
   useEffect(() => {
-    if (deleteSuccess) {
-      setTimeout(() => {
-        dispatch(resetReceptionistState());
-      }, 2000);
-    }
-  }, [deleteSuccess, dispatch]);
-
-  useEffect(() => {
     const filtered = patients.filter(patient =>
       patient.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       patient.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      patient.contact?.includes(searchTerm) ||
       patient.phone?.includes(searchTerm) ||
       patient.address?.toLowerCase().includes(searchTerm.toLowerCase())
     );
     setFilteredPatients(filtered);
   }, [patients, searchTerm]);
 
-  const handleDelete = (id) => {
-    if (window.confirm('Are you sure you want to delete this patient?')) {
-      dispatch(deleteReceptionistPatient(id));
-    }
-  };
+
 
   const getGenderStats = () => {
     const maleCount = patients.filter(p => p.gender === 'male').length;
@@ -102,7 +86,7 @@ export default function PatientList() {
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-xl font-bold text-slate-800 mb-2">
+            <h1 className="text-md font-bold text-slate-800 mb-2">
               Patient List
             </h1>
             <p className="text-slate-600">
@@ -111,12 +95,7 @@ export default function PatientList() {
           </div>
 
           {/* Success Message */}
-          {deleteSuccess && (
-            <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4 flex items-center">
-              <Users className="h-5 w-5 text-green-500 mr-3" />
-              <span className="text-green-700">Patient deleted successfully!</span>
-            </div>
-          )}
+          
 
           {/* Search and Add Button */}
           <div className="bg-white rounded-xl shadow-sm border border-blue-100 mb-6">
@@ -149,7 +128,7 @@ export default function PatientList() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-slate-600 text-xs font-medium">Total Patients</p>
-                  <p className="text-xl font-bold text-slate-800">{patients.length}</p>
+                  <p className="text-md font-bold text-slate-800">{patients.length}</p>
                 </div>
                 <Users className="h-8 w-8 text-blue-500" />
               </div>
@@ -159,7 +138,7 @@ export default function PatientList() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-slate-600 text-xs font-medium">Male Patients</p>
-                  <p className="text-xl font-bold text-slate-800">{genderStats.maleCount}</p>
+                  <p className="text-md font-bold text-slate-800">{genderStats.maleCount}</p>
                 </div>
                 <User className="h-8 w-8 text-blue-500" />
               </div>
@@ -169,7 +148,7 @@ export default function PatientList() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-slate-600 text-xs font-medium">Female Patients</p>
-                  <p className="text-xl font-bold text-slate-800">{genderStats.femaleCount}</p>
+                  <p className="text-md font-bold text-slate-800">{genderStats.femaleCount}</p>
                 </div>
                 <User className="h-8 w-8 text-pink-500" />
               </div>
@@ -179,7 +158,7 @@ export default function PatientList() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-slate-600 text-xs font-medium">Other</p>
-                  <p className="text-xl font-bold text-slate-800">{genderStats.otherCount}</p>
+                  <p className="text-md font-bold text-slate-800">{genderStats.otherCount}</p>
                 </div>
                 <User className="h-8 w-8 text-purple-500" />
               </div>
@@ -202,6 +181,9 @@ export default function PatientList() {
                       Age & Gender
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                      Assigned Doctor
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                       Address
                     </th>
                     <th className="px-6 py-4 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
@@ -214,7 +196,7 @@ export default function PatientList() {
                     <tr>
                       <td colSpan="5" className="px-6 py-12 text-center">
                         <Users className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                        <h3 className="text-sm font-medium text-slate-600 mb-2">No Patients Found</h3>
+                        <h3 className="text-xs font-medium text-slate-600 mb-2">No Patients Found</h3>
                         <p className="text-slate-500 mb-4">
                           {searchTerm ? 'No patients match your search.' : 'Get started by adding your first patient.'}
                         </p>
@@ -266,6 +248,14 @@ export default function PatientList() {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center text-sm text-slate-900">
+                            <UserCheck className="h-3 w-3 mr-2 text-slate-400" />
+                            {patient.assignedDoctor?.name || (
+                              <span className="text-yellow-600 font-medium">Not assigned</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center text-xs text-slate-900">
                             <MapPin className="h-3 w-3 mr-2 text-slate-400" />
                             {patient.address || 'No address'}
@@ -276,42 +266,16 @@ export default function PatientList() {
                             {patient._id ? (
                               <button
                                 onClick={() => navigate(`/dashboard/receptionist/profile/${patient._id}`)}
-                                className="text-blue-600 hover:text-blue-900 p-1 rounded transition-colors"
-                                title="View patient"
+                                className="bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 px-3 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+                                title="View patient profile"
                               >
                                 <Eye className="h-4 w-4" />
+                                View Profile
                               </button>
                             ) : (
-                              <span className="text-slate-400 p-1" title="No patient ID available">
+                              <span className="text-slate-400 px-3 py-2 rounded-lg bg-slate-50 flex items-center gap-2">
                                 <Eye className="h-4 w-4" />
-                              </span>
-                            )}
-                              
-                          
-                            {patient._id ? (
-                              <button
-                                onClick={() => navigate(`/dashboard/receptionist/edit-patient/${patient._id}`)}
-                                className="text-green-600 hover:text-green-900 p-1 rounded transition-colors"
-                                title="Edit patient"
-                              >
-                                <Edit className="h-4 w-4" />
-                              </button>
-                            ) : (
-                              <span className="text-slate-400 p-1" title="No patient ID available">
-                                <Edit className="h-4 w-4" />
-                              </span>
-                            )}
-                            {patient._id ? (
-                              <button
-                                onClick={() => handleDelete(patient._id)}
-                                className="text-red-600 hover:text-red-900 p-1 rounded transition-colors"
-                                title="Delete patient"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
-                            ) : (
-                              <span className="text-slate-400 p-1" title="No patient ID available">
-                                <Trash2 className="h-4 w-4" />
+                                No Access
                               </span>
                             )}
                           </div>
@@ -325,6 +289,9 @@ export default function PatientList() {
           </div>
         </div>
       </div>
-    </ReceptionistLayout>
+
+
+        
+            </ReceptionistLayout>
   );
 }

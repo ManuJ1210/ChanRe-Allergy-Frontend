@@ -11,7 +11,8 @@ import {
   Plus,
   Eye,
   Phone,
-  Mail
+  Mail,
+  Receipt
 } from 'lucide-react';
 
 export default function ReceptionistDashboard() {
@@ -26,36 +27,20 @@ export default function ReceptionistDashboard() {
 
   const quickActions = [
     {
-      title: 'Add Patient',
-      description: 'Register a new patient',
-      icon: <UserPlus className="h-6 w-6" />,
-      color: 'bg-blue-500',
-      hoverColor: 'hover:bg-blue-600',
-                  onClick: () => navigate('/dashboard/receptionist/add-patient')
-    },
-    {
       title: 'View Patients',
-      description: 'Manage all patients',
+      description: 'Browse patient profiles',
       icon: <Users className="h-6 w-6" />,
       color: 'bg-green-500',
       hoverColor: 'hover:bg-green-600',
       onClick: () => navigate('/dashboard/receptionist/patients')
     },
     {
-      title: 'Add Test',
-      description: 'Select a patient to add test results',
+      title: 'Billing',
+      description: 'Generate invoices and mark payments',
       icon: <FileText className="h-6 w-6" />,
       color: 'bg-purple-500',
       hoverColor: 'hover:bg-purple-600',
-      onClick: () => navigate('/dashboard/receptionist/patients')
-    },
-    {
-      title: 'Patient History',
-      description: 'View all patients and their history',
-      icon: <Calendar className="h-6 w-6" />,
-      color: 'bg-orange-500',
-      hoverColor: 'hover:bg-orange-600',
-      onClick: () => navigate('/dashboard/receptionist/patients')
+      onClick: () => navigate('/dashboard/receptionist/billing')
     }
   ];
 
@@ -96,10 +81,10 @@ export default function ReceptionistDashboard() {
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-xl font-bold text-slate-800 mb-2">
+            <h1 className="text-md font-bold text-slate-800 mb-2">
               Welcome back, {user?.name}
             </h1>
-            <p className="text-slate-600">
+            <p className="text-slate-600 text-sm">
               Manage your patients and daily tasks
             </p>
           </div>
@@ -110,7 +95,7 @@ export default function ReceptionistDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-slate-600 text-xs font-medium">Total Patients</p>
-                  <p className="text-xl font-bold text-slate-800">{stats.totalPatients}</p>
+                  <p className="text-md font-bold text-slate-800">{stats.totalPatients}</p>
                 </div>
                 <Users className="h-8 w-8 text-blue-500" />
               </div>
@@ -120,7 +105,7 @@ export default function ReceptionistDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-slate-600 text-xs font-medium">Today's Patients</p>
-                  <p className="text-xl font-bold text-slate-800">{stats.todayPatients}</p>
+                  <p className="text-md font-bold text-slate-800">{stats.todayPatients}</p>
                 </div>
                 <Calendar className="h-8 w-8 text-green-500" />
               </div>
@@ -130,7 +115,7 @@ export default function ReceptionistDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-slate-600 text-xs font-medium">Pending Tests</p>
-                  <p className="text-xl font-bold text-slate-800">{stats.pendingTests}</p>
+                  <p className="text-md font-bold text-slate-800">{stats.pendingTests}</p>
                 </div>
                 <FileText className="h-8 w-8 text-yellow-500" />
               </div>
@@ -140,7 +125,7 @@ export default function ReceptionistDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-slate-600 text-xs font-medium">Completed Tests</p>
-                  <p className="text-xl font-bold text-slate-800">{stats.completedTests}</p>
+                  <p className="text-md font-bold text-slate-800">{stats.completedTests}</p>
                 </div>
                 <FileText className="h-8 w-8 text-purple-500" />
               </div>
@@ -150,26 +135,26 @@ export default function ReceptionistDashboard() {
           {/* Quick Actions */}
           <div className="bg-white rounded-xl shadow-sm border border-blue-100 mb-8">
             <div className="p-6 border-b border-blue-100">
-              <h2 className="text-lg font-semibold text-slate-800 flex items-center">
+              <h2 className="text-sm font-semibold text-slate-800 flex items-center">
                 <Plus className="h-5 w-5 mr-2 text-blue-500" />
                 Quick Actions
               </h2>
-              <p className="text-slate-600 mt-1">
+              <p className="text-slate-600 mt-1 text-sm">
                 Common tasks and shortcuts
               </p>
             </div>
             <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {quickActions.map((action, index) => (
                   <button
                     key={index}
                     onClick={action.onClick}
-                    className={`${action.color} ${action.hoverColor} text-white p-4 rounded-lg transition-colors flex flex-col items-center gap-3`}
+                    className={`${action.color} ${action.hoverColor} text-white p-6 rounded-lg transition-colors flex flex-col items-center gap-4 h-32 justify-center`}
                   >
                     {action.icon}
                     <div className="text-center">
-                      <h3 className="font-semibold">{action.title}</h3>
-                      <p className="text-xs opacity-90">{action.description}</p>
+                      <h3 className="font-semibold text-base">{action.title}</h3>
+                      <p className="text-sm opacity-90">{action.description}</p>
                     </div>
                   </button>
                 ))}
@@ -182,17 +167,17 @@ export default function ReceptionistDashboard() {
             <div className="p-6 border-b border-blue-100">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-lg font-semibold text-slate-800 flex items-center">
+                  <h2 className="text-sm font-semibold text-slate-800 flex items-center">
                     <Users className="h-5 w-5 mr-2 text-blue-500" />
                     Recent Patients
                   </h2>
-                  <p className="text-slate-600 mt-1">
+                  <p className="text-slate-600 mt-1 text-xs">
                     Latest registered patients
                   </p>
                 </div>
                 <button
                   onClick={() => navigate('/dashboard/receptionist/patients')}
-                  className="text-blue-500 hover:text-blue-600 font-medium"
+                  className="text-blue-500 hover:text-blue-600 font-medium text-sm"
                 >
                   View All
                 </button>
@@ -203,14 +188,8 @@ export default function ReceptionistDashboard() {
                 <div className="text-center py-8">
                   <Users className="h-12 w-12 text-slate-400 mx-auto mb-4" />
                   <h3 className="text-sm font-medium text-slate-600 mb-2">No Patients Yet</h3>
-                  <p className="text-slate-500 mb-4">Start by adding your first patient.</p>
-                  <button
-                    onClick={() => navigate('/dashboard/receptionist/add-patient')}
-                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 mx-auto"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Add Patient
-                  </button>
+                  <p className="text-slate-500 mb-4 text-xs">Start by adding your first patient.</p>
+                  {/* Removed Add Patient button */}
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -224,7 +203,7 @@ export default function ReceptionistDashboard() {
                           <Users className="h-5 w-5 text-blue-500" />
                         </div>
                         <div>
-                          <h3 className="font-medium text-slate-800">{patient.name}</h3>
+                          <h3 className="font-medium text-slate-800 text-sm">{patient.name}</h3>
                           <div className="flex items-center gap-4 text-xs text-slate-600">
                             <span className="flex items-center gap-1">
                               <Mail className="h-3 w-3" />
@@ -239,7 +218,7 @@ export default function ReceptionistDashboard() {
                       </div>
                       <button
                         onClick={() => navigate(`/dashboard/receptionist/profile/${patient._id}`)}
-                        className="text-blue-500 hover:text-blue-600 flex items-center gap-1"
+                        className="text-blue-500 hover:text-blue-600 flex items-center gap-1 text-sm"
                       >
                         <Eye className="h-4 w-4" />
                         View

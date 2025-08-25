@@ -1,42 +1,33 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import { useSelector, useDispatch } from "react-redux";
-import { fetchReceptionistSinglePatient } from "../../features/receptionist/receptionistThunks";
+import { useParams, useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { ArrowLeft, Calendar, FileText, User, CheckCircle, AlertCircle } from "lucide-react";
+import { fetchReceptionistPatientHistory } from "../../features/receptionist/receptionistThunks";
 import ReceptionistLayout from './ReceptionistLayout';
-import { 
-  User, 
-  Calendar, 
-  Mail, 
-  Phone, 
-  MapPin, 
-  FileText, 
-  FlaskConical, 
-  Pill, 
-  Clock,
-  Building2,
-  UserCheck
-} from 'lucide-react';
 
-export default function PatientHistory() {
-  const { id } = useParams();
+const ViewHistory = () => {
+  const { patientId } = useParams();
+  const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { singlePatient, patientLoading, patientError } = useSelector((state) => state.receptionist);
-  const [activeTab, setActiveTab] = useState('profile');
+  
+  const { history, historyLoading, historyError } = useSelector((state) => state.receptionist);
 
   useEffect(() => {
-    if (id) {
-      dispatch(fetchReceptionistSinglePatient(id));
+    if (patientId) {
+      dispatch(fetchReceptionistPatientHistory(patientId));
     }
-  }, [dispatch, id]);
+  }, [dispatch, patientId]);
 
-  if (patientLoading) {
+  if (historyLoading) {
     return (
       <ReceptionistLayout>
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 sm:p-6">
-          <div className="max-w-6xl mx-auto">
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-              <p className="text-slate-600">Loading patient details...</p>
+          <div className="max-w-4xl mx-auto">
+            <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-6">
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                <p className="text-slate-600 text-xs">Loading history details...</p>
+              </div>
             </div>
           </div>
         </div>
@@ -44,13 +35,13 @@ export default function PatientHistory() {
     );
   }
 
-  if (patientError) {
+  if (historyError) {
     return (
       <ReceptionistLayout>
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 sm:p-6">
-          <div className="max-w-6xl mx-auto">
-            <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-              <p className="text-red-600">{patientError}</p>
+          <div className="max-w-4xl mx-auto">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <p className="text-red-600 text-xs">{historyError}</p>
             </div>
           </div>
         </div>
@@ -58,326 +49,790 @@ export default function PatientHistory() {
     );
   }
 
-  if (!singlePatient) {
+  if (!history || history.length === 0) {
     return (
       <ReceptionistLayout>
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 sm:p-6">
-          <div className="max-w-6xl mx-auto">
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
-              <p className="text-yellow-700">Patient not found</p>
+          <div className="max-w-4xl mx-auto">
+            {/* Header */}
+            <div className="mb-8">
+              <button
+                onClick={() => navigate(-1)}
+                className="flex items-center text-slate-600 hover:text-slate-800 mb-4 transition-colors text-xs"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Patient Profile
+              </button>
+              <h1 className="text-md font-bold text-slate-800 mb-2">
+                Medical History Details
+              </h1>
+              <p className="text-slate-600 text-xs">
+                No history records found for this patient
+              </p>
+            </div>
+
+            {/* Empty State */}
+            <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-8">
+              <div className="text-center">
+                <FileText className="h-16 w-16 text-slate-300 mx-auto mb-4" />
+                <h3 className="text-sm font-semibold text-slate-700 mb-2">
+                  No Medical History Found
+                </h3>
+                <p className="text-slate-500 mb-6 text-xs">
+                  This patient doesn't have any medical history records yet. 
+                  History records will appear here once they are added.
+                </p>
+                <button
+                  onClick={() => navigate(-1)}
+                  className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors text-xs"
+                >
+                  Go Back
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </ReceptionistLayout>
     );
   }
-
-  const tabs = [
-    { id: 'profile', label: 'Profile', icon: User },
-    { id: 'history', label: 'History', icon: FileText },
-    { id: 'tests', label: 'Tests', icon: FlaskConical },
-    { id: 'medications', label: 'Medications', icon: Pill },
-  ];
-
-  const renderProfile = () => (
-    <div className="space-y-6">
-      <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-6">
-        <h3 className="text-sm font-semibold text-slate-800 mb-4 flex items-center">
-          <User className="h-5 w-5 mr-2 text-blue-500" />
-          Personal Information
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-xs font-medium text-slate-700 mb-2">Full Name</label>
-            <p className="text-slate-900">{singlePatient.name}</p>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Age</label>
-            <p className="text-slate-900">{singlePatient.age} years</p>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Gender</label>
-            <p className="text-slate-900 capitalize">{singlePatient.gender}</p>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Center Code</label>
-            <p className="text-slate-900">{singlePatient.centerCode || 'Not specified'}</p>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Email</label>
-            <p className="text-slate-900">{singlePatient.email || 'Not provided'}</p>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Phone</label>
-            <p className="text-slate-900">{singlePatient.contact || 'Not provided'}</p>
-          </div>
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-slate-700 mb-2">Address</label>
-            <p className="text-slate-900">{singlePatient.address || 'Not provided'}</p>
-          </div>
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-slate-700 mb-2">Assigned Doctor</label>
-            <p className="text-slate-900">
-              {singlePatient.assignedDoctor?.name ? `Dr. ${singlePatient.assignedDoctor.name}` : 'Not assigned'}
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderHistory = () => (
-    <div className="space-y-6">
-      <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-6">
-        <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center">
-          <FileText className="h-5 w-5 mr-2 text-blue-500" />
-          Medical History
-        </h3>
-        {singlePatient.history ? (
-          <div className="space-y-6">
-            {singlePatient.history.medicalHistory && (
-              <div>
-                <h4 className="font-medium text-slate-800 mb-2">Medical History</h4>
-                <p className="text-slate-600 bg-slate-50 p-3 rounded-lg">
-                  {singlePatient.history.medicalHistory}
-                </p>
-              </div>
-            )}
-            {singlePatient.history.familyHistory && (
-              <div>
-                <h4 className="font-medium text-slate-800 mb-2">Family History</h4>
-                <p className="text-slate-600 bg-slate-50 p-3 rounded-lg">
-                  {singlePatient.history.familyHistory}
-                </p>
-              </div>
-            )}
-            {singlePatient.history.socialHistory && (
-              <div>
-                <h4 className="font-medium text-slate-800 mb-2">Social History</h4>
-                <p className="text-slate-600 bg-slate-50 p-3 rounded-lg">
-                  {singlePatient.history.socialHistory}
-                </p>
-              </div>
-            )}
-            {singlePatient.history.allergies && (
-              <div>
-                <h4 className="font-medium text-slate-800 mb-2">Allergies</h4>
-                <p className="text-slate-600 bg-slate-50 p-3 rounded-lg">
-                  {singlePatient.history.allergies}
-                </p>
-              </div>
-            )}
-            {singlePatient.history.currentMedications && (
-              <div>
-                <h4 className="font-medium text-slate-800 mb-2">Current Medications</h4>
-                <p className="text-slate-600 bg-slate-50 p-3 rounded-lg">
-                  {singlePatient.history.currentMedications}
-                </p>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            <FileText className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-slate-600 mb-2">No History Available</h3>
-            <p className="text-slate-500">Medical history has not been recorded yet.</p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
-  const renderTests = () => (
-    <div className="space-y-6">
-      <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-6">
-        <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center">
-          <FlaskConical className="h-5 w-5 mr-2 text-blue-500" />
-          Test Records
-        </h3>
-        {singlePatient.tests && singlePatient.tests.length > 0 ? (
-          <div className="space-y-4">
-            {singlePatient.tests.map((test, index) => (
-              <div key={index} className="border border-slate-200 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-medium text-slate-800">{test.testName}</h4>
-                  <span className="text-sm text-slate-500">
-                    <Clock className="h-3 w-3 inline mr-1" />
-                    {new Date(test.date).toLocaleDateString()}
-                  </span>
-                </div>
-                <p className="text-slate-600 text-sm">{test.description}</p>
-                {test.results && (
-                  <div className="mt-2">
-                    <span className="text-sm font-medium text-slate-700">Results: </span>
-                    <span className="text-sm text-slate-600">{test.results}</span>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            <FlaskConical className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-slate-600 mb-2">No Tests Available</h3>
-            <p className="text-slate-500">No test records found for this patient.</p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
-  const renderMedications = () => (
-    <div className="space-y-6">
-      <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-6">
-        <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center">
-          <Pill className="h-5 w-5 mr-2 text-blue-500" />
-          Medication Records
-        </h3>
-        {singlePatient.medications && singlePatient.medications.length > 0 ? (
-          <div className="space-y-4">
-            {singlePatient.medications.map((medication, index) => (
-              <div key={index} className="border border-slate-200 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-medium text-slate-800">{medication.medicationName}</h4>
-                  <span className="text-sm text-slate-500">
-                    <Clock className="h-3 w-3 inline mr-1" />
-                    {new Date(medication.prescribedDate).toLocaleDateString()}
-                  </span>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="font-medium text-slate-700">Dosage: </span>
-                    <span className="text-slate-600">{medication.dosage}</span>
-                  </div>
-                  <div>
-                    <span className="font-medium text-slate-700">Frequency: </span>
-                    <span className="text-slate-600">{medication.frequency}</span>
-                  </div>
-                  <div>
-                    <span className="font-medium text-slate-700">Duration: </span>
-                    <span className="text-slate-600">{medication.duration}</span>
-                  </div>
-                  <div>
-                    <span className="font-medium text-slate-700">Prescribed By: </span>
-                    <span className="text-slate-600">{medication.prescribedBy}</span>
-                  </div>
-                </div>
-                {medication.instructions && (
-                  <div className="mt-2">
-                    <span className="text-sm font-medium text-slate-700">Instructions: </span>
-                    <span className="text-sm text-slate-600">{medication.instructions}</span>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            <Pill className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-slate-600 mb-2">No Medications Available</h3>
-            <p className="text-slate-500">No medication records found for this patient.</p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case 'profile':
-        return renderProfile();
-      case 'history':
-        return renderHistory();
-      case 'tests':
-        return renderTests();
-      case 'medications':
-        return renderMedications();
-      default:
-        return renderProfile();
-    }
-  };
 
   return (
     <ReceptionistLayout>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 sm:p-6">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-4xl mx-auto">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-slate-800 mb-2">
-              Patient History
+            <button
+              onClick={() => navigate(-1)}
+              className="flex items-center text-slate-600 hover:text-slate-800 mb-4 transition-colors text-xs"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Patient Profile
+            </button>
+            <h1 className="text-md font-bold text-slate-800 mb-2">
+              Medical History Details
             </h1>
-            <p className="text-slate-600">
-              View complete patient information and medical records
+            <p className="text-slate-600 text-xs">
+              Complete medical history and examination records ({history.length} records)
             </p>
           </div>
 
-          {/* Patient Info Card */}
-          <div className="bg-white rounded-xl shadow-sm border border-blue-100 mb-6">
-            <div className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-                  <User className="h-8 w-8 text-blue-500" />
-                </div>
-                <div className="flex-1">
-                  <h2 className="text-xl font-semibold text-slate-800">{singlePatient.name}</h2>
-                  <div className="flex flex-wrap gap-4 mt-2 text-sm text-slate-600">
-                    <span className="flex items-center">
-                      <Calendar className="h-3 w-3 mr-1" />
-                      {singlePatient.age} years, {singlePatient.gender}
-                    </span>
-                    {singlePatient.email && (
-                      <span className="flex items-center">
-                        <Mail className="h-3 w-3 mr-1" />
-                        {singlePatient.email}
-                      </span>
-                    )}
-                    {singlePatient.contact && (
-                      <span className="flex items-center">
-                        <Phone className="h-3 w-3 mr-1" />
-                        {singlePatient.contact}
-                      </span>
-                    )}
-                    {singlePatient.centerCode && (
-                      <span className="flex items-center">
-                        <Building2 className="h-3 w-3 mr-1" />
-                        {singlePatient.centerCode}
-                      </span>
-                    )}
+          {/* History Records */}
+          <div className="space-y-6">
+            {history.map((historyRecord, index) => (
+              <div key={historyRecord._id || index} className="bg-white rounded-xl shadow-sm border border-blue-100">
+                <div className="p-6 border-b border-blue-100">
+                  <h2 className="text-sm font-semibold text-slate-800 flex items-center">
+                    <FileText className="h-5 w-5 mr-2 text-blue-500" />
+                    History Record #{index + 1}
+                  </h2>
+                  <div className="flex items-center gap-2 text-xs text-blue-500 mt-2">
+                    <Calendar className="h-4 w-4" />
+                    {historyRecord.createdAt ? new Date(historyRecord.createdAt).toLocaleDateString() : "N/A"}
                   </div>
                 </div>
-              </div>
-            </div>
-          </div>
 
-          {/* Tabs */}
-          <div className="bg-white rounded-xl shadow-sm border border-blue-100 mb-6">
-            <div className="border-b border-slate-200">
-              <nav className="flex space-x-8 px-6">
-                {tabs.map((tab) => {
-                  const Icon = tab.icon;
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveTab(tab.id)}
-                      className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors ${
-                        activeTab === tab.id
-                          ? 'border-blue-500 text-blue-600'
-                          : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-                      }`}
-                    >
-                      <Icon className="h-4 w-4" />
-                      {tab.label}
-                    </button>
-                  );
-                })}
-              </nav>
-            </div>
-            <div className="p-6">
-              {renderTabContent()}
-            </div>
+                <div className="p-6 space-y-8">
+                  {/* Medical Conditions */}
+                  {(historyRecord.hayFever || historyRecord.asthma || historyRecord.breathingProblems || historyRecord.hivesSwelling || 
+                    historyRecord.sinusTrouble || historyRecord.eczemaRashes || historyRecord.foodAllergies || historyRecord.arthriticDiseases || 
+                    historyRecord.immuneDefect || historyRecord.drugAllergy || historyRecord.beeStingHypersensitivity) && (
+                    <div>
+                      <h3 className="text-lg font-semibold text-slate-800 mb-4 border-b border-slate-200 pb-2">
+                        Medical Conditions
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {historyRecord.hayFever && (
+                          <div className="p-3 bg-slate-50 rounded-lg">
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-sm font-medium text-slate-600">Hay Fever:</span>
+                              <span className="text-sm text-slate-800 font-medium">{historyRecord.hayFever}</span>
+                            </div>
+                            {historyRecord.hayFeverDuration && (
+                              <div className="text-xs text-slate-500">
+                                Duration: {historyRecord.hayFeverDuration} months
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {historyRecord.asthma && (
+                          <div className="p-3 bg-slate-50 rounded-lg">
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-sm font-medium text-slate-600">Asthma:</span>
+                              <span className="text-sm text-slate-800 font-medium">{historyRecord.asthma}</span>
+                            </div>
+                            {historyRecord.asthmaDuration && (
+                              <div className="text-xs text-slate-500">
+                                Duration: {historyRecord.asthmaDuration} months
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {historyRecord.breathingProblems && (
+                          <div className="p-3 bg-slate-50 rounded-lg">
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-sm font-medium text-slate-600">Breathing Problems:</span>
+                              <span className="text-sm text-slate-800 font-medium">{historyRecord.breathingProblems}</span>
+                            </div>
+                            {historyRecord.breathingProblemsDuration && (
+                              <div className="text-xs text-slate-500">
+                                Duration: {historyRecord.breathingProblemsDuration} months
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {historyRecord.hivesSwelling && (
+                          <div className="p-3 bg-slate-50 rounded-lg">
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-sm font-medium text-slate-600">Hives/Swelling:</span>
+                              <span className="text-sm text-slate-800 font-medium">{historyRecord.hivesSwelling}</span>
+                            </div>
+                            {historyRecord.hivesSwellingDuration && (
+                              <div className="text-xs text-slate-500">
+                                Duration: {historyRecord.hivesSwellingDuration} months
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {historyRecord.sinusTrouble && (
+                          <div className="p-3 bg-slate-50 rounded-lg">
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-sm font-medium text-slate-600">Sinus Trouble:</span>
+                              <span className="text-sm text-slate-800 font-medium">{historyRecord.sinusTrouble}</span>
+                            </div>
+                            {historyRecord.sinusTroubleDuration && (
+                              <div className="text-xs text-slate-500">
+                                Duration: {historyRecord.sinusTroubleDuration} months
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {historyRecord.eczemaRashes && (
+                          <div className="p-3 bg-slate-50 rounded-lg">
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-sm font-medium text-slate-600">Eczema/Rashes:</span>
+                              <span className="text-sm text-slate-800 font-medium">{historyRecord.eczemaRashes}</span>
+                            </div>
+                            {historyRecord.eczemaRashesDuration && (
+                              <div className="text-xs text-slate-500">
+                                Duration: {historyRecord.eczemaRashesDuration} months
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {historyRecord.foodAllergies && (
+                          <div className="p-3 bg-slate-50 rounded-lg">
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-sm font-medium text-slate-600">Food Allergies:</span>
+                              <span className="text-sm text-slate-800 font-medium">{historyRecord.foodAllergies}</span>
+                            </div>
+                            {historyRecord.foodAllergiesDuration && (
+                              <div className="text-xs text-slate-500">
+                                Duration: {historyRecord.foodAllergiesDuration} months
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {historyRecord.drugAllergy && (
+                          <div className="p-3 bg-slate-50 rounded-lg">
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-sm font-medium text-slate-600">Drug Allergy:</span>
+                              <span className="text-sm text-slate-800 font-medium">{historyRecord.drugAllergy}</span>
+                            </div>
+                            {historyRecord.drugAllergyDuration && (
+                              <div className="text-xs text-slate-500">
+                                Duration: {historyRecord.drugAllergyDuration} months
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {historyRecord.arthriticDiseases && (
+                          <div className="p-3 bg-slate-50 rounded-lg">
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-sm font-medium text-slate-600">Arthritic Diseases:</span>
+                              <span className="text-sm text-slate-800 font-medium">{historyRecord.arthriticDiseases}</span>
+                            </div>
+                            {historyRecord.arthriticDiseasesDuration && (
+                              <div className="text-xs text-slate-500">
+                                Duration: {historyRecord.arthriticDiseasesDuration} months
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {historyRecord.immuneDefect && (
+                          <div className="p-3 bg-slate-50 rounded-lg">
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-sm font-medium text-slate-600">Immune Defect:</span>
+                              <span className="text-sm text-slate-800 font-medium">{historyRecord.immuneDefect}</span>
+                            </div>
+                            {historyRecord.immuneDefectDuration && (
+                              <div className="text-xs text-slate-500">
+                                Duration: {historyRecord.immuneDefectDuration} months
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {historyRecord.beeStingHypersensitivity && (
+                          <div className="p-3 bg-slate-50 rounded-lg">
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-sm font-medium text-slate-600">Bee Sting Hypersensitivity:</span>
+                              <span className="text-sm text-slate-800 font-medium">{historyRecord.beeStingHypersensitivity}</span>
+                            </div>
+                            {historyRecord.beeStingHypersensitivityDuration && (
+                              <div className="text-xs text-slate-500">
+                                Duration: {historyRecord.beeStingHypersensitivityDuration} months
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Hay Fever Details */}
+                  {(historyRecord.feverGrade || historyRecord.itchingSoreThroat || historyRecord.specificDayExposure) && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-800 mb-4 border-b border-slate-200 pb-2">
+                        Hay Fever Details
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {historyRecord.feverGrade && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Fever Grade:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.feverGrade}</span>
+                          </div>
+                        )}
+                        {historyRecord.itchingSoreThroat && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Itching/Sore Throat:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.itchingSoreThroat}</span>
+                          </div>
+                        )}
+                        {historyRecord.specificDayExposure && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Specific Day Exposure:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.specificDayExposure}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Asthma Details */}
+                  {(historyRecord.asthmaType || historyRecord.exacerbationsFrequency || historyRecord.hospitalAdmission || historyRecord.gpAttendances || historyRecord.aeAttendances || historyRecord.ituAdmissions || historyRecord.coughWheezeFrequency) && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-800 mb-4 border-b border-slate-200 pb-2">
+                        Asthma Details
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {historyRecord.asthmaType && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Asthma Type:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.asthmaType}</span>
+                          </div>
+                        )}
+                        {historyRecord.exacerbationsFrequency && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Exacerbations Frequency:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.exacerbationsFrequency}</span>
+                          </div>
+                        )}
+                        {historyRecord.hospitalAdmission && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Hospital Admission:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.hospitalAdmission}</span>
+                          </div>
+                        )}
+                        {historyRecord.gpAttendances && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">GP Attendances:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.gpAttendances}</span>
+                          </div>
+                        )}
+                        {historyRecord.aeAttendances && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">AE Attendances:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.aeAttendances}</span>
+                          </div>
+                        )}
+                        {historyRecord.ituAdmissions && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">ITU Admissions:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.ituAdmissions}</span>
+                          </div>
+                        )}
+                        {historyRecord.coughWheezeFrequency && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Cough/Wheeze Frequency:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.coughWheezeFrequency}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Medical Events & Symptoms */}
+                  {(historyRecord.intervalSymptoms || historyRecord.nightCoughFrequency || historyRecord.earlyMorningCough || historyRecord.exerciseInducedSymptoms || historyRecord.familySmoking || historyRecord.petsAtHome) && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-800 mb-4 border-b border-slate-200 pb-2">
+                        Medical Events & Symptoms
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {historyRecord.intervalSymptoms && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Interval Symptoms:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.intervalSymptoms}</span>
+                          </div>
+                        )}
+                        {historyRecord.nightCoughFrequency && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Night Cough Frequency:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.nightCoughFrequency}</span>
+                          </div>
+                        )}
+                        {historyRecord.earlyMorningCough && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Early Morning Cough:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.earlyMorningCough}</span>
+                          </div>
+                        )}
+                        {historyRecord.exerciseInducedSymptoms && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Exercise Induced Symptoms:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.exerciseInducedSymptoms}</span>
+                          </div>
+                        )}
+                        {historyRecord.familySmoking && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Family Smoking:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.familySmoking}</span>
+                          </div>
+                        )}
+                        {historyRecord.petsAtHome && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Pets at Home:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.petsAtHome}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Triggers */}
+                  {(historyRecord.triggersUrtis !== undefined || historyRecord.triggersColdWeather !== undefined || historyRecord.triggersPollen !== undefined || historyRecord.triggersSmoke !== undefined || historyRecord.triggersExercise !== undefined || historyRecord.triggersPets !== undefined || historyRecord.triggersOthers) && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-800 mb-4 border-b border-slate-200 pb-2">
+                        Triggers
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {historyRecord.triggersUrtis !== undefined && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">URTIs:</span>
+                            <span className={`text-xs font-medium ${historyRecord.triggersUrtis ? 'text-green-600' : 'text-red-600'}`}>
+                              {historyRecord.triggersUrtis ? 'Yes' : 'No'}
+                            </span>
+                          </div>
+                        )}
+                        {historyRecord.triggersColdWeather !== undefined && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Cold Weather:</span>
+                            <span className={`text-xs font-medium ${historyRecord.triggersColdWeather ? 'text-green-600' : 'text-red-600'}`}>
+                              {historyRecord.triggersColdWeather ? 'Yes' : 'No'}
+                            </span>
+                          </div>
+                        )}
+                        {historyRecord.triggersPollen !== undefined && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Pollen:</span>
+                            <span className={`text-xs font-medium ${historyRecord.triggersPollen ? 'text-green-600' : 'text-red-600'}`}>
+                              {historyRecord.triggersPollen ? 'Yes' : 'No'}
+                            </span>
+                          </div>
+                        )}
+                        {historyRecord.triggersSmoke !== undefined && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Smoke:</span>
+                            <span className={`text-xs font-medium ${historyRecord.triggersSmoke ? 'text-green-600' : 'text-red-600'}`}>
+                              {historyRecord.triggersSmoke ? 'Yes' : 'No'}
+                            </span>
+                          </div>
+                        )}
+                        {historyRecord.triggersExercise !== undefined && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Exercise:</span>
+                            <span className={`text-xs font-medium ${historyRecord.triggersExercise ? 'text-green-600' : 'text-red-600'}`}>
+                              {historyRecord.triggersExercise ? 'Yes' : 'No'}
+                            </span>
+                          </div>
+                        )}
+                        {historyRecord.triggersPets !== undefined && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Pets:</span>
+                            <span className={`text-xs font-medium ${historyRecord.triggersPets ? 'text-green-600' : 'text-red-600'}`}>
+                              {historyRecord.triggersPets ? 'Yes' : 'No'}
+                            </span>
+                          </div>
+                        )}
+                        {historyRecord.triggersOthers && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Other Triggers:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.triggersOthers}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Allergic Rhinitis */}
+                  {(historyRecord.allergicRhinitisType || historyRecord.rhinitisSneezing || historyRecord.rhinitisNasalCongestion || historyRecord.rhinitisRunningNose || historyRecord.rhinitisItchingNose || historyRecord.rhinitisItchingEyes || historyRecord.rhinitisCoughing || historyRecord.rhinitisWheezing || historyRecord.rhinitisCoughingWheezing || historyRecord.rhinitisWithExercise || historyRecord.rhinitisHeadaches || historyRecord.rhinitisPostNasalDrip) && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-800 mb-4 border-b border-slate-200 pb-2">
+                        Allergic Rhinitis
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {historyRecord.allergicRhinitisType && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Type:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.allergicRhinitisType}</span>
+                          </div>
+                        )}
+                        {historyRecord.rhinitisSneezing && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Sneezing:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.rhinitisSneezing}</span>
+                          </div>
+                        )}
+                        {historyRecord.rhinitisNasalCongestion && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Nasal Congestion:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.rhinitisNasalCongestion}</span>
+                          </div>
+                        )}
+                        {historyRecord.rhinitisRunningNose && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Running Nose:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.rhinitisRunningNose}</span>
+                          </div>
+                        )}
+                        {historyRecord.rhinitisItchingNose && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Itching Nose:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.rhinitisItchingNose}</span>
+                          </div>
+                        )}
+                        {historyRecord.rhinitisItchingEyes && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Itching Eyes:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.rhinitisItchingEyes}</span>
+                          </div>
+                        )}
+                        {historyRecord.rhinitisCoughing && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Coughing:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.rhinitisCoughing}</span>
+                          </div>
+                        )}
+                        {historyRecord.rhinitisWheezing && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Wheezing:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.rhinitisWheezing}</span>
+                          </div>
+                        )}
+                        {historyRecord.rhinitisCoughingWheezing && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Coughing/Wheezing:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.rhinitisCoughingWheezing}</span>
+                          </div>
+                        )}
+                        {historyRecord.rhinitisWithExercise && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">With Exercise:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.rhinitisWithExercise}</span>
+                          </div>
+                        )}
+                        {historyRecord.rhinitisHeadaches && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Headaches:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.rhinitisHeadaches}</span>
+                          </div>
+                        )}
+                        {historyRecord.rhinitisPostNasalDrip && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Post Nasal Drip:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.rhinitisPostNasalDrip}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Skin Allergy */}
+                  {(historyRecord.skinAllergyType || historyRecord.skinHeavesPresent || historyRecord.skinEczemaPresent || historyRecord.skinUlcerPresent || historyRecord.skinPapuloSquamousRashesPresent || historyRecord.skinItchingNoRashesPresent) && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-800 mb-4 border-b border-slate-200 pb-2">
+                        Skin Allergy
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {historyRecord.skinAllergyType && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Type:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.skinAllergyType}</span>
+                          </div>
+                        )}
+                        {historyRecord.skinHeavesPresent && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Hives Present:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.skinHeavesPresent}</span>
+                          </div>
+                        )}
+                        {historyRecord.skinHeavesDistribution && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Hives Distribution:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.skinHeavesDistribution}</span>
+                          </div>
+                        )}
+                        {historyRecord.skinEczemaPresent && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Eczema Present:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.skinEczemaPresent}</span>
+                          </div>
+                        )}
+                        {historyRecord.skinEczemaDistribution && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Eczema Distribution:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.skinEczemaDistribution}</span>
+                          </div>
+                        )}
+                        {historyRecord.skinUlcerPresent && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Ulcer Present:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.skinUlcerPresent}</span>
+                          </div>
+                        )}
+                        {historyRecord.skinUlcerDistribution && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Ulcer Distribution:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.skinUlcerDistribution}</span>
+                          </div>
+                        )}
+                        {historyRecord.skinPapuloSquamousRashesPresent && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Papulo-Squamous Rashes:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.skinPapuloSquamousRashesPresent}</span>
+                          </div>
+                        )}
+                        {historyRecord.skinPapuloSquamousRashesDistribution && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Rashes Distribution:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.skinPapuloSquamousRashesDistribution}</span>
+                          </div>
+                        )}
+                        {historyRecord.skinItchingNoRashesPresent && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Itching (No Rashes):</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.skinItchingNoRashesPresent}</span>
+                          </div>
+                        )}
+                        {historyRecord.skinItchingNoRashesDistribution && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Itching Distribution:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.skinItchingNoRashesDistribution}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Medical History */}
+                  {(historyRecord.hypertension || historyRecord.diabetes || historyRecord.epilepsy || historyRecord.ihd) && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-800 mb-4 border-b border-slate-200 pb-2">
+                        Medical History
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {historyRecord.hypertension && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Hypertension:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.hypertension}</span>
+                          </div>
+                        )}
+                        {historyRecord.diabetes && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Diabetes:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.diabetes}</span>
+                          </div>
+                        )}
+                        {historyRecord.epilepsy && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Epilepsy:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.epilepsy}</span>
+                          </div>
+                        )}
+                        {historyRecord.ihd && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">IHD:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.ihd}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Drug Allergies */}
+                  {(historyRecord.drugAllergyKnown || historyRecord.probable || historyRecord.definite) && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-800 mb-4 border-b border-slate-200 pb-2">
+                        Drug Allergies
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {historyRecord.drugAllergyKnown && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Known Allergies:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.drugAllergyKnown}</span>
+                          </div>
+                        )}
+                        {historyRecord.probable && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Probable:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.probable}</span>
+                          </div>
+                        )}
+                        {historyRecord.definite && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Definite:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.definite}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Occupation and Exposure */}
+                  {(historyRecord.occupation || historyRecord.probableChemicalExposure || historyRecord.location || historyRecord.familyHistory) && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-800 mb-4 border-b border-slate-200 pb-2">
+                        Occupation & Exposure
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {historyRecord.occupation && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Occupation:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.occupation}</span>
+                          </div>
+                        )}
+                        {historyRecord.probableChemicalExposure && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Chemical Exposure:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.probableChemicalExposure}</span>
+                          </div>
+                        )}
+                        {historyRecord.location && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Location:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.location}</span>
+                          </div>
+                        )}
+                        {historyRecord.familyHistory && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Family History:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.familyHistory}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Examination */}
+                  {(historyRecord.oralCavity || historyRecord.skin || historyRecord.ent || historyRecord.eye || historyRecord.respiratorySystem || historyRecord.cvs || historyRecord.cns || historyRecord.abdomen || historyRecord.otherFindings) && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-800 mb-4 border-b border-slate-200 pb-2">
+                        Examination Findings
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {historyRecord.oralCavity && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Oral Cavity:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.oralCavity}</span>
+                          </div>
+                        )}
+                        {historyRecord.skin && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Skin:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.skin}</span>
+                          </div>
+                        )}
+                        {historyRecord.ent && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">ENT:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.ent}</span>
+                          </div>
+                        )}
+                        {historyRecord.eye && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Eye:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.eye}</span>
+                          </div>
+                        )}
+                        {historyRecord.respiratorySystem && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Respiratory System:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.respiratorySystem}</span>
+                          </div>
+                        )}
+                        {historyRecord.cvs && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">CVS:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.cvs}</span>
+                          </div>
+                        )}
+                        {historyRecord.cns && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">CNS:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.cns}</span>
+                          </div>
+                        )}
+                        {historyRecord.abdomen && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Abdomen:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.abdomen}</span>
+                          </div>
+                        )}
+                        {historyRecord.otherFindings && (
+                          <div className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                            <span className="text-xs font-medium text-slate-600">Other Findings:</span>
+                            <span className="text-xs text-slate-800 font-medium">{historyRecord.otherFindings}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Report File */}
+                  {historyRecord.reportFile && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-800 mb-4 border-b border-slate-200 pb-2">
+                        Attached Report
+                      </h3>
+                      <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
+                        <FileText className="h-5 w-5 text-blue-600" />
+                        <span className="text-xs font-medium text-blue-800">{historyRecord.reportFile}</span>
+                        <button
+                          onClick={() => window.open(`/api/files/${historyRecord.reportFile}`, '_blank')}
+                          className="ml-auto bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700"
+                        >
+                          View File
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
     </ReceptionistLayout>
   );
-} 
+};
+
+export default ViewHistory; 

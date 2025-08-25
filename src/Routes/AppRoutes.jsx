@@ -9,8 +9,10 @@ import DashboardLayout from '../layouts/DashboardLayout';
 import PrivateRoute from '../components/PrivateRoute';
 import ErrorBoundary from '../components/ErrorBoundary';
 
+
 // Superadmin Pages
 import SuperadminDashboard from '../pages/Superadmin/Dashboard';
+import SuperadminBilling from '../pages/Superadmin/Billing';
 import CentersList from '../pages/Superadmin/Centers/CentersList';
 import AddCenter from '../pages/Superadmin/Centers/AddCenter';
 import EditCenter from '../pages/Superadmin/Centers/EditCenter';
@@ -62,11 +64,11 @@ import SuperadminDoctorPatientHistory from '../pages/Superadmin/DoctorsLogin/Pat
 import SuperadminDoctorPatientProfile from '../pages/Superadmin/DoctorsLogin/PatientProfile';
 
 // Superadmin Doctor Followups View Pages
-import DoctorViewAllergicRhinitis from '../pages/Superadmin/DoctorsLogin/Followups/ViewAllergicRhinitis';
-import DoctorViewAtopicDermatitis from '../pages/Superadmin/DoctorsLogin/Followups/ViewAtopicDermatitis';
-import DoctorViewAllergicConjunctivitis from '../pages/Superadmin/DoctorsLogin/Followups/ViewAllergicConjunctivitis';
-import DoctorViewAllergicBronchitis from '../pages/Superadmin/DoctorsLogin/Followups/ViewAllergicBronchitis';
-import DoctorViewGPE from '../pages/Superadmin/DoctorsLogin/Followups/ViewGPE';
+import SuperadminDoctorViewAllergicRhinitis from '../pages/Superadmin/DoctorsLogin/Followups/ViewAllergicRhinitis';
+import SuperadminDoctorViewAtopicDermatitis from '../pages/Superadmin/DoctorsLogin/Followups/ViewAtopicDermatitis';
+import SuperadminDoctorViewAllergicConjunctivitis from '../pages/Superadmin/DoctorsLogin/Followups/ViewAllergicConjunctivitis';
+import SuperadminDoctorViewAllergicBronchitis from '../pages/Superadmin/DoctorsLogin/Followups/ViewAllergicBronchitis';
+import SuperadminDoctorViewGPE from '../pages/Superadmin/DoctorsLogin/Followups/ViewGPE';
 
 
 // Lab Pages
@@ -85,17 +87,18 @@ import LabRouteProtection from '../components/LabRouteProtection';
 
 // Center Admin Pages
 import CenterAdminDashboard from '../pages/CenterAdmin/Dashboard';
+import CenterAdminBilling from '../pages/CenterAdmin/Billing';
 import CenterProfile from '../pages/CenterAdmin/CenterProfile';
-import AddPatient from '../pages/CenterAdmin/patients/AddPatient';
-import PatientList from '../pages/CenterAdmin/patients/PatientList';
-import ManagePatients from '../pages/CenterAdmin/patients/ManagePatients';
-import EditPatient from '../pages/CenterAdmin/patients/EditPatient';
-import ViewProfile from '../pages/CenterAdmin/patients/profile/ViewProfile';
-import AddTest from '../pages/CenterAdmin/patients/AddTest';
-import ShowTests from '../pages/CenterAdmin/patients/ShowTests';
-import AddHistory from '../pages/CenterAdmin/patients/AddHistory/AddHistory';
-import ViewHistory from '../pages/CenterAdmin/patients/AddHistory/ViewHistory';
-import AddMedications from '../pages/CenterAdmin/patients/profile/AddMedications';
+import CenterAdminAddPatient from '../pages/CenterAdmin/patients/AddPatient';
+import CenterAdminPatientList from '../pages/CenterAdmin/patients/PatientList';
+import CenterAdminManagePatients from '../pages/CenterAdmin/patients/ManagePatients';
+import CenterAdminEditPatient from '../pages/CenterAdmin/patients/EditPatient';
+import CenterAdminViewProfile from '../pages/CenterAdmin/patients/profile/ViewProfile';
+import CenterAdminAddTest from '../pages/CenterAdmin/patients/AddTest';
+import CenterAdminShowTests from '../pages/CenterAdmin/patients/ShowTests';
+import CenterAdminAddHistory from '../pages/CenterAdmin/patients/AddHistory/AddHistory';
+import CenterAdminViewHistory from '../pages/CenterAdmin/patients/AddHistory/ViewHistory';
+import CenterAdminAddMedications from '../pages/CenterAdmin/patients/profile/AddMedications';
 import CenterAdminAddDoctor from '../pages/CenterAdmin/Docters/AddDocter';
 import CenterAdminDoctorList from '../pages/CenterAdmin/Docters/DoctorList';
 import CenterAdminEditDoctor from '../pages/CenterAdmin/Docters/EditDoctor';
@@ -105,61 +108,73 @@ import CenterAdminAddReceptionist from '../pages/CenterAdmin/Receptionist/AddRec
 import EditReceptionist from '../pages/CenterAdmin/Receptionist/EditReceptionist';
 import CenterAdminViewReceptionist from '../pages/CenterAdmin/Receptionist/ViewReceptionist';
 import FollowUp from '../pages/CenterAdmin/patients/FollowUp/FollowUp';
+import AddFollowUp from '../pages/CenterAdmin/patients/FollowUp/AddFollowUp';
 import AddAllergicRhinitis from '../pages/CenterAdmin/patients/FollowUp/Allergic Rhinitis/AddAllergicRhinitis';
-import CenterAdminViewAllergicRhinitis from "../pages/CenterAdmin/patients/FollowUp/Allergic Rhinitis/ViewAllergicRhinitis";
 import AddAllergicConjunctivitis from '../pages/CenterAdmin/patients/FollowUp/Allergic Conjunctivitis/AddAllergicConjunctivitis';
-import CenterAdminViewAllergicConjunctivitis from '../pages/CenterAdmin/patients/FollowUp/Allergic Conjunctivitis/ViewAllergicConjunctivitis';
-import AtopicDermatitis from '../pages/CenterAdmin/patients/FollowUp/Atopic Dermatitis/AtopicDermatitis';
-import CenterAdminViewAtopicDermatitis from '../pages/CenterAdmin/patients/FollowUp/Atopic Dermatitis/ViewAtopicDermatitis';
 import AddAllergicBronchitis from '../pages/CenterAdmin/patients/FollowUp/Allergic Bronchitis/AddAllergicBronchitis';
-import CenterAdminViewAllergicBronchitis from '../pages/CenterAdmin/patients/FollowUp/Allergic Bronchitis/ViewAllergicBronchitis';
+import AtopicDermatitis from '../pages/CenterAdmin/patients/FollowUp/Atopic Dermatitis/AtopicDermatitis';
 import AddGPE from '../pages/CenterAdmin/patients/FollowUp/GPE/AddGPE';
-import CenterAdminViewGPE from '../pages/CenterAdmin/patients/FollowUp/GPE/ViewGPE';
 import PrescriptionList from '../pages/CenterAdmin/patients/FollowUp/Prescription/PrescriptionList';
 import AddPrescription from '../pages/CenterAdmin/patients/FollowUp/Prescription/AddPrescription';
 import ViewPrescription from '../pages/CenterAdmin/patients/FollowUp/Prescription/ViewPrescription';
+
+// Center Admin View Components
+import CenterAdminViewAllergicRhinitis from '../pages/CenterAdmin/patients/FollowUp/Allergic Rhinitis/ViewAllergicRhinitis';
+import CenterAdminViewAllergicConjunctivitis from '../pages/CenterAdmin/patients/FollowUp/Allergic Conjunctivitis/ViewAllergicConjunctivitis';
+import CenterAdminViewAtopicDermatitis from '../pages/CenterAdmin/patients/FollowUp/Atopic Dermatitis/ViewAtopicDermatitis';
+import CenterAdminViewAllergicBronchitis from '../pages/CenterAdmin/patients/FollowUp/Allergic Bronchitis/ViewAllergicBronchitis';
+import CenterAdminViewGPE from '../pages/CenterAdmin/patients/FollowUp/GPE/ViewGPE';
 
 // Center Admin Test Request Pages
 import CenterAdminTestRequestsList from '../pages/CenterAdmin/TestRequests/TestRequestsList';
 import CenterAdminTestRequestDetails from '../pages/CenterAdmin/TestRequests/TestRequestDetails';
 
-// Receptionist Pages
+
+// Receptionist Pages - Only essential functionality
 import ReceptionistDashboard from '../pages/Receptionist/Dashboard';
-import AddReceptionistPatient from '../pages/Receptionist/AddPatient';
 import ReceptionistPatientList from '../pages/Receptionist/PatientList';
-import ReceptionistManagePatients from '../pages/Receptionist/ManagePatients';
-import ReceptionistEditPatient from '../pages/Receptionist/EditPatient';
 import ReceptionistViewProfile from '../pages/Receptionist/profile/ViewProfile';
-import ReceptionistLayout from '../pages/Receptionist/ReceptionistLayout';
-import ReceptionistAddTest from '../pages/Receptionist/AddTest';
-import ReceptionistShowTests from '../pages/Receptionist/ShowTests';
-import ReceptionistAddHistory from '../pages/Receptionist/AddHistory/AddHistory';
-import ReceptionistViewHistory from '../pages/Receptionist/AddHistory/ViewHistory';
-import ReceptionistAddMedications from '../pages/Receptionist/profile/AddMedications';
 import ReceptionistPatientHistory from '../pages/Receptionist/PatientHistory';
-import ReceptionistPatientFollowUp from '../pages/Receptionist/PatientFollowUp';
-import ReceptionistAddAllergicRhinitis from '../pages/Receptionist/FollowUp/Allergic Rhinitis/AddAllergicRhinitis';
 import ReceptionistViewAllergicRhinitis from '../pages/Receptionist/FollowUp/Allergic Rhinitis/ViewAllergicRhinitis';
-import ReceptionistAddAtopicDermatitis from '../pages/Receptionist/FollowUp/Atopic Dermatitis/AtopicDermatitis';
 import ReceptionistViewAtopicDermatitis from '../pages/Receptionist/FollowUp/Atopic Dermatitis/ViewAtopicDermatitis';
-import ReceptionistAddAllergicConjunctivitis from '../pages/Receptionist/FollowUp/Allergic Conjunctivitis/AddAllergicConjunctivitis';
 import ReceptionistViewAllergicConjunctivitis from '../pages/Receptionist/FollowUp/Allergic Conjunctivitis/ViewAllergicConjunctivitis';
-import ReceptionistAddAllergicBronchitis from '../pages/Receptionist/FollowUp/Allergic Bronchitis/AddAllergicBronchitis';
 import ReceptionistViewAllergicBronchitis from '../pages/Receptionist/FollowUp/Allergic Bronchitis/ViewAllergicBronchitis';
-import ReceptionistAddGPE from '../pages/Receptionist/FollowUp/GPE/AddGPE';
 import ReceptionistViewGPE from '../pages/Receptionist/FollowUp/GPE/ViewGPE';
-import ReceptionistPrescriptionList from '../pages/Receptionist/FollowUp/Prescription/PrescriptionList';
-import ReceptionistAddPrescription from '../pages/Receptionist/FollowUp/Prescription/AddPrescription';
 import ReceptionistViewPrescription from '../pages/Receptionist/FollowUp/Prescription/ViewPrescription';
+import ReceptionistLayout from '../pages/Receptionist/ReceptionistLayout';
+import ReceptionistBilling from '../pages/Receptionist/Billing.jsx';
+import AddReceptionistPatient from '../pages/Receptionist/AddPatient';
 
 // Doctor Pages
 import DoctorDashboard from '../pages/Doctor/Dashboard';
-import DoctorPatientDetails from '../pages/Doctor/PatientDetails';
-import MyPatients from '../pages/Doctor/MyPatients';
+
+import DoctorPatientList from '../pages/Doctor/patients/PatientList';
+import DoctorAddPatient from '../pages/Doctor/patients/AddPatient';
+import DoctorEditPatient from '../pages/Doctor/patients/EditPatient';
+import DoctorAddTest from '../pages/Doctor/patients/AddTest';
+import DoctorShowTests from '../pages/Doctor/patients/ShowTests';
+import DoctorAddHistory from '../pages/Doctor/patients/AddHistory/AddHistory';
+import DoctorAddMedications from '../pages/Doctor/patients/profile/AddMedications';
+import DoctorViewProfile from '../pages/Doctor/patients/profile/ViewProfile';
+import DoctorFollowUp from '../pages/Doctor/patients/FollowUp/FollowUp';
+import DoctorAddFollowUp from '../pages/Doctor/patients/FollowUp/AddFollowUp';
+import DoctorAddAllergicRhinitis from '../pages/Doctor/patients/FollowUp/Allergic Rhinitis/AddAllergicRhinitis';
+import DoctorViewAllergicRhinitis from '../pages/Doctor/patients/FollowUp/Allergic Rhinitis/ViewAllergicRhinitis';
+import DoctorAddAllergicConjunctivitis from '../pages/Doctor/patients/FollowUp/Allergic Conjunctivitis/AddAllergicConjunctivitis';
+import DoctorViewAllergicConjunctivitis from '../pages/Doctor/patients/FollowUp/Allergic Conjunctivitis/ViewAllergicConjunctivitis';
+import DoctorAddAllergicBronchitis from '../pages/Doctor/patients/FollowUp/Allergic Bronchitis/AddAllergicBronchitis';
+import DoctorViewAllergicBronchitis from '../pages/Doctor/patients/FollowUp/Allergic Bronchitis/ViewAllergicBronchitis';
+import DoctorAtopicDermatitis from '../pages/Doctor/patients/FollowUp/Atopic Dermatitis/AtopicDermatitis';
+import DoctorViewAtopicDermatitis from '../pages/Doctor/patients/FollowUp/Atopic Dermatitis/ViewAtopicDermatitis';
+import DoctorAddGPE from '../pages/Doctor/patients/FollowUp/GPE/AddGPE';
+import DoctorViewGPE from '../pages/Doctor/patients/FollowUp/GPE/ViewGPE';
+import DoctorPrescriptionList from '../pages/Doctor/patients/FollowUp/Prescription/PrescriptionList';
+import DoctorAddPrescription from '../pages/Doctor/patients/FollowUp/Prescription/AddPrescription';
+import DoctorViewPrescription from '../pages/Doctor/patients/FollowUp/Prescription/ViewPrescription';
 import TestRequests from '../pages/Doctor/TestRequests';
-import NewTestRequest from '../pages/Doctor/NewTestRequest';
+import AddTestRequest from '../pages/Doctor/AddTestRequest';
 import CompletedReports from '../pages/Doctor/CompletedReports';
-import TestRequestDetails from '../pages/Doctor/TestRequestDetails';
+
 import DoctorViewHistory from '../pages/Doctor/ViewHistory';
 import Notifications from '../pages/Doctor/Notifications';
 import Feedback from '../pages/Doctor/Feedback';
@@ -175,29 +190,24 @@ export default function AppRoutes() {
       <Route path="/contact" element={<Contact />} />
       <Route path="/about" element={<About />} />
 
+
       {/* CenterAdmin Routes at Root Level (for direct navigation) */}
-      <Route path="/CenterAdmin/patients/EditPatient/:id" element={<PrivateRoute><DashboardLayout><ErrorBoundary><EditPatient /></ErrorBoundary></DashboardLayout></PrivateRoute>} />
-      <Route path="/CenterAdmin/patients/ViewProfile/:id" element={<PrivateRoute><DashboardLayout><ErrorBoundary><ViewProfile /></ErrorBoundary></DashboardLayout></PrivateRoute>} />
-      <Route path="/CenterAdmin/patients/AddPatient" element={<PrivateRoute><DashboardLayout><ErrorBoundary><AddPatient /></ErrorBoundary></DashboardLayout></PrivateRoute>} />
-      <Route path="/CenterAdmin/patients/PatientList" element={<PrivateRoute><DashboardLayout><ErrorBoundary><PatientList /></ErrorBoundary></DashboardLayout></PrivateRoute>} />
-      <Route path="/CenterAdmin/patients/ManagePatients" element={<PrivateRoute><DashboardLayout><ErrorBoundary><ManagePatients /></ErrorBoundary></DashboardLayout></PrivateRoute>} />
-      <Route path="/CenterAdmin/patients/AddTest/:id" element={<PrivateRoute><DashboardLayout><ErrorBoundary><AddTest /></ErrorBoundary></DashboardLayout></PrivateRoute>} />
-      <Route path="/CenterAdmin/patients/ShowTests/:id" element={<PrivateRoute><DashboardLayout><ErrorBoundary><ShowTests /></ErrorBoundary></DashboardLayout></PrivateRoute>} />
-      <Route path="/CenterAdmin/patients/AddHistory/:id" element={<PrivateRoute><DashboardLayout><ErrorBoundary><AddHistory /></ErrorBoundary></DashboardLayout></PrivateRoute>} />
-      <Route path="/CenterAdmin/patients/AddHistory/AddHistory/:id" element={<PrivateRoute><DashboardLayout><ErrorBoundary><AddHistory /></ErrorBoundary></DashboardLayout></PrivateRoute>} />
-      <Route path="/CenterAdmin/patients/ViewHistory/:patientId" element={<PrivateRoute><DashboardLayout><ErrorBoundary><ViewHistory /></ErrorBoundary></DashboardLayout></PrivateRoute>} />
-      <Route path="/CenterAdmin/patients/AddMedications/:id" element={<PrivateRoute><DashboardLayout><ErrorBoundary><AddMedications /></ErrorBoundary></DashboardLayout></PrivateRoute>} />
-      <Route path="/CenterAdmin/patients/profile/AddMedications/:id" element={<PrivateRoute><DashboardLayout><ErrorBoundary><AddMedications /></ErrorBoundary></DashboardLayout></PrivateRoute>} />
-      <Route path="/CenterAdmin/patients/profile/ViewProfile/:id" element={<PrivateRoute><DashboardLayout><ViewProfile /></DashboardLayout></PrivateRoute>} />
+      <Route path="/CenterAdmin/patients/EditPatient/:id" element={<PrivateRoute><DashboardLayout><ErrorBoundary><CenterAdminEditPatient /></ErrorBoundary></DashboardLayout></PrivateRoute>} />
+      <Route path="/CenterAdmin/patients/ViewProfile/:id" element={<PrivateRoute><DashboardLayout><ErrorBoundary><CenterAdminViewProfile /></ErrorBoundary></DashboardLayout></PrivateRoute>} />
+      <Route path="/CenterAdmin/patients/AddPatient" element={<PrivateRoute><DashboardLayout><ErrorBoundary><CenterAdminAddPatient /></ErrorBoundary></DashboardLayout></PrivateRoute>} />
+      <Route path="/CenterAdmin/patients/PatientList" element={<PrivateRoute><DashboardLayout><ErrorBoundary><CenterAdminPatientList /></ErrorBoundary></DashboardLayout></PrivateRoute>} />
+      <Route path="/CenterAdmin/patients/ManagePatients" element={<PrivateRoute><DashboardLayout><ErrorBoundary><CenterAdminManagePatients /></ErrorBoundary></DashboardLayout></PrivateRoute>} />
+      <Route path="/CenterAdmin/patients/AddTest/:id" element={<PrivateRoute><DashboardLayout><ErrorBoundary><CenterAdminAddTest /></ErrorBoundary></DashboardLayout></PrivateRoute>} />
+      <Route path="/CenterAdmin/patients/ShowTests/:id" element={<PrivateRoute><DashboardLayout><ErrorBoundary><CenterAdminShowTests /></ErrorBoundary></DashboardLayout></PrivateRoute>} />
+      <Route path="/CenterAdmin/patients/AddHistory/:id" element={<PrivateRoute><DashboardLayout><ErrorBoundary><CenterAdminAddHistory /></ErrorBoundary></DashboardLayout></PrivateRoute>} />
+      <Route path="/CenterAdmin/patients/AddHistory/AddHistory/:id" element={<PrivateRoute><DashboardLayout><ErrorBoundary><CenterAdminAddHistory /></ErrorBoundary></DashboardLayout></PrivateRoute>} />
+      <Route path="/CenterAdmin/patients/ViewHistory/:patientId" element={<PrivateRoute><DashboardLayout><ErrorBoundary><CenterAdminViewHistory /></ErrorBoundary></DashboardLayout></PrivateRoute>} />
+      <Route path="/CenterAdmin/patients/AddMedications/:id" element={<PrivateRoute><DashboardLayout><ErrorBoundary><CenterAdminAddMedications /></ErrorBoundary></DashboardLayout></PrivateRoute>} />
+      <Route path="/CenterAdmin/patients/profile/AddMedications/:id" element={<PrivateRoute><DashboardLayout><ErrorBoundary><CenterAdminAddMedications /></ErrorBoundary></DashboardLayout></PrivateRoute>} />
+      <Route path="/CenterAdmin/patients/profile/ViewProfile/:id" element={<PrivateRoute><DashboardLayout><CenterAdminViewProfile /></DashboardLayout></PrivateRoute>} />
       
       {/* Receptionist Routes at Root Level (for direct navigation) */}
       <Route path="/receptionist/profile/:id" element={<PrivateRoute><ReceptionistLayout><ReceptionistViewProfile /></ReceptionistLayout></PrivateRoute>} />
-      <Route path="/receptionist/add-history/:id" element={<PrivateRoute><ReceptionistLayout><ReceptionistAddHistory /></ReceptionistLayout></PrivateRoute>} />
-      <Route path="/receptionist/patient-history/:id" element={<PrivateRoute><ReceptionistLayout><ReceptionistPatientHistory /></ReceptionistLayout></PrivateRoute>} />
-      <Route path="/receptionist/edit-patient/:id" element={<PrivateRoute><ReceptionistLayout><ReceptionistEditPatient /></ReceptionistLayout></PrivateRoute>} />
-      <Route path="/receptionist/add-test/:id" element={<PrivateRoute><ReceptionistLayout><ReceptionistAddTest /></ReceptionistLayout></PrivateRoute>} />
-      <Route path="/receptionist/add-medications/:id" element={<PrivateRoute><ReceptionistLayout><ReceptionistAddMedications /></ReceptionistLayout></PrivateRoute>} />
-      <Route path="/receptionist/manage-patients" element={<PrivateRoute><ReceptionistLayout><ReceptionistManagePatients /></ReceptionistLayout></PrivateRoute>} />
       <Route path="/receptionist/patients" element={<PrivateRoute><ReceptionistLayout><ReceptionistPatientList /></ReceptionistLayout></PrivateRoute>} />
       
       {/* CenterAdmin FollowUp Routes at Root Level */}
@@ -237,11 +247,11 @@ export default function AppRoutes() {
         <Route path="superadmin/doctor/patient/:patientId/lab-reports" element={<PatientLabReports />} />
         <Route path="superadmin/doctor/patient/:patientId/history" element={<SuperadminDoctorPatientHistory />} />
         {/* Superadmin Doctor Followups view routes */}
-        <Route path="superadmin/doctor/followups/ViewAllergicRhinitis/:patientId" element={<DoctorViewAllergicRhinitis />} />
-        <Route path="superadmin/doctor/followups/ViewAtopicDermatitis/:patientId" element={<DoctorViewAtopicDermatitis />} />
-        <Route path="superadmin/doctor/followups/ViewAllergicConjunctivitis/:patientId" element={<DoctorViewAllergicConjunctivitis />} />
-        <Route path="superadmin/doctor/followups/ViewAllergicBronchitis/:patientId" element={<DoctorViewAllergicBronchitis />} />
-        <Route path="superadmin/doctor/followups/ViewGPE/:patientId" element={<DoctorViewGPE />} />
+        <Route path="superadmin/doctor/followups/ViewAllergicRhinitis/:patientId" element={<SuperadminDoctorViewAllergicRhinitis />} />
+        <Route path="superadmin/doctor/followups/ViewAtopicDermatitis/:patientId" element={<SuperadminDoctorViewAtopicDermatitis />} />
+        <Route path="superadmin/doctor/followups/ViewAllergicConjunctivitis/:patientId" element={<SuperadminDoctorViewAllergicConjunctivitis />} />
+        <Route path="superadmin/doctor/followups/ViewAllergicBronchitis/:patientId" element={<SuperadminDoctorViewAllergicBronchitis />} />
+        <Route path="superadmin/doctor/followups/ViewGPE/:patientId" element={<SuperadminDoctorViewGPE />} />
         
 
         
@@ -323,6 +333,9 @@ export default function AppRoutes() {
         <Route path="superadmin/test-requests" element={<TestRequestsList />} />
         <Route path="superadmin/test-requests/:id" element={<SuperadminTestRequestDetails />} />
         
+        {/* Billing Routes */}
+        <Route path="superadmin/billing" element={<SuperadminBilling />} />
+        
         {/* Doctors Routes */}
         <Route path="superadmin/doctors/superadmindoctorlist" element={<SuperAdminDoctorList />} />
         <Route path="superadmin/doctors/addsuperadmindoctor" element={<AddSuperAdminDoctor />} />
@@ -342,31 +355,31 @@ export default function AppRoutes() {
         {/* Center Admin Routes */}
         <Route path="centeradmin/dashboard" element={<CenterAdminDashboard />} />
         <Route path="centeradmin/center-profile" element={<CenterProfile />} />
-        <Route path='centeradmin/patients/addpatient' element={<ErrorBoundary><AddPatient /></ErrorBoundary>} />
-        <Route path='centeradmin/patients/patientlist' element={<ErrorBoundary><PatientList /></ErrorBoundary>} />
-        <Route path='centeradmin/patients/managepatients' element={<ErrorBoundary><ManagePatients /></ErrorBoundary>} />
-        <Route path='centeradmin/patients/editpatient/:id' element={<ErrorBoundary><EditPatient /></ErrorBoundary>} />
-        <Route path="centeradmin/patients/viewprofile/:id" element={<ErrorBoundary><ViewProfile /></ErrorBoundary>} />
-        <Route path="centeradmin/patients/addtest/:id" element={<ErrorBoundary><AddTest /></ErrorBoundary>} />
-        <Route path="centeradmin/patients/show-tests/:id" element={<ErrorBoundary><ShowTests /></ErrorBoundary>} />
-        <Route path="centeradmin/patients/addhistory/:id" element={<ErrorBoundary><AddHistory /></ErrorBoundary>} />
-        <Route path="centeradmin/patients/viewhistory/:patientId" element={<ErrorBoundary><ViewHistory /></ErrorBoundary>} />
-        <Route path="centeradmin/patients/addmedications/:id" element={<ErrorBoundary><AddMedications /></ErrorBoundary>} />
+        <Route path='centeradmin/patients/addpatient' element={<ErrorBoundary><CenterAdminAddPatient /></ErrorBoundary>} />
+        <Route path='centeradmin/patients/patientlist' element={<ErrorBoundary><CenterAdminPatientList /></ErrorBoundary>} />
+        <Route path='centeradmin/patients/managepatients' element={<ErrorBoundary><CenterAdminManagePatients /></ErrorBoundary>} />
+        <Route path='centeradmin/patients/editpatient/:id' element={<ErrorBoundary><CenterAdminEditPatient /></ErrorBoundary>} />
+        <Route path="centeradmin/patients/viewprofile/:id" element={<ErrorBoundary><CenterAdminViewProfile /></ErrorBoundary>} />
+        <Route path="centeradmin/patients/addtest/:id" element={<ErrorBoundary><CenterAdminAddTest /></ErrorBoundary>} />
+        <Route path="centeradmin/patients/show-tests/:id" element={<ErrorBoundary><CenterAdminShowTests /></ErrorBoundary>} />
+        <Route path="centeradmin/patients/addhistory/:id" element={<ErrorBoundary><CenterAdminAddHistory /></ErrorBoundary>} />
+        <Route path="centeradmin/patients/viewhistory/:patientId" element={<ErrorBoundary><CenterAdminViewHistory /></ErrorBoundary>} />
+        <Route path="centeradmin/patients/addmedications/:id" element={<ErrorBoundary><CenterAdminAddMedications /></ErrorBoundary>} />
         
         {/* Additional routes to match navigation patterns with capital C and A */}
-        <Route path="CenterAdmin/patients/EditPatient/:id" element={<ErrorBoundary><EditPatient /></ErrorBoundary>} />
-        <Route path="CenterAdmin/patients/ViewProfile/:id" element={<ErrorBoundary><ViewProfile /></ErrorBoundary>} />
-        <Route path="CenterAdmin/patients/AddPatient" element={<ErrorBoundary><AddPatient /></ErrorBoundary>} />
-        <Route path="CenterAdmin/patients/PatientList" element={<ErrorBoundary><PatientList /></ErrorBoundary>} />
-        <Route path="CenterAdmin/patients/ManagePatients" element={<ErrorBoundary><ManagePatients /></ErrorBoundary>} />
-        <Route path="CenterAdmin/patients/AddTest/:id" element={<ErrorBoundary><AddTest /></ErrorBoundary>} />
-        <Route path="CenterAdmin/patients/ShowTests/:id" element={<ErrorBoundary><ShowTests /></ErrorBoundary>} />
-        <Route path="CenterAdmin/patients/AddHistory/:id" element={<ErrorBoundary><AddHistory /></ErrorBoundary>} />
-        <Route path="CenterAdmin/patients/AddHistory/AddHistory/:id" element={<ErrorBoundary><AddHistory /></ErrorBoundary>} />
-        <Route path="CenterAdmin/patients/ViewHistory/:patientId" element={<ErrorBoundary><ViewHistory /></ErrorBoundary>} />
-        <Route path="CenterAdmin/patients/AddMedications/:id" element={<ErrorBoundary><AddMedications /></ErrorBoundary>} />
-        <Route path="CenterAdmin/patients/profile/AddMedications/:id" element={<ErrorBoundary><AddMedications /></ErrorBoundary>} />
-        <Route path="CenterAdmin/patients/profile/ViewProfile/:id" element={<ViewProfile />} />
+        <Route path="CenterAdmin/patients/EditPatient/:id" element={<ErrorBoundary><CenterAdminEditPatient /></ErrorBoundary>} />
+        <Route path="CenterAdmin/patients/ViewProfile/:id" element={<ErrorBoundary><CenterAdminViewProfile /></ErrorBoundary>} />
+        <Route path="CenterAdmin/patients/AddPatient" element={<ErrorBoundary><CenterAdminAddPatient /></ErrorBoundary>} />
+        <Route path="CenterAdmin/patients/PatientList" element={<ErrorBoundary><CenterAdminPatientList /></ErrorBoundary>} />
+        <Route path="CenterAdmin/patients/ManagePatients" element={<ErrorBoundary><CenterAdminManagePatients /></ErrorBoundary>} />
+        <Route path="CenterAdmin/patients/AddTest/:id" element={<ErrorBoundary><CenterAdminAddTest /></ErrorBoundary>} />
+        <Route path="CenterAdmin/patients/ShowTests/:id" element={<ErrorBoundary><CenterAdminShowTests /></ErrorBoundary>} />
+        <Route path="CenterAdmin/patients/AddHistory/:id" element={<ErrorBoundary><CenterAdminAddHistory /></ErrorBoundary>} />
+        <Route path="CenterAdmin/patients/AddHistory/AddHistory/:id" element={<ErrorBoundary><CenterAdminAddHistory /></ErrorBoundary>} />
+        <Route path="CenterAdmin/patients/ViewHistory/:patientId" element={<ErrorBoundary><CenterAdminViewHistory /></ErrorBoundary>} />
+        <Route path="CenterAdmin/patients/AddMedications/:id" element={<ErrorBoundary><CenterAdminAddMedications /></ErrorBoundary>} />
+        <Route path="CenterAdmin/patients/profile/AddMedications/:id" element={<ErrorBoundary><CenterAdminAddMedications /></ErrorBoundary>} />
+        <Route path="CenterAdmin/patients/profile/ViewProfile/:id" element={<CenterAdminViewProfile />} />
         
         {/* CenterAdmin FollowUp Routes with capital C and A */}
         <Route path="CenterAdmin/patients/FollowUp/:id" element={<FollowUp />} />
@@ -399,6 +412,9 @@ export default function AppRoutes() {
         {/* Center Admin Test Request Routes */}
         <Route path="centeradmin/test-requests" element={<ErrorBoundary><CenterAdminTestRequestsList /></ErrorBoundary>} />
         <Route path="centeradmin/test-requests/:id" element={<ErrorBoundary><CenterAdminTestRequestDetails /></ErrorBoundary>} />
+
+        {/* Center Admin Billing Routes */}
+        <Route path="centeradmin/billing" element={<ErrorBoundary><CenterAdminBilling /></ErrorBoundary>} />
         
         {/* Center Admin Followup Routes (lowercase) */}
         <Route path="centeradmin/patients/followup/:id" element={<FollowUp />} />
@@ -419,63 +435,71 @@ export default function AppRoutes() {
         
         {/* Receptionist Routes */}
         <Route path="receptionist/dashboard" element={<ReceptionistDashboard />} />
-        <Route path="receptionist/dashboard" element={<ReceptionistDashboard />} />
-        <Route path="receptionist/add-patient" element={<AddReceptionistPatient />} />
         <Route path="receptionist/patients" element={<ReceptionistPatientList />} />
-        <Route path="receptionist/manage-patients" element={<ReceptionistManagePatients />} />
-        <Route path="receptionist/edit-patient/:id" element={<ReceptionistEditPatient />} />
+        <Route path="receptionist/add-patient" element={<AddReceptionistPatient />} />
         <Route path="receptionist/profile/:id" element={<ReceptionistLayout><ReceptionistViewProfile /></ReceptionistLayout>} />
-        <Route path="receptionist/add-test/:id" element={<ReceptionistAddTest />} />
-        <Route path="receptionist/patients/show-tests/:id" element={<ReceptionistShowTests />} />
-        <Route path="receptionist/add-history/:id" element={<ReceptionistAddHistory />} />
-        <Route path="receptionist/AddHistory/ViewHistory/:patientId" element={<ReceptionistViewHistory />} />
-        <Route path="receptionist/add-medications/:id" element={<ReceptionistAddMedications />} />
-        <Route path="receptionist/patient-history/:id" element={<ReceptionistPatientHistory />} />
-        <Route path="receptionist/patient-followup/:id" element={<ReceptionistPatientFollowUp />} />
-        {/* Allergic Rhinitis */}
-        <Route path="receptionist/followup/allergic-rhinitis/add/:patientId" element={<ReceptionistAddAllergicRhinitis />} />
-        <Route path="receptionist/followup/allergic-rhinitis/view/:allergicRhinitisId" element={<ReceptionistViewAllergicRhinitis />} />
-        <Route path="receptionist/follow-up/allergic-rhinitis/add/:patientId" element={<ReceptionistAddAllergicRhinitis />} />
-        <Route path="receptionist/follow-up/allergic-rhinitis/view/:allergicRhinitisId" element={<ReceptionistViewAllergicRhinitis />} />
-        {/* Atopic Dermatitis */}
-        <Route path="receptionist/followup/atopic-dermatitis/add/:patientId" element={<ReceptionistAddAtopicDermatitis />} />
-        <Route path="receptionist/followup/atopic-dermatitis/view/:atopicDermatitisId" element={<ReceptionistViewAtopicDermatitis />} />
-        <Route path="receptionist/follow-up/atopic-dermatitis/add/:patientId" element={<ReceptionistAddAtopicDermatitis />} />
-        <Route path="receptionist/follow-up/atopic-dermatitis/view/:atopicDermatitisId" element={<ReceptionistViewAtopicDermatitis />} />
-        {/* Allergic Conjunctivitis */}
-        <Route path="receptionist/followup/allergic-conjunctivitis/add/:patientId" element={<ReceptionistAddAllergicConjunctivitis />} />
-        <Route path="receptionist/followup/allergic-conjunctivitis/view/:id" element={<ReceptionistViewAllergicConjunctivitis />} />
-        <Route path="receptionist/follow-up/allergic-conjunctivitis/add/:patientId" element={<ReceptionistAddAllergicConjunctivitis />} />
-        <Route path="receptionist/follow-up/allergic-conjunctivitis/view/:id" element={<ReceptionistViewAllergicConjunctivitis />} />
-        {/* Allergic Bronchitis */}
-        <Route path="receptionist/followup/allergic-bronchitis/add/:patientId" element={<ReceptionistAddAllergicBronchitis />} />
-        <Route path="receptionist/followup/allergic-bronchitis/view/:id" element={<ReceptionistViewAllergicBronchitis />} />
-        <Route path="receptionist/follow-up/allergic-bronchitis/add/:patientId" element={<ReceptionistAddAllergicBronchitis />} />
-        <Route path="receptionist/follow-up/allergic-bronchitis/view/:id" element={<ReceptionistViewAllergicBronchitis />} />
-        {/* GPE */}
-        <Route path="receptionist/followup/gpe/add/:patientId" element={<ReceptionistAddGPE />} />
-        <Route path="receptionist/followup/gpe/view/:id" element={<ReceptionistViewGPE />} />
-        <Route path="receptionist/follow-up/gpe/add/:patientId" element={<ReceptionistAddGPE />} />
-        <Route path="receptionist/follow-up/gpe/view/:id" element={<ReceptionistViewGPE />} />
-        {/* Prescriptions */}
-        <Route path="receptionist/followup/prescription/list/:patientId" element={<ReceptionistPrescriptionList />} />
-        <Route path="receptionist/followup/prescription/add/:patientId" element={<ReceptionistAddPrescription />} />
-        <Route path="receptionist/followup/prescription/view/:id" element={<ReceptionistViewPrescription />} />
-        <Route path="receptionist/follow-up/prescription/list/:patientId" element={<ReceptionistPrescriptionList />} />
-        <Route path="receptionist/follow-up/prescription/add/:patientId" element={<ReceptionistAddPrescription />} />
-        <Route path="receptionist/follow-up/prescription/view/:id" element={<ReceptionistViewPrescription />} />
+        <Route path="receptionist/patient-history/:id" element={<ReceptionistLayout><ReceptionistPatientHistory /></ReceptionistLayout>} />
+        <Route path="receptionist/view-allergic-rhinitis/:id" element={<ReceptionistLayout><ReceptionistViewAllergicRhinitis /></ReceptionistLayout>} />
+        <Route path="receptionist/view-atopic-dermatitis/:id" element={<ReceptionistLayout><ReceptionistViewAtopicDermatitis /></ReceptionistLayout>} />
+        <Route path="receptionist/view-allergic-conjunctivitis/:id" element={<ReceptionistLayout><ReceptionistViewAllergicConjunctivitis /></ReceptionistLayout>} />
+        <Route path="receptionist/view-allergic-bronchitis/:id" element={<ReceptionistLayout><ReceptionistViewAllergicBronchitis /></ReceptionistLayout>} />
+        <Route path="receptionist/view-gpe/:id" element={<ReceptionistLayout><ReceptionistViewGPE /></ReceptionistLayout>} />
+        <Route path="receptionist/view-prescription/:id" element={<ReceptionistLayout><ReceptionistViewPrescription /></ReceptionistLayout>} />
+        <Route path="receptionist/billing" element={<ReceptionistLayout><ReceptionistBilling /></ReceptionistLayout>} />
 
         {/* Doctor Routes */}
         <Route path="doctor/dashboard" element={<DoctorDashboard />} />
-        <Route path="doctor" element={<DoctorDashboard />} />
-        <Route path="doctor/dashboard" element={<DoctorDashboard />} />
-        <Route path="doctor/patient/:patientId" element={<DoctorPatientDetails />} />
-        <Route path="doctor/patients" element={<MyPatients />} />
+        
+        {/* Doctor Patient Management */}
+        <Route path="doctor/patients" element={<DoctorPatientList />} />
+        <Route path="doctor/patients/add-patient" element={<DoctorAddPatient />} />
+        <Route path="doctor/patients/edit-patient/:id" element={<DoctorEditPatient />} />
+        <Route path="doctor/patients/show-tests/:id" element={<DoctorShowTests />} />
+        <Route path="doctor/patients/add-test/:id" element={<DoctorAddTest />} />
+        <Route path="doctor/patients/profile/:id" element={<DoctorViewProfile />} />
+        <Route path="doctor/patients/profile/add-medications/:id" element={<DoctorAddMedications />} />
+        <Route path="doctor/patients/add-history/:patientId" element={<DoctorAddHistory />} />
+        
+        {/* Doctor Followup Management */}
+        <Route path="doctor/patients/followup/:id" element={<DoctorFollowUp />} />
+        <Route path="doctor/patients/followup/add/:id" element={<DoctorAddFollowUp />} />
+        <Route path="doctor/patients/followup/view/:id" element={<DoctorFollowUp />} />
+        <Route path="doctor/patients/followup/addallergicrhinitis/:patientId" element={<DoctorAddAllergicRhinitis />} />
+        <Route path="doctor/patients/followup/viewallergicrhinitis/:id" element={<DoctorViewAllergicRhinitis />} />
+        <Route path="doctor/patients/followup/addallergicconjunctivitis/:patientId" element={<DoctorAddAllergicConjunctivitis />} />
+        <Route path="doctor/patients/followup/viewallergicconjunctivitis/:id" element={<DoctorViewAllergicConjunctivitis />} />
+        <Route path="doctor/patients/followup/atopicdermatitis/:patientId" element={<DoctorAtopicDermatitis />} />
+        <Route path="doctor/patients/followup/viewatopicdermatitis/:id" element={<DoctorViewAtopicDermatitis />} />
+        <Route path="doctor/patients/followup/addallergicbronchitis/:patientId" element={<DoctorAddAllergicBronchitis />} />
+        <Route path="doctor/patients/followup/viewallergicbronchitis/:id" element={<DoctorViewAllergicBronchitis />} />
+        <Route path="doctor/patients/followup/addgpe/:patientId" element={<DoctorAddGPE />} />
+        <Route path="doctor/patients/followup/viewgpe/:id" element={<DoctorViewGPE />} />
+        <Route path="doctor/patients/followup/prescriptionlist/:patientId" element={<DoctorPrescriptionList />} />
+        <Route path="doctor/patients/followup/addprescription/:patientId" element={<DoctorAddPrescription />} />
+        <Route path="doctor/patients/followup/viewprescription/:id" element={<DoctorViewPrescription />} />
+        
+        {/* Doctor History Management */}
+        <Route path="doctor/patients/view-history/:id" element={<DoctorViewHistory />} />
+        
+        {/* Doctor Test Request Management */}
+        <Route path="doctor/patients/add-test-request/:id" element={<AddTestRequest />} />
+        <Route path="doctor/patients/test-request/:id" element={<TestRequests />} />
+        <Route path="doctor/add-test-request" element={<AddTestRequest />} />
+        
+        {/* Doctor Legacy Routes (for backward compatibility) */}
+        <Route path="doctor/add-patient" element={<DoctorAddPatient />} />
+        <Route path="doctor/edit-patient/:id" element={<DoctorEditPatient />} />
+        <Route path="doctor/add-history/:patientId" element={<DoctorAddHistory />} />
+        <Route path="doctor/add-medications/:patientId" element={<DoctorAddMedications />} />
+        <Route path="doctor/add-followup/:patientId" element={<DoctorAddFollowUp />} />
+        
+        {/* Doctor Test Management */}
         <Route path="doctor/test-requests" element={<TestRequests />} />
-        <Route path="doctor/new-test-request" element={<NewTestRequest />} />
         <Route path="doctor/completed-reports" element={<CompletedReports />} />
-        <Route path="doctor/test-request/:id" element={<TestRequestDetails />} />
+        <Route path="doctor/test-request/:id" element={<TestRequests />} />
         <Route path="doctor/ViewHistory/:patientId" element={<DoctorViewHistory />} />
+        
+        {/* Doctor Other Features */}
         <Route path="doctor/notifications" element={<Notifications />} />
         <Route path="doctor/feedback" element={<Feedback />} />
 

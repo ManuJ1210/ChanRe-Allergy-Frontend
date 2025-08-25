@@ -30,9 +30,9 @@ export default function PendingRequests() {
       const response = await API.get(`/test-requests/lab-staff`);
       const data = response.data;
       
-      // Filter for pending requests only
+      // Filter for pending requests only (include billing paid before assignment)
       const pendingData = data.filter(request => 
-        ['Pending', 'Assigned', 'Sample_Collection_Scheduled', 'Sample_Collected'].includes(request.status)
+        ['Billing_Paid', 'Pending', 'Assigned', 'Sample_Collection_Scheduled', 'Sample_Collected'].includes(request.status)
       );
       
       setPendingRequests(pendingData);
@@ -134,8 +134,8 @@ export default function PendingRequests() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-xl font-bold text-slate-800 mb-2">Pending Test Requests</h1>
-          <p className="text-slate-600">Manage and process pending test requests</p>
+          <h1 className="text-md font-bold text-slate-800 mb-2">Pending Test Requests</h1>
+          <p className="text-xs text-slate-600">Manage and process pending test requests</p>
         </div>
 
         {/* Error Message */}
@@ -154,7 +154,7 @@ export default function PendingRequests() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-slate-600">Total Pending</p>
-                <p className="text-xl font-bold text-slate-800">{pendingRequests.length}</p>
+                <p className="text-md font-bold text-slate-800">{pendingRequests.length}</p>
               </div>
               <div className="p-3 bg-blue-50 rounded-lg">
                 <FaClock className="text-blue-500 text-lg" />
@@ -166,7 +166,7 @@ export default function PendingRequests() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-slate-600">High Priority</p>
-                <p className="text-xl font-bold text-red-600">
+                <p className="text-md font-bold text-red-600">
                   {pendingRequests.filter(req => req.urgency === 'Emergency' || req.urgency === 'Urgent').length}
                 </p>
               </div>
@@ -180,7 +180,7 @@ export default function PendingRequests() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-slate-600">Assigned to Me</p>
-                <p className="text-xl font-bold text-blue-600">
+                <p className="text-md font-bold text-blue-600">
                   {pendingRequests.filter(req => req.assignedLabStaffId === (user._id || user.id)).length}
                 </p>
               </div>
@@ -194,7 +194,7 @@ export default function PendingRequests() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-slate-600">Today's Requests</p>
-                <p className="text-xl font-bold text-slate-800">
+                <p className="text-md font-bold text-slate-800">
                   {pendingRequests.filter(req => {
                     const today = new Date().toDateString();
                     const requestDate = new Date(req.createdAt).toDateString();
@@ -241,13 +241,13 @@ export default function PendingRequests() {
         {loading ? (
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-            <p className="text-slate-600">Loading pending requests...</p>
+            <p className="text-xs text-slate-600">Loading pending requests...</p>
           </div>
         ) : filteredRequests.length === 0 ? (
           <div className="text-center py-12">
             <FaClock className="text-slate-400 text-6xl mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-slate-600 mb-2">No Pending Requests</h3>
-            <p className="text-slate-500">All test requests have been processed or there are no new requests.</p>
+            <h3 className="text-sm font-semibold text-slate-600 mb-2">No Pending Requests</h3>
+            <p className="text-xs text-slate-500">All test requests have been processed or there are no new requests.</p>
           </div>
         ) : (
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">

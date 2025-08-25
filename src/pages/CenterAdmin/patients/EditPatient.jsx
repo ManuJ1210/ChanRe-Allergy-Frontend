@@ -1,13 +1,10 @@
-import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import {
-  getSinglePatient,
-  editPatient,
-} from "../../../features/patient/patientThunks";
-import { resetPatientState } from "../../../features/patient/patientSlice";
-import { fetchPatientDetails } from "../../../features/centerAdmin/centerAdminThunks";
-import { ArrowLeft, User, Phone, Calendar, MapPin, Mail, Save } from 'lucide-react';
+import { useNavigate, useParams } from "react-router-dom";
+import { toast } from 'react-toastify';
+import API from "../../../services/api";
+import { Users, ArrowLeft, User, Mail, Phone, MapPin, Building, Save, Edit } from 'lucide-react';
+import { fetchPatientDetails, updatePatient } from "../../../features/centerAdmin/centerAdminThunks";
 
 export default function EditPatient() {
   const { id } = useParams();
@@ -24,7 +21,10 @@ export default function EditPatient() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const { patientDetails: patient, loading: patientLoading, error: patientError } = useSelector((state) => state.centerAdmin);
+  const { patientDetails, loading: patientLoading, error: patientError } = useSelector((state) => state.centerAdmin);
+  
+  // Extract patient data from the new structure
+  const patient = patientDetails?.patient || patientDetails;
 
   useEffect(() => {
     if (id) {
@@ -33,6 +33,8 @@ export default function EditPatient() {
   }, [dispatch, id]);
 
   useEffect(() => {
+    console.log('🔍 EditPatient Debug:', { patientDetails, patient, id });
+    
     if (patient) {
       setFormData({
         name: patient.name || '',
@@ -43,7 +45,7 @@ export default function EditPatient() {
         address: patient.address || ''
       });
     }
-  }, [patient]);
+  }, [patient, patientDetails, id]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -59,8 +61,9 @@ export default function EditPatient() {
     setError('');
 
     try {
-      await dispatch(editPatient({ id, updatedData: formData })).unwrap();
-              navigate('/dashboard/CenterAdmin/patients/PatientList');
+      await dispatch(updatePatient({ patientId: id, patientData: formData })).unwrap();
+      toast.success('Patient updated successfully!');
+      navigate('/dashboard/CenterAdmin/patients/PatientList');
     } catch (err) {
       setError(err.message || 'Failed to update patient');
     } finally {
@@ -68,14 +71,16 @@ export default function EditPatient() {
     }
   };
 
-  if (patientLoading) {
+  if (patientLoading || !patient) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 sm:p-6">
         <div className="max-w-4xl mx-auto">
           <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-6">
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
-              <p className="text-slate-600 text-xs">Loading patient information...</p>
+              <p className="text-slate-600 text-xs">
+                {patientLoading ? 'Loading patient information...' : 'Patient not found'}
+              </p>
             </div>
           </div>
         </div>
@@ -88,7 +93,13 @@ export default function EditPatient() {
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 sm:p-6">
         <div className="max-w-4xl mx-auto">
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <p className="text-red-600 text-xs">{patientError}</p>
+            <p className="text-red-600 text-xs mb-4">{patientError}</p>
+            <button
+              onClick={() => navigate('/dashboard/CenterAdmin/patients/PatientList')}
+              className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 text-xs"
+            >
+              Back to Patients List
+            </button>
           </div>
         </div>
       </div>

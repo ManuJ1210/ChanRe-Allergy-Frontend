@@ -11,7 +11,11 @@ import {
   fetchReceptionistPatientHistory,
   fetchReceptionistPatientMedications,
   fetchReceptionistPatientTests,
-  fetchPatient
+  fetchReceptionistTestRequests,
+  fetchPatient,
+  fetchReceptionistBillingRequests,
+  generateReceptionistBill,
+  markReceptionistBillPaid
 } from './receptionistThunks';
 
 const initialState = {
@@ -30,6 +34,8 @@ const initialState = {
   medications: [],
   history: null,
   tests: [],
+  testRequests: [],
+  billingRequests: [],
   allergicRhinitis: null,
   atopicDermatitis: null,
   allergicConjunctivitis: null,
@@ -94,6 +100,9 @@ const receptionistSlice = createSlice({
     },
     setTests: (state, action) => {
       state.tests = action.payload;
+    },
+    setTestRequests: (state, action) => {
+      state.testRequests = action.payload;
     },
     setSinglePatient: (state, action) => {
       state.singlePatient = action.payload;
@@ -191,6 +200,53 @@ const receptionistSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      // Billing requests
+      .addCase(fetchReceptionistBillingRequests.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchReceptionistBillingRequests.fulfilled, (state, action) => {
+        state.loading = false;
+        state.billingRequests = action.payload || [];
+      })
+      .addCase(fetchReceptionistBillingRequests.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      // Generate bill
+      .addCase(generateReceptionistBill.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(generateReceptionistBill.fulfilled, (state, action) => {
+        state.loading = false;
+        const updated = action.payload?.testRequest;
+        if (updated) {
+          const idx = state.billingRequests.findIndex(r => r._id === updated._id);
+          if (idx !== -1) state.billingRequests[idx] = updated;
+        }
+      })
+      .addCase(generateReceptionistBill.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      // Mark paid
+      .addCase(markReceptionistBillPaid.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(markReceptionistBillPaid.fulfilled, (state, action) => {
+        state.loading = false;
+        const updated = action.payload?.testRequest;
+        if (updated) {
+          const idx = state.billingRequests.findIndex(r => r._id === updated._id);
+          if (idx !== -1) state.billingRequests[idx] = updated;
+        }
+      })
+      .addCase(markReceptionistBillPaid.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
       // Fetch allergic rhinitis
       .addCase(fetchReceptionistAllergicRhinitis.pending, (state) => {
         state.loading = true;
@@ -355,6 +411,20 @@ const receptionistSlice = createSlice({
         state.error = action.payload;
       })
       
+      // Fetch test requests
+      .addCase(fetchReceptionistTestRequests.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchReceptionistTestRequests.fulfilled, (state, action) => {
+        state.loading = false;
+        state.testRequests = action.payload;
+      })
+      .addCase(fetchReceptionistTestRequests.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      
       // Fetch single patient
       .addCase(fetchPatient.pending, (state) => {
         console.log('🔄 Fetching patient...');
@@ -386,6 +456,7 @@ export const {
   setMedications,
   setHistory,
   setTests,
+  setTestRequests,
   setAllergicRhinitis,
   setAllergicConjunctivitis,
   setAllergicBronchitis,

@@ -5,7 +5,7 @@ import { loginUser } from '../features/auth/authThunks';
 import { useNavigate } from 'react-router-dom';
 
 export default function Login() {
-  const [form, setForm] = useState({ email: '', password: '' });
+  const [form, setForm] = useState({ emailOrUsername: '', password: '' });
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const hasNavigated = useRef(false);
@@ -88,10 +88,10 @@ export default function Login() {
         <h2 className="text-3xl font-extrabold text-center text-blue-500 mb-2 tracking-tight">Login</h2>
 
         <input
-          name="email"
-          type="email"
-          placeholder="Email"
-          value={form.email}
+          name="emailOrUsername"
+          type="text"
+          placeholder="Email or Username"
+          value={form.emailOrUsername}
           onChange={handleChange}
           className="w-full p-3 border border-blue-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300 bg-slate-50 text-blue-700 placeholder-blue-400 transition"
           required

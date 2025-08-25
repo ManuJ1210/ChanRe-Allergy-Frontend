@@ -16,6 +16,9 @@ import {
   FaBell,
   FaComments,
   FaClipboardList,
+  FaUserPlus,
+  FaPlus,
+  FaMoneyBillWave,
 } from 'react-icons/fa';
 
 export default function Sidebar(props) {
@@ -112,6 +115,12 @@ export default function Sidebar(props) {
                   { to: "/dashboard/superadmin/test-requests", label: "View All Requests" },
                 ]}
                 currentPath={location.pathname}
+              />
+              <SidebarLink
+                to="/dashboard/superadmin/billing"
+                label="Billing Management"
+                icon={<FaMoneyBillWave />}
+                isActive={isActive("/dashboard/superadmin/billing")}
               />
               <SidebarGroup
                 label="Follow Ups"
@@ -217,6 +226,13 @@ export default function Sidebar(props) {
                 icon={<FaHospitalAlt />}
                 isActive={isActive("/dashboard/centeradmin/center-profile")}
               />
+              <SidebarLink
+                to="/dashboard/centeradmin/billing"
+                label="Billing Management"
+                icon={<FaMoneyBillWave />}
+                isActive={isActive("/dashboard/centeradmin/billing")}
+              />
+
             </>
           )}
 
@@ -228,23 +244,20 @@ export default function Sidebar(props) {
                 icon={<FaHome />}
                 isActive={isActive("/dashboard/receptionist/dashboard")}
               />
+             
+              <SidebarLink to="/dashboard/receptionist/patients" label="Patient List" icon={<FaUsers />} isActive={isActive("/dashboard/receptionist/patients")} />
+
               <SidebarLink
                 to="/dashboard/receptionist/add-patient"
                 label="Add Patient"
-                icon={<FaUserMd />}
+                icon={<FaUserPlus />}
                 isActive={isActive("/dashboard/receptionist/add-patient")}
               />
               <SidebarLink
-                to="/dashboard/receptionist/patients"
-                label="Patient List"
-                icon={<FaUsers />}
-                isActive={isActive("/dashboard/receptionist/patients")}
-              />
-              <SidebarLink
-                to="/dashboard/receptionist/manage-patients"
-                label="Manage Patients"
-                icon={<FaUsers />}
-                isActive={isActive("/dashboard/receptionist/manage-patients")}
+                to="/dashboard/receptionist/billing"
+                label="Billing"
+                icon={<FaClipboardList />}
+                isActive={isActive("/dashboard/receptionist/billing")}
               />
             </>
           )}
@@ -257,27 +270,43 @@ export default function Sidebar(props) {
                 icon={<FaHome />}
                 isActive={isActive("/dashboard/doctor/dashboard")}
               />
+              
               <SidebarLink
                 to="/dashboard/doctor/patients"
-                label="My Patients"
+                label="Patient List"
                 icon={<FaUsers />}
                 isActive={isActive("/dashboard/doctor/patients")}
               />
               <SidebarLink
+                to="/dashboard/doctor/add-patient"
+                label="Add Patient"
+                icon={<FaUserPlus />}
+                isActive={isActive("/dashboard/doctor/add-patient")}
+              />
+              <SidebarLink
                 to="/dashboard/doctor/test-requests"
                 label="Test Requests"
-                icon={<FaVials />}
+                icon={<FaClipboardList />}
                 isActive={isActive("/dashboard/doctor/test-requests")}
               />
+              
+              <SidebarLink
+                to="/dashboard/doctor/completed-reports"
+                label="Completed Reports"
+                icon={<FaCheckCircle />}
+                isActive={isActive("/dashboard/doctor/completed-reports")}
+              />
+              
               <SidebarLink
                 to="/dashboard/doctor/notifications"
                 label="Notifications"
                 icon={<FaBell />}
                 isActive={isActive("/dashboard/doctor/notifications")}
               />
+              
               <SidebarLink
                 to="/dashboard/doctor/feedback"
-                label="Superadmin Feedback"
+                label="Feedback"
                 icon={<FaComments />}
                 isActive={isActive("/dashboard/doctor/feedback")}
               />
