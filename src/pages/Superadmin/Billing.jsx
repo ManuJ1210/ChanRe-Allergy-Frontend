@@ -37,7 +37,7 @@ const SuperadminBilling = () => {
     try {
       setLoading(true);
       // Use the API service instead of hardcoded fetch
-      const response = await API.get('/test-requests/billing/all');
+      const response = await API.get('test-requests/billing/all');
       setBillingData(response.data.billingRequests || []);
     } catch (error) {
       console.error('Error fetching billing data:', error);
@@ -51,7 +51,7 @@ const SuperadminBilling = () => {
   const fetchCenters = async () => {
     try {
       // Use the API service instead of hardcoded fetch
-      const response = await API.get('/centers');
+      const response = await API.get('centers');
       setCenters(response.data.centers || []);
     } catch (error) {
       console.error('Error fetching centers:', error);

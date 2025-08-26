@@ -128,7 +128,7 @@ const CenterAdminBilling = () => {
       }
       
       // Use the API service instead of hardcoded fetch
-      const response = await API.get(`/test-requests/billing/center/${centerId}`);
+      const response = await API.get(`test-requests/billing/center/${centerId}`);
       
       console.log('Billing data received:', response.data);
       
@@ -206,7 +206,7 @@ const CenterAdminBilling = () => {
       }
       
       // Use the correct endpoint to get center by admin ID
-      const response = await API.get(`/centers/by-admin/${user._id}`);
+      const response = await API.get(`centers/by-admin/${user._id}`);
       
       if (response.data._id) {
         // Update the user object with centerId
@@ -380,7 +380,7 @@ const CenterAdminBilling = () => {
     if (!selectedBillingForVerification) return;
 
     try {
-      const response = await API.put(`/test-requests/${selectedBillingForVerification._id}/billing/verify`, {
+      const response = await API.put(`test-requests/${selectedBillingForVerification._id}/billing/verify`, {
         verificationNotes: verificationNotes
       });
 
@@ -402,7 +402,7 @@ const CenterAdminBilling = () => {
   const downloadInvoice = async (billingId) => {
     try {
       // Use the API service instead of hardcoded fetch
-      const response = await API.get(`/test-requests/${billingId}/billing/invoice`, {
+      const response = await API.get(`test-requests/${billingId}/billing/invoice`, {
         responseType: 'blob'
       });
       
