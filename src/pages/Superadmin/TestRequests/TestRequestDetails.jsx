@@ -480,7 +480,7 @@ const TestRequestDetails = () => {
                           return;
                         }
 
-                        const response = await API.get(`/test-requests/${testRequest._id}/download-report`, {
+                        const response = await API.get(`/test-requests/download-report/${testRequest._id}`, {
                           responseType: 'blob',
                           headers: {
                             'Accept': 'application/pdf',
@@ -553,7 +553,7 @@ const TestRequestDetails = () => {
                           return;
                         }
 
-                        const response = await API.get(`/test-requests/${testRequest._id}/download-report`, {
+                        const response = await API.get(`/test-requests/download-report/${testRequest._id}`, {
                           responseType: 'blob',
                           headers: {
                             'Accept': 'application/pdf',

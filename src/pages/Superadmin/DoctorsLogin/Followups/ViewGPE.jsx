@@ -136,7 +136,7 @@ const ViewGPE = () => {
                 <ArrowLeft size={20} />
                 <span>Back</span>
               </button>
-              <h1 className="text-xl font-bold text-gray-800">GPE Medical Record</h1>
+              <h1 className="text-md font-bold text-gray-800 mb-6">GPE Follow-up Details</h1>
             </div>
             <div className="flex space-x-3">
               <button
@@ -161,13 +161,13 @@ const ViewGPE = () => {
         <div className="bg-white rounded-lg shadow-lg p-8">
           {/* Record Header */}
           <div className="text-center mb-8">
-            <h1 className="text-xl font-bold text-gray-800 mb-2">GPE</h1>
+            <h1 className="text-md font-bold text-gray-800 mb-2">GPE</h1>
             <p className="text-gray-600">General Physical Examination Record</p>
           </div>
           
           {/* Patient Information */}
           <div className="bg-blue-50 rounded-lg p-6 mb-8">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+            <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
               <UserCheck className="h-5 w-5 mr-2 text-blue-600" />
               Patient Information
             </h2>
@@ -193,7 +193,7 @@ const ViewGPE = () => {
           <div className="space-y-8">
             {/* GPE Section */}
             <div className="bg-gray-50 rounded-lg p-6">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+              <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
                 <Stethoscope className="h-5 w-5 mr-2 text-blue-600" />
                 GPE
               </h2>
@@ -245,7 +245,7 @@ const ViewGPE = () => {
 
             {/* Systematic Examination Section */}
             <div className="bg-gray-50 rounded-lg p-6">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+              <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
                 <Activity className="h-5 w-5 mr-2 text-blue-600" />
                 Systematic Examination
               </h2>
@@ -303,7 +303,7 @@ const ViewGPE = () => {
 
             {/* Clinical Summary */}
             <div className="bg-gray-50 rounded-lg p-6">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">Clinical Summary</h2>
+              <h2 className="text-sm font-semibold text-gray-700 mb-3">Clinical Summary</h2>
               <div className="bg-white rounded-lg p-6 border">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
                   <div>

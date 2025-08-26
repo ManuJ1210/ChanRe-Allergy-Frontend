@@ -113,8 +113,8 @@ const LabReports = () => {
         return;
       }
 
-      console.log('[PDF DEBUG] Making request to:', `/test-requests/${reportId}/download-report`);
-      const response = await API.get(`/test-requests/${reportId}/download-report`, {
+      console.log('[PDF DEBUG] Making request to:', `/test-requests/download-report/${reportId}`);
+      const response = await API.get(`/test-requests/download-report/${reportId}`, {
         responseType: 'blob',
         headers: {
           'Accept': 'application/pdf',
@@ -232,7 +232,7 @@ const LabReports = () => {
         return;
       }
 
-      const response = await API.get(`/test-requests/${reportId}/download-report`, {
+      const response = await API.get(`/test-requests/download-report/${reportId}`, {
         responseType: 'blob', // This is crucial for binary data
         headers: {
           'Accept': 'application/pdf',

@@ -185,13 +185,21 @@ const DoctorDashboard = () => {
         <div className="bg-white rounded-xl shadow-sm border border-blue-100 mb-6">
           <div className="p-6">
             <h3 className="text-lg font-semibold text-slate-800 mb-4">Quick Actions</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <button
-                onClick={() => navigate('/dashboard/doctor/new-test-request')}
+                onClick={() => navigate('/dashboard/doctor/patients/add-patient')}
+                className="flex items-center justify-center p-4 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors"
+              >
+                <User className="h-6 w-6 text-green-600 mr-3" />
+                <span className="font-medium text-green-800">Add Patient</span>
+              </button>
+              
+              <button
+                onClick={() => navigate('/dashboard/doctor/patients')}
                 className="flex items-center justify-center p-4 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
               >
-                <FileText className="h-6 w-6 text-blue-600 mr-3" />
-                <span className="font-medium text-blue-800">New Test Request</span>
+                <User className="h-6 w-6 text-blue-600 mr-3" />
+                <span className="font-medium text-blue-800">Manage Patients</span>
               </button>
               
               <button
@@ -270,7 +278,7 @@ const DoctorDashboard = () => {
                           const id = typeof patient._id === 'object' && patient._id !== null
                             ? patient._id._id || patient._id.id || String(patient._id)
                             : String(patient._id);
-                          navigate(`/dashboard/doctor/patient/${id}`);
+                          navigate(`/dashboard/doctor/patients/profile/${id}`);
                         }}
                       >
                         <div className="flex items-center justify-between mb-2">
@@ -341,7 +349,7 @@ const DoctorDashboard = () => {
                               const id = typeof test.patientId === 'object' && test.patientId !== null
                                 ? test.patientId._id || test.patientId.id || String(test.patientId)
                                 : String(test.patientId);
-                              navigate(`/dashboard/doctor/patient/${id}`);
+                              navigate(`/dashboard/doctor/patients/profile/${id}`);
                             }}
                             className="text-blue-500 hover:text-blue-600 text-sm font-medium"
                           >

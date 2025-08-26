@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { addFollowUp } from '../../../features/centerAdmin/centerAdminThunks';
-import { resetCenterAdminState } from '../../../features/centerAdmin/centerAdminSlice';
+import { addFollowUp } from '../../../../features/centerAdmin/centerAdminThunks';
+import { resetCenterAdminState } from '../../../../features/centerAdmin/centerAdminSlice';
 import { 
   ArrowLeft, 
   Calendar, 

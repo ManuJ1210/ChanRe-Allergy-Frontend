@@ -1,15 +1,15 @@
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { createReceptionistMedication } from "../../../features/receptionist/receptionistThunks";
-import { resetReceptionistState } from "../../../features/receptionist/receptionistSlice";
+import { addPatientMedication } from "../../../../features/centerAdmin/centerAdminThunks";
+import { resetCenterAdminState } from "../../../../features/centerAdmin/centerAdminSlice";
 import { Pill, Save, ArrowLeft, CheckCircle } from "lucide-react";
 
 export default function AddMedications() {
   const { id } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { loading, error, addMedicationSuccess } = useSelector((state) => state.receptionist);
+  const { loading, error, addMedicationSuccess } = useSelector((state) => state.centerAdmin);
   
   const [formData, setFormData] = useState({
     drugName: "",
@@ -25,11 +25,11 @@ export default function AddMedications() {
   React.useEffect(() => {
     if (addMedicationSuccess) {
       setTimeout(() => {
-        dispatch(resetReceptionistState());
-        navigate(`/dashboard/receptionist/profile/${id}`);
+        dispatch(resetCenterAdminState());
+        navigate('/dashboard/doctor/patients');
       }, 1500);
     }
-  }, [addMedicationSuccess, dispatch, navigate, id]);
+  }, [addMedicationSuccess, dispatch, navigate]);
 
   React.useEffect(() => {
     setFormData(prev => ({ ...prev, patientId: id }));
@@ -42,7 +42,7 @@ export default function AddMedications() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    dispatch(createReceptionistMedication(formData));
+    dispatch(addPatientMedication(formData));
   };
 
   return (
@@ -51,16 +51,16 @@ export default function AddMedications() {
           {/* Header */}
           <div className="mb-8">
             <button
-                              onClick={() => navigate(`/dashboard/receptionist/manage-patients`)}
-              className="flex items-center text-slate-600 hover:text-slate-800 mb-4 transition-colors"
+                              onClick={() => navigate(`/dashboard/doctor/patients/profile/${id}`)}
+              className="flex items-center text-slate-600 hover:text-slate-800 mb-4 transition-colors text-xs"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Patient
             </button>
-            <h1 className="text-xl font-bold text-slate-800 mb-2">
+            <h1 className="text-md font-bold text-slate-800 mb-2">
               Add Medication
             </h1>
-            <p className="text-slate-600">
+            <p className="text-slate-600 text-xs">
               Prescribe medication for the patient
             </p>
           </div>
@@ -69,24 +69,24 @@ export default function AddMedications() {
           {addMedicationSuccess && (
             <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4 flex items-center">
               <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-              <span className="text-green-700">Medication added successfully!</span>
+              <span className="text-green-700 text-xs">Medication added successfully!</span>
             </div>
           )}
           {error && (
             <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-center">
               <CheckCircle className="h-5 w-5 text-red-500 mr-3" />
-              <span className="text-red-700">{error}</span>
+              <span className="text-red-700 text-xs">{error}</span>
             </div>
           )}
 
           {/* Form */}
           <div className="bg-white rounded-xl shadow-sm border border-blue-100">
             <div className="p-6 border-b border-blue-100">
-              <h2 className="text-lg font-semibold text-slate-800 flex items-center">
+              <h2 className="text-sm font-semibold text-slate-800 flex items-center">
                 <Pill className="h-5 w-5 mr-2 text-blue-500" />
                 Medication Information
               </h2>
-              <p className="text-slate-600 mt-1">
+              <p className="text-slate-600 mt-1 text-xs">
                 Fill in the medication details below
               </p>
             </div>
@@ -103,13 +103,13 @@ export default function AddMedications() {
                     value={formData.drugName}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs"
                     placeholder="Enter medication name"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                  <label className="block text-xs font-medium text-slate-700 mb-2">
                     Dosage *
                   </label>
                   <input
@@ -118,13 +118,13 @@ export default function AddMedications() {
                     value={formData.dose}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs"
                     placeholder="e.g., 500mg"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                  <label className="block text-xs font-medium text-slate-700 mb-2">
                     Frequency *
                   </label>
                   <input
@@ -133,13 +133,13 @@ export default function AddMedications() {
                     value={formData.frequency}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs"
                     placeholder="e.g., Twice daily"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                  <label className="block text-xs font-medium text-slate-700 mb-2">
                     Duration *
                   </label>
                   <input
@@ -148,13 +148,13 @@ export default function AddMedications() {
                     value={formData.duration}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs"
                     placeholder="e.g., 7 days"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                  <label className="block text-xs font-medium text-slate-700 mb-2">
                     Prescribed By *
                   </label>
                   <input
@@ -163,13 +163,13 @@ export default function AddMedications() {
                     value={formData.prescribedBy}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs"
                     placeholder="Enter doctor's name"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                  <label className="block text-xs font-medium text-slate-700 mb-2">
                     Prescribed Date *
                   </label>
                   <input
@@ -178,13 +178,13 @@ export default function AddMedications() {
                     value={formData.prescribedDate}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label className="block text-xs font-medium text-slate-700 mb-2">
                   Instructions
                 </label>
                 <textarea
@@ -192,7 +192,7 @@ export default function AddMedications() {
                   value={formData.instructions}
                   onChange={handleChange}
                   rows={4}
-                  className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                  className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs"
                   placeholder="Enter medication instructions"
                 />
               </div>
@@ -200,8 +200,8 @@ export default function AddMedications() {
               <div className="flex gap-4 pt-6">
                 <button
                   type="button"
-                  onClick={() => navigate(`/dashboard/CenterAdmin/patients/profile/ViewProfile/${id}`)}
-                  className="px-6 py-3 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-2"
+                  onClick={() => navigate(`/dashboard/doctor/patients/profile/${id}`)}
+                  className="px-6 py-3 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-2 text-xs"
                 >
                   <ArrowLeft className="h-4 w-4" />
                   Cancel
@@ -209,7 +209,7 @@ export default function AddMedications() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                  className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2 text-xs"
                 >
                   {loading ? (
                     <>

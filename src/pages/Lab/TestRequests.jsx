@@ -163,8 +163,10 @@ export default function TestRequests() {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'Pending':
-        return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+      case 'Billing_Paid':
+        return 'text-green-600 bg-green-50 border-green-200';
+      case 'Superadmin_Approved':
+        return 'text-emerald-600 bg-emerald-50 border-emerald-200';
       case 'Assigned':
         return 'text-blue-600 bg-blue-50 border-blue-200';
       case 'Sample_Collection_Scheduled':
@@ -180,6 +182,16 @@ export default function TestRequests() {
       case 'Report_Sent':
         return 'text-emerald-600 bg-emerald-50 border-emerald-200';
       case 'Completed':
+        return 'text-green-600 bg-green-50 border-green-200';
+      case 'feedback_sent':
+        return 'text-green-600 bg-green-50 border-green-200';
+      case 'report_generated':
+        return 'text-cyan-600 bg-cyan-50 border-cyan-200';
+      case 'report_sent':
+        return 'text-emerald-600 bg-emerald-50 border-emerald-200';
+      case 'FEEDBACK_SENT':
+        return 'text-green-600 bg-green-50 border-green-200';
+      case 'Feedback_Sent':
         return 'text-green-600 bg-green-50 border-green-200';
       case 'Cancelled':
         return 'text-red-600 bg-red-50 border-red-200';
@@ -203,8 +215,10 @@ export default function TestRequests() {
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case 'Pending':
-        return <Clock className="h-4 w-4" />;
+      case 'Billing_Paid':
+        return <CheckCircle className="h-4 w-4" />;
+      case 'Superadmin_Approved':
+        return <CheckCircle className="h-4 w-4" />;
       case 'Assigned':
         return <Microscope className="h-4 w-4" />;
       case 'Sample_Collection_Scheduled':
@@ -220,6 +234,16 @@ export default function TestRequests() {
       case 'Report_Sent':
         return <CheckCircle className="h-4 w-4" />;
       case 'Completed':
+        return <CheckCircle className="h-4 w-4" />;
+      case 'feedback_sent':
+        return <CheckCircle className="h-4 w-4" />;
+      case 'report_generated':
+        return <Eye className="h-4 w-4" />;
+      case 'report_sent':
+        return <CheckCircle className="h-4 w-4" />;
+      case 'FEEDBACK_SENT':
+        return <CheckCircle className="h-4 w-4" />;
+      case 'Feedback_Sent':
         return <CheckCircle className="h-4 w-4" />;
       case 'Cancelled':
         return <AlertTriangle className="h-4 w-4" />;
@@ -260,7 +284,7 @@ export default function TestRequests() {
         return;
       }
 
-      const response = await API.get(`/test-requests/${requestId}/download-report`, {
+      const response = await API.get(`/test-requests/download-report/${requestId}`, {
         responseType: 'blob',
         headers: {
           'Accept': 'application/pdf',
@@ -328,7 +352,7 @@ export default function TestRequests() {
         return;
       }
 
-      const response = await API.get(`/test-requests/${requestId}/download-report`, {
+      const response = await API.get(`/test-requests/download-report/${requestId}`, {
         responseType: 'blob', // This is crucial for binary data
         headers: {
           'Accept': 'application/pdf',
@@ -455,12 +479,12 @@ export default function TestRequests() {
         <div className="mb-8">
           <div className="flex justify-between items-center mb-4">
             <div>
-              <h1 className="text-xl font-bold text-slate-800 mb-2">
+              <h1 className="text-md font-bold text-slate-800 mb-2">
                 Test Requests
               </h1>
-              <p className="text-slate-600">
-                Manage and track all test requests from doctors
-              </p>
+                                             <p className="text-xs text-slate-600">
+                  Manage and track test requests that are ready for lab processing or already completed
+                </p>
             </div>
             <button
               onClick={handleRefresh}
@@ -473,11 +497,29 @@ export default function TestRequests() {
           </div>
           
           {lastRefreshTime && (
-            <p className="text-sm text-slate-500">
+            <p className="text-xs text-slate-500">
               Last updated: {lastRefreshTime.toLocaleTimeString()}
             </p>
           )}
         </div>
+
+                 {/* ✅ NEW: Workflow Information */}
+         <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+           <div className="flex items-start">
+             <div className="flex-shrink-0">
+               <svg className="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+               </svg>
+             </div>
+             <div className="ml-3">
+               <h3 className="text-sm font-medium text-blue-800">Lab Workflow</h3>
+                               <div className="mt-2 text-sm text-blue-700">
+                  <p>This page shows test requests that are <strong>ready for lab processing</strong> (with completed billing) OR <strong>already completed</strong> (regardless of billing status).</p>
+                  <p className="mt-1">Test requests with pending billing are handled by receptionists and center admins first.</p>
+                </div>
+             </div>
+           </div>
+         </div>
 
         {/* Error Message */}
         {error && (
@@ -499,47 +541,47 @@ export default function TestRequests() {
 
         {/* Status Counts */}
         <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 mb-6">
-          <h3 className="text-lg font-semibold text-slate-800 mb-4">Status Overview</h3>
+          <h3 className="text-sm font-semibold text-slate-800 mb-4">Status Overview</h3>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <div className="text-center p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <div className="text-2xl font-bold text-yellow-600">
+            <div className="text-center p-4 bg-green-50 border border-green-200 rounded-lg">
+              <div className="text-md font-bold text-green-600">
                 {testRequests.filter(req => 
-                  ['Pending', 'pending', 'PENDING', 'pending'].includes(req.status)
+                  ['Billing_Paid', 'Superadmin_Approved'].includes(req.status)
                 ).length}
               </div>
-              <div className="text-sm text-yellow-700">Pending</div>
+              <div className="text-xs text-green-700">Ready for Lab</div>
             </div>
             <div className="text-center p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="text-2xl font-bold text-blue-600">
+              <div className="text-md font-bold text-blue-600">
                 {testRequests.filter(req => 
                   ['Assigned', 'assigned', 'ASSIGNED'].includes(req.status)
                 ).length}
               </div>
-              <div className="text-sm text-blue-700">Assigned</div>
+              <div className="text-xs text-blue-700">Assigned</div>
             </div>
             <div className="text-center p-4 bg-orange-50 border border-orange-200 rounded-lg">
-              <div className="text-2xl font-bold text-orange-600">
+              <div className="text-md font-bold text-orange-600">
                 {testRequests.filter(req => 
                   ['Sample_Collection_Scheduled', 'Sample_Collected', 'In_Lab_Testing', 'Testing_Completed', 'sample_collection_scheduled', 'sample_collected', 'in_lab_testing', 'testing_completed', 'In_Progress', 'in_progress'].includes(req.status)
                 ).length}
               </div>
-              <div className="text-sm text-orange-700">In Progress</div>
+              <div className="text-xs text-orange-700">In Progress</div>
             </div>
-            <div className="text-center p-4 bg-green-50 border border-green-200 rounded-lg">
-              <div className="text-2xl font-bold text-green-600">
-                {testRequests.filter(req => 
-                  ['Report_Generated', 'Report_Sent', 'Completed', 'feedback_sent', 'report_generated', 'report_sent', 'completed', 'FEEDBACK_SENT', 'Feedback_Sent', 'feedback_sent'].includes(req.status)
-                ).length}
-              </div>
-              <div className="text-sm text-green-700">Completed</div>
-            </div>
+                         <div className="text-center p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+               <div className="text-md font-bold text-emerald-600">
+                 {testRequests.filter(req => 
+                   ['Report_Generated', 'Report_Sent', 'Completed', 'feedback_sent', 'report_generated', 'report_sent', 'completed', 'FEEDBACK_SENT', 'Feedback_Sent', 'Report_Generated', 'Report_Sent'].includes(req.status)
+                 ).length}
+               </div>
+               <div className="text-xs text-emerald-700">Completed</div>
+             </div>
             <div className="text-center p-4 bg-red-50 border border-red-200 rounded-lg">
-              <div className="text-2xl font-bold text-red-600">
+              <div className="text-md font-bold text-red-600">
                 {testRequests.filter(req => 
                   ['Cancelled', 'cancelled', 'CANCELLED'].includes(req.status)
                 ).length}
               </div>
-              <div className="text-sm text-red-700">Cancelled</div>
+              <div className="text-xs text-red-700">Cancelled</div>
             </div>
           </div>
         </div>
@@ -560,23 +602,29 @@ export default function TestRequests() {
             </div>
 
             {/* Status Filter */}
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="All">All Status</option>
-              <option value="Pending">Pending</option>
-              <option value="Assigned">Assigned</option>
-              <option value="Sample_Collection_Scheduled">Sample Collection Scheduled</option>
-              <option value="Sample_Collected">Sample Collected</option>
-              <option value="In_Lab_Testing">In Lab Testing</option>
-              <option value="Testing_Completed">Testing Completed</option>
-              <option value="Report_Generated">Report Generated</option>
-              <option value="Report_Sent">Report Sent</option>
-              <option value="Completed">Completed</option>
-              <option value="Cancelled">Cancelled</option>
-            </select>
+                         <select
+               value={statusFilter}
+               onChange={(e) => setStatusFilter(e.target.value)}
+               className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+             >
+               <option value="All">All Status</option>
+               <option value="Billing_Paid">Billing Paid</option>
+               <option value="Superadmin_Approved">Superadmin Approved</option>
+               <option value="Assigned">Assigned</option>
+               <option value="Sample_Collection_Scheduled">Sample Collection Scheduled</option>
+               <option value="Sample_Collected">Sample Collected</option>
+               <option value="In_Lab_Testing">In Lab Testing</option>
+               <option value="Testing_Completed">Testing Completed</option>
+               <option value="Report_Generated">Report Generated</option>
+               <option value="Report_Sent">Report Sent</option>
+               <option value="Completed">Completed</option>
+               <option value="feedback_sent">Feedback Sent</option>
+               <option value="report_generated">Report Generated (Alt)</option>
+               <option value="report_sent">Report Sent (Alt)</option>
+               <option value="FEEDBACK_SENT">Feedback Sent (Alt)</option>
+               <option value="Feedback_Sent">Feedback Sent (Alt2)</option>
+               <option value="Cancelled">Cancelled</option>
+             </select>
 
             {/* Urgency Filter */}
             <select
@@ -606,7 +654,7 @@ export default function TestRequests() {
 
         {/* Results Count */}
         <div className="mb-4">
-          <p className="text-slate-600">
+          <p className="text-xs text-slate-600">
             Showing {filteredRequests.length} of {testRequests.length} test requests
           </p>
         </div>
@@ -614,15 +662,18 @@ export default function TestRequests() {
         {/* Test Requests List */}
         <div className="bg-white rounded-lg shadow-sm border border-slate-200">
           {filteredRequests.length === 0 ? (
-            <div className="text-center py-12">
-              <Microscope className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-              <h3 className="text-sm font-medium text-slate-900 mb-2">No test requests found</h3>
-              <p className="text-slate-600">
-                {testRequests.length === 0 
-                  ? "No test requests have been created yet." 
-                  : "No test requests match your current filters."}
-              </p>
-            </div>
+                         <div className="text-center py-12">
+               <Microscope className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+               <h3 className="text-sm font-medium text-slate-900 mb-2">No test requests found</h3>
+                               <p className="text-xs text-slate-600">
+                  {testRequests.length === 0 
+                    ? "No test requests are ready for lab processing or completed yet." 
+                    : "No test requests match your current filters."}
+                </p>
+               <p className="text-xs text-slate-500 mt-2">
+                 Test requests with pending billing are handled by receptionists and center admins first.
+               </p>
+             </div>
           ) : (
             <div className="divide-y divide-slate-200">
               {filteredRequests.map((request) => (
@@ -642,26 +693,26 @@ export default function TestRequests() {
 
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                         <div>
-                          <h3 className="font-semibold text-slate-900 mb-1">Patient</h3>
-                          <p className="text-slate-600">{request.patientName}</p>
-                          <p className="text-sm text-slate-500">{request.patientPhone}</p>
+                          <h3 className="text-xs font-semibold text-slate-900 mb-1">Patient</h3>
+                          <p className="text-xs text-slate-600">{request.patientName}</p>
+                          <p className="text-xs text-slate-500">{request.patientPhone}</p>
                         </div>
                         <div>
-                          <h3 className="font-semibold text-slate-900 mb-1">Doctor</h3>
-                          <p className="text-slate-600">{request.doctorName}</p>
-                          <p className="text-sm text-slate-500">{request.centerName}</p>
+                          <h3 className="text-xs font-semibold text-slate-900 mb-1">Doctor</h3>
+                          <p className="text-xs text-slate-600">{request.doctorName}</p>
+                          <p className="text-xs text-slate-500">{request.centerName}</p>
                         </div>
                         <div>
-                          <h3 className="font-semibold text-slate-900 mb-1">Test Type</h3>
-                          <p className="text-slate-600">{request.testType}</p>
-                          <p className="text-sm text-slate-500">{request.testDescription}</p>
+                          <h3 className="text-xs font-semibold text-slate-900 mb-1">Test Type</h3>
+                          <p className="text-xs text-slate-600">{request.testType}</p>
+                          <p className="text-xs text-slate-500">{request.testDescription}</p>
                         </div>
                         <div>
-                          <h3 className="font-semibold text-slate-900 mb-1">Created</h3>
-                          <p className="text-slate-600">
+                          <h3 className="text-xs font-semibold text-slate-900 mb-1">Created</h3>
+                          <p className="text-xs text-slate-600">
                             {new Date(request.createdAt).toLocaleDateString()}
                           </p>
-                          <p className="text-sm text-slate-500">
+                          <p className="text-xs text-slate-500">
                             {new Date(request.createdAt).toLocaleTimeString()}
                           </p>
                         </div>
@@ -669,8 +720,8 @@ export default function TestRequests() {
 
                       {request.notes && (
                         <div className="mb-4">
-                          <h3 className="font-semibold text-slate-900 mb-1">Notes</h3>
-                          <p className="text-slate-600 text-sm">{request.notes}</p>
+                          <h3 className="text-xs font-semibold text-slate-900 mb-1">Notes</h3>
+                          <p className="text-xs text-slate-600">{request.notes}</p>
                         </div>
                       )}
                     </div>
@@ -708,7 +759,7 @@ export default function TestRequests() {
                           </button>
                         </>
                       )}
-                      {(request.status === 'Pending' || request.status === 'Cancelled') && (
+                      {(request.status === 'Cancelled') && (
                         <button
                           onClick={() => handleDeleteRequest(request._id, request.patientName)}
                           className="flex items-center px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"

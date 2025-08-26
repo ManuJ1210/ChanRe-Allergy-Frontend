@@ -65,7 +65,7 @@ export default function CompletedRequests() {
         return;
       }
 
-      const response = await API.get(`/test-requests/${requestId}/download-report`, {
+      const response = await API.get(`/test-requests/download-report/${requestId}`, {
         responseType: 'blob', // This is crucial for binary data
         headers: {
           'Accept': 'application/pdf',
@@ -149,7 +149,7 @@ export default function CompletedRequests() {
         return;
       }
 
-      const response = await API.get(`/test-requests/${requestId}/download-report`, {
+      const response = await API.get(`/test-requests/download-report/${requestId}`, {
         responseType: 'blob',
         headers: {
           'Accept': 'application/pdf',
@@ -264,8 +264,8 @@ export default function CompletedRequests() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-xl font-bold text-slate-800 mb-2">Completed Test Requests</h1>
-          <p className="text-slate-600">View and manage completed test results</p>
+          <h1 className="text-md font-bold text-slate-800 mb-2">Completed Test Requests</h1>
+          <p className="text-xs text-slate-600">View and manage completed test results</p>
         </div>
 
         {/* Error Message */}
@@ -292,7 +292,7 @@ export default function CompletedRequests() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-slate-600">Total Completed</p>
-                <p className="text-xl font-bold text-slate-800">{completedRequests.length}</p>
+                <p className="text-md font-bold text-slate-800">{completedRequests.length}</p>
               </div>
               <div className="p-3 bg-green-50 rounded-lg">
                 <FaCheckCircle className="text-green-500 text-lg" />
@@ -304,7 +304,7 @@ export default function CompletedRequests() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-slate-600">This Week</p>
-                <p className="text-xl font-bold text-blue-600">
+                <p className="text-md font-bold text-blue-600">
                   {completedRequests.filter(req => {
                     const weekAgo = new Date();
                     weekAgo.setDate(weekAgo.getDate() - 7);
@@ -322,7 +322,7 @@ export default function CompletedRequests() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-slate-600">Normal Results</p>
-                <p className="text-xl font-bold text-green-600">
+                <p className="text-md font-bold text-green-600">
                   {completedRequests.filter(req => 
                     req.testResults && (
                       req.testResults.toLowerCase().includes('normal') || 
@@ -341,7 +341,7 @@ export default function CompletedRequests() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-slate-600">Abnormal Results</p>
-                <p className="text-xl font-bold text-red-600">
+                <p className="text-md font-bold text-red-600">
                   {completedRequests.filter(req => 
                     req.testResults && (
                       req.testResults.toLowerCase().includes('positive') || 
@@ -389,13 +389,13 @@ export default function CompletedRequests() {
         {loading ? (
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-            <p className="text-slate-600">Loading completed requests...</p>
+            <p className="text-xs text-slate-600">Loading completed requests...</p>
           </div>
         ) : filteredRequests.length === 0 ? (
           <div className="text-center py-12">
             <FaCheckCircle className="text-slate-400 text-6xl mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-slate-600 mb-2">No Completed Requests</h3>
-            <p className="text-slate-500">No test requests have been completed yet.</p>
+            <h3 className="text-sm font-semibold text-slate-600 mb-2">No Completed Requests</h3>
+            <p className="text-xs text-slate-500">No test requests have been completed yet.</p>
           </div>
         ) : (
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">

@@ -10,7 +10,8 @@ import {
   AlertCircle,
   RefreshCw
 } from 'lucide-react';
-import { fetchSuperAdminDoctorPatientHistory, fetchSuperAdminDoctorPatientLabReports } from '../../../features/superadmin/superAdminDoctorSlice';
+import { fetchSuperAdminDoctorPatientHistory } from '../../../features/superadmin/superAdminDoctorSlice';
+import API from '../../../services/api';
 
 const PatientHistory = () => {
   const dispatch = useDispatch();
@@ -38,16 +39,9 @@ const PatientHistory = () => {
     
     setLabReportsLoading(true);
     try {
-      const response = await fetch(`/api/superadmin/doctors/working/patient/${patientId}/lab-reports`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setLabReports(data);
-      }
+      // Use the API service instead of hardcoded fetch
+      const response = await API.get(`/superadmin/doctors/working/patient/${patientId}/lab-reports`);
+      setLabReports(response.data);
     } catch (error) {
       console.error('Error fetching lab reports:', error);
     } finally {

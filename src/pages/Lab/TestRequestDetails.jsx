@@ -206,13 +206,13 @@ const TestRequestDetails = () => {
         <div className="bg-white rounded-lg shadow-lg p-8">
           {/* Record Header */}
           <div className="text-center mb-8">
-            <h1 className="text-xl font-bold text-gray-800 mb-2">LABORATORY TEST REQUEST</h1>
-            <p className="text-gray-600">Medical Test Request Record</p>
+            <h1 className="text-md font-bold text-gray-800 mb-2">LABORATORY TEST REQUEST</h1>
+            <p className="text-xs text-gray-600">Medical Test Request Record</p>
           </div>
           
           {/* Test Request Information */}
           <div className="bg-blue-50 rounded-lg p-6 mb-8">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+            <h2 className="text-sm font-semibold text-gray-800 mb-4 flex items-center">
               <UserCheck className="h-5 w-5 mr-2 text-blue-600" />
               Test Request Information
             </h2>
@@ -238,7 +238,7 @@ const TestRequestDetails = () => {
 
           {/* Status and Urgency */}
           <div className="bg-gray-50 rounded-lg p-6 mb-8">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+            <h2 className="text-sm font-semibold text-gray-800 mb-4 flex items-center">
               <Activity className="h-5 w-5 mr-2 text-blue-600" />
               Status & Priority
             </h2>
@@ -260,7 +260,7 @@ const TestRequestDetails = () => {
 
           {/* Patient Information */}
           <div className="bg-gray-50 rounded-lg p-6 mb-8">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+            <h2 className="text-sm font-semibold text-gray-800 mb-4 flex items-center">
               <User className="h-5 w-5 mr-2 text-blue-600" />
               Patient Information
             </h2>
@@ -304,7 +304,7 @@ const TestRequestDetails = () => {
 
           {/* Doctor Information */}
           <div className="bg-gray-50 rounded-lg p-6 mb-8">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+            <h2 className="text-sm font-semibold text-gray-800 mb-4 flex items-center">
               <Stethoscope className="h-5 w-5 mr-2 text-blue-600" />
               Requesting Doctor
             </h2>
@@ -322,7 +322,7 @@ const TestRequestDetails = () => {
 
           {/* Test Details */}
           <div className="bg-gray-50 rounded-lg p-6 mb-8">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+            <h2 className="text-sm font-semibold text-gray-800 mb-4 flex items-center">
               <TestTube className="h-5 w-5 mr-2 text-blue-600" />
               Test Details
             </h2>
@@ -351,7 +351,7 @@ const TestRequestDetails = () => {
           {/* Sample Collection Details */}
           {(testRequest.sampleCollectorId || testRequest.sampleCollectorName) && (
             <div className="bg-gray-50 rounded-lg p-6 mb-8">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+              <h2 className="text-sm font-semibold text-gray-800 mb-4 flex items-center">
                 <UserCheck className="h-5 w-5 mr-2 text-blue-600" />
                 Sample Collection Details
               </h2>
@@ -396,7 +396,7 @@ const TestRequestDetails = () => {
           {/* Lab Testing Details */}
           {(testRequest.labStaffId || testRequest.labStaffName) && (
             <div className="bg-gray-50 rounded-lg p-6 mb-8">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+              <h2 className="text-sm font-semibold text-gray-800 mb-4 flex items-center">
                 <TestTube className="h-5 w-5 mr-2 text-blue-600" />
                 Lab Testing Details
               </h2>
@@ -444,7 +444,7 @@ const TestRequestDetails = () => {
           {/* Test Results */}
           {testRequest.testResults && (
             <div className="bg-gray-50 rounded-lg p-6 mb-8">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+              <h2 className="text-sm font-semibold text-gray-800 mb-4 flex items-center">
                 <Eye className="h-5 w-5 mr-2 text-blue-600" />
                 Test Results
               </h2>
@@ -461,7 +461,7 @@ const TestRequestDetails = () => {
           {/* Report Information */}
           {testRequest.reportGeneratedDate && (
             <div className="bg-gray-50 rounded-lg p-6 mb-8">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+              <h2 className="text-sm font-semibold text-gray-800 mb-4 flex items-center">
                 <FileText className="h-5 w-5 mr-2 text-blue-600" />
                 Report Information
               </h2>

@@ -200,26 +200,26 @@ const TestRequests = () => {
                   Last updated: {lastRefreshTime.toLocaleTimeString()}
                 </p>
               </div>
-              <div className="flex space-x-3">
-                <button
-                  onClick={() => {
-                    dispatch(fetchTestRequests());
-                    setLastRefreshTime(new Date());
-                  }}
-                  disabled={testRequestsLoading}
-                  className="bg-slate-500 text-white px-4 py-2 rounded-lg hover:bg-slate-600 flex items-center disabled:opacity-50"
-                >
-                  <RefreshCw className={`h-4 w-4 mr-2 ${testRequestsLoading ? 'animate-spin' : ''}`} />
-                  Refresh
-                </button>
-                <button
-                  onClick={() => navigate('/dashboard/doctor/new-test-request')}
-                  className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 flex items-center"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  New Test Request
-                </button>
-              </div>
+                             <div className="flex space-x-3">
+                 <button
+                   onClick={() => {
+                     dispatch(fetchTestRequests());
+                     setLastRefreshTime(new Date());
+                   }}
+                   disabled={testRequestsLoading}
+                   className="bg-slate-500 text-white px-4 py-2 rounded-lg hover:bg-slate-600 flex items-center disabled:opacity-50"
+                 >
+                   <RefreshCw className={`h-4 w-4 mr-2 ${testRequestsLoading ? 'animate-spin' : ''}`} />
+                   Refresh
+                 </button>
+                 <button
+                   onClick={() => navigate('/dashboard/doctor/add-test-request')}
+                   className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 flex items-center"
+                 >
+                   <Plus className="h-4 w-4 mr-2" />
+                   New Test Request
+                 </button>
+               </div>
             </div>
         </div>
 
@@ -230,7 +230,7 @@ const TestRequests = () => {
           </div>
         )}
 
-        {/* Status Summary Cards */}
+        
 
 
         {/* Search and Filter Bar */}
@@ -306,12 +306,21 @@ const TestRequests = () => {
               <h3 className="text-lg  text-slate-600 mb-2">
                 {searchTerm || filterStatus || filterPriority ? 'No test requests found' : 'No test requests'}
               </h3>
-              <p className="text-slate-500">
+              <p className="text-slate-500 mb-6">
                 {searchTerm || filterStatus || filterPriority 
                   ? 'Try adjusting your search or filter criteria'
                   : 'Test requests will appear here once you create them'
                 }
               </p>
+              {!searchTerm && !filterStatus && !filterPriority && (
+                <button
+                  onClick={() => navigate('/dashboard/doctor/add-test-request')}
+                  className="bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 flex items-center mx-auto"
+                >
+                  <Plus className="h-5 w-5 mr-2" />
+                  Create Your First Test Request
+                </button>
+              )}
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -395,7 +404,7 @@ const TestRequests = () => {
                               const id = typeof test.patientId === 'object' && test.patientId !== null
                                 ? test.patientId._id || test.patientId.id || String(test.patientId)
                                 : String(test.patientId);
-                              navigate(`/dashboard/doctor/patient/${id}`);
+                              navigate(`/dashboard/doctor/patients/profile/${id}`);
                             }}
                             className="flex items-center text-blue-600 hover:text-blue-700 font-medium"
                           >

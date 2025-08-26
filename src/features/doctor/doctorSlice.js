@@ -14,6 +14,9 @@ import {
   fetchTestRequestById,
   downloadTestReport,
   fetchPatientTestRequests,
+  fetchPatientHistory,
+  fetchPatientMedications,
+  fetchPatientFollowUps,
   fetchDoctorNotifications,
   markNotificationAsRead,
   markAllNotificationsAsRead,
@@ -36,14 +39,23 @@ const initialState = {
   testRequests: [],
   patientTestRequests: [],
   singleTestRequest: null,
+  patientHistory: [],
+  patientMedications: [],
+  patientFollowUps: [],
   patientsLoading: false,
   patientDetailsLoading: false,
   testRequestsLoading: false,
   singleTestRequestLoading: false,
+  patientHistoryLoading: false,
+  patientMedicationsLoading: false,
+  patientFollowUpsLoading: false,
   patientsError: null,
   patientDetailsError: null,
   testRequestsError: null,
   singleTestRequestError: null,
+  patientHistoryError: null,
+  patientMedicationsError: null,
+  patientFollowUpsError: null,
   
   // Notification and Feedback state
   notifications: [],
@@ -336,6 +348,51 @@ const doctorSlice = createSlice({
       .addCase(fetchTestRequestsWithFeedback.rejected, (state, action) => {
         state.feedbackLoading = false;
         state.feedbackError = action.payload || 'Failed to fetch test requests with feedback';
+      })
+
+      // Fetch patient history
+      .addCase(fetchPatientHistory.pending, (state) => {
+        state.patientHistoryLoading = true;
+        state.patientHistoryError = null;
+      })
+      .addCase(fetchPatientHistory.fulfilled, (state, action) => {
+        state.patientHistoryLoading = false;
+        state.patientHistory = action.payload;
+        state.patientHistoryError = null;
+      })
+      .addCase(fetchPatientHistory.rejected, (state, action) => {
+        state.patientHistoryLoading = false;
+        state.patientHistoryError = action.payload || 'Failed to fetch patient history';
+      })
+
+      // Fetch patient medications
+      .addCase(fetchPatientMedications.pending, (state) => {
+        state.patientMedicationsLoading = true;
+        state.patientMedicationsError = null;
+      })
+      .addCase(fetchPatientMedications.fulfilled, (state, action) => {
+        state.patientMedicationsLoading = false;
+        state.patientMedications = action.payload;
+        state.patientMedicationsError = null;
+      })
+      .addCase(fetchPatientMedications.rejected, (state, action) => {
+        state.patientMedicationsLoading = false;
+        state.patientMedicationsError = action.payload || 'Failed to fetch patient medications';
+      })
+
+      // Fetch patient follow-ups
+      .addCase(fetchPatientFollowUps.pending, (state) => {
+        state.patientFollowUpsLoading = true;
+        state.patientFollowUpsError = null;
+      })
+      .addCase(fetchPatientFollowUps.fulfilled, (state, action) => {
+        state.patientFollowUpsLoading = false;
+        state.patientFollowUps = action.payload;
+        state.patientFollowUpsError = null;
+      })
+      .addCase(fetchPatientFollowUps.rejected, (state, action) => {
+        state.patientFollowUpsLoading = false;
+        state.patientFollowUpsError = action.payload || 'Failed to fetch patient follow-ups';
       });
   },
 });

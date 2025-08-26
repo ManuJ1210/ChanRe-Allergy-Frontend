@@ -810,7 +810,7 @@ const ViewHistory = () => {
                     </div>
                     <button
                       onClick={() => {
-                        const fileUrl = `http://localhost:5000/uploads/${history.reportFile}`;
+                        const fileUrl = `${api.defaults.baseURL}/uploads/${history.reportFile}`;  
                         window.open(fileUrl, '_blank');
                       }}
                       className="group flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 text-sm font-semibold shadow-md hover:shadow-lg transform hover:-translate-y-0.5"

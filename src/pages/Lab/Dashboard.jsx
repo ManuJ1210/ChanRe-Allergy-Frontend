@@ -159,10 +159,10 @@ export default function LabDashboard() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-xl font-bold text-slate-800 mb-2">
+          <h1 className="text-md font-bold text-slate-800 mb-2">
             Lab Dashboard
           </h1>
-          <p className="text-slate-600">
+          <p className="text-xs text-slate-600">
             Welcome back, {user?.staffName || 'Lab Staff'}! Here's your test request overview.
           </p>
         </div>
@@ -173,8 +173,8 @@ export default function LabDashboard() {
           <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-600">Total Requests</p>
-                <p className="text-xl font-bold text-slate-800">{stats.totalRequests}</p>
+                <p className="text-xs font-medium text-slate-600">Total Requests</p>
+                <p className="text-md font-bold text-slate-800">{stats.totalRequests}</p>
               </div>
               <div className="p-3 bg-blue-50 rounded-lg">
                 <Microscope className="h-6 w-6 text-blue-500" />
@@ -186,8 +186,8 @@ export default function LabDashboard() {
           <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-600">Pending</p>
-                <p className="text-xl font-bold text-slate-800">{stats.pendingRequests}</p>
+                <p className="text-xs font-medium text-slate-600">Pending</p>
+                <p className="text-md font-bold text-slate-800">{stats.pendingRequests}</p>
               </div>
               <div className="p-3 bg-yellow-50 rounded-lg">
                 <Clock className="h-6 w-6 text-yellow-500" />
@@ -199,8 +199,8 @@ export default function LabDashboard() {
           <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-600">Completed</p>
-                <p className="text-xl font-bold text-slate-800">{stats.completedRequests}</p>
+                <p className="text-xs font-medium text-slate-600">Completed</p>
+                <p className="text-md font-bold text-slate-800">{stats.completedRequests}</p>
               </div>
               <div className="p-3 bg-green-50 rounded-lg">
                 <CheckCircle className="h-6 w-6 text-green-500" />
@@ -212,8 +212,8 @@ export default function LabDashboard() {
           <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-600">Urgent</p>
-                <p className="text-2xl font-bold text-slate-800">{stats.urgentRequests}</p>
+                <p className="text-xs font-medium text-slate-600">Urgent</p>
+                <p className="text-md font-bold text-slate-800">{stats.urgentRequests}</p>
               </div>
               <div className="p-3 bg-red-50 rounded-lg">
                 <AlertTriangle className="h-6 w-6 text-red-500" />
@@ -227,21 +227,21 @@ export default function LabDashboard() {
           {/* Today's Requests */}
           <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-slate-800">Today's Requests</h3>
+              <h3 className="text-sm font-semibold text-slate-800">Today's Requests</h3>
               <Calendar className="h-5 w-5 text-blue-500" />
             </div>
-            <p className="text-3xl font-bold text-blue-600">{stats.todayRequests}</p>
-            <p className="text-sm text-slate-600 mt-2">New test requests today</p>
+            <p className="text-md font-bold text-blue-600">{stats.todayRequests}</p>
+            <p className="text-xs text-slate-600 mt-2">New test requests today</p>
           </div>
 
           {/* This Week's Requests */}
           <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-slate-800">This Week</h3>
+              <h3 className="text-sm font-semibold text-slate-800">This Week</h3>
               <TrendingUp className="h-5 w-5 text-green-500" />
             </div>
-            <p className="text-3xl font-bold text-green-600">{stats.thisWeekRequests}</p>
-            <p className="text-sm text-slate-600 mt-2">Requests in the last 7 days</p>
+            <p className="text-md font-bold text-green-600">{stats.thisWeekRequests}</p>
+            <p className="text-xs text-slate-600 mt-2">Requests in the last 7 days</p>
           </div>
         </div>
 
@@ -249,13 +249,13 @@ export default function LabDashboard() {
         <div className="bg-white rounded-xl shadow-sm border border-blue-100">
           <div className="p-6 border-b border-blue-100">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-slate-800 flex items-center">
+              <h2 className="text-sm font-semibold text-slate-800 flex items-center">
                 <Activity className="h-5 w-5 mr-2 text-blue-500" />
                 Recent Test Requests
               </h2>
               <button
                 onClick={() => navigate('/dashboard/lab/test-requests')}
-                className="text-blue-500 hover:text-blue-600 font-medium text-sm"
+                className="text-blue-500 hover:text-blue-600 font-medium text-xs"
               >
                 View All
               </button>
@@ -266,8 +266,8 @@ export default function LabDashboard() {
             {recentRequests.length === 0 ? (
               <div className="text-center py-8">
                 <Microscope className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-slate-600 mb-2">No Test Requests</h3>
-                <p className="text-slate-500">You don't have any test requests assigned yet.</p>
+                <h3 className="text-sm font-medium text-slate-600 mb-2">No Test Requests</h3>
+                <p className="text-xs text-slate-500">You don't have any test requests assigned yet.</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -315,7 +315,7 @@ export default function LabDashboard() {
 
         {/* Quick Actions */}
         <div className="mt-8 bg-white rounded-xl shadow-sm border border-blue-100 p-6">
-          <h3 className="text-lg font-semibold text-slate-800 mb-4">Quick Actions</h3>
+          <h3 className="text-sm font-semibold text-slate-800 mb-4">Quick Actions</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <button
               onClick={() => navigate('/dashboard/lab/test-requests')}

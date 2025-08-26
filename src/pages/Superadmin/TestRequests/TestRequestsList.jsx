@@ -73,6 +73,12 @@ const TestRequestsList = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
+      case 'Billing_Pending':
+        return 'text-amber-700 bg-amber-50 border-amber-200';
+      case 'Billing_Generated':
+        return 'text-sky-700 bg-sky-50 border-sky-200';
+      case 'Billing_Paid':
+        return 'text-emerald-700 bg-emerald-50 border-emerald-200';
       case 'Pending':
         return 'text-yellow-600 bg-yellow-50 border-yellow-200';
       case 'Superadmin_Review':
@@ -262,6 +268,9 @@ const TestRequestsList = () => {
                 className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs sm:text-base"
               >
                 <option value="all">All Statuses</option>
+                <option value="Billing_Pending">Billing Pending</option>
+                <option value="Billing_Generated">Billing Generated</option>
+                <option value="Billing_Paid">Billing Paid</option>
                 <option value="Superadmin_Review">Pending Review</option>
                 <option value="Superadmin_Approved">Approved</option>
                 <option value="Superadmin_Rejected">Rejected</option>
