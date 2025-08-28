@@ -1,15 +1,14 @@
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { addPatientMedication } from "../../../../features/centerAdmin/centerAdminThunks";
-import { resetCenterAdminState } from "../../../../features/centerAdmin/centerAdminSlice";
+import { addPatientMedication } from "../../../../features/doctor/doctorThunks";
 import { Pill, Save, ArrowLeft, CheckCircle } from "lucide-react";
 
 export default function AddMedications() {
   const { id } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { loading, error, addMedicationSuccess } = useSelector((state) => state.centerAdmin);
+  const { loading, error } = useSelector((state) => state.doctor);
   
   const [formData, setFormData] = useState({
     drugName: "",
@@ -22,14 +21,10 @@ export default function AddMedications() {
     patientId: id,
   });
 
-  React.useEffect(() => {
-    if (addMedicationSuccess) {
-      setTimeout(() => {
-        dispatch(resetCenterAdminState());
-        navigate('/dashboard/CenterAdmin/patients/PatientList');
-      }, 1500);
-    }
-  }, [addMedicationSuccess, dispatch, navigate]);
+  const handleMedicationAdded = () => {
+    // Navigate back to patient profile after successful medication addition
+    navigate(`/dashboard/Doctor/patients/profile/ViewProfile/${id}`);
+  };
 
   React.useEffect(() => {
     setFormData(prev => ({ ...prev, patientId: id }));
@@ -42,7 +37,14 @@ export default function AddMedications() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    dispatch(addPatientMedication(formData));
+    try {
+      await dispatch(addPatientMedication(formData)).unwrap();
+      // Show success message and navigate back
+      handleMedicationAdded();
+    } catch (error) {
+      // Error is handled by the thunk and stored in state
+      console.error('Failed to add medication:', error);
+    }
   };
 
   return (
@@ -51,7 +53,7 @@ export default function AddMedications() {
           {/* Header */}
           <div className="mb-8">
             <button
-                              onClick={() => navigate(`/dashboard/CenterAdmin/patients/profile/ViewProfile/${id}`)}
+              onClick={() => navigate(`/dashboard/Doctor/patients/profile/ViewProfile/${id}`)}
               className="flex items-center text-slate-600 hover:text-slate-800 mb-4 transition-colors text-xs"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
@@ -66,12 +68,6 @@ export default function AddMedications() {
           </div>
 
           {/* Alert Messages */}
-          {addMedicationSuccess && (
-            <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4 flex items-center">
-              <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-              <span className="text-green-700 text-xs">Medication added successfully!</span>
-            </div>
-          )}
           {error && (
             <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-center">
               <CheckCircle className="h-5 w-5 text-red-500 mr-3" />
@@ -200,7 +196,7 @@ export default function AddMedications() {
               <div className="flex gap-4 pt-6">
                 <button
                   type="button"
-                  onClick={() => navigate(`/dashboard/CenterAdmin/patients/profile/ViewProfile/${id}`)}
+                  onClick={() => navigate(`/dashboard/Doctor/patients/profile/ViewProfile/${id}`)}
                   className="px-6 py-3 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-2 text-xs"
                 >
                   <ArrowLeft className="h-4 w-4" />

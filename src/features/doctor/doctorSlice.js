@@ -29,6 +29,7 @@ import {
   fetchAtopicDermatitis,
   fetchGPE,
   fetchPrescriptions,
+  fetchSinglePrescription,
   fetchDoctorNotifications,
   markNotificationAsRead,
   markAllNotificationsAsRead,
@@ -61,6 +62,7 @@ const initialState = {
   atopicDermatitis: [],
   gpe: [],
   prescriptions: [],
+  singlePrescription: null,
   addAllergicRhinitisSuccess: false,
   addAllergicConjunctivitisSuccess: false,
   addAtopicDermatitisSuccess: false,
@@ -609,6 +611,21 @@ const doctorSlice = createSlice({
       .addCase(fetchPrescriptions.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || 'Failed to fetch prescriptions';
+      })
+
+      // Fetch single prescription
+      .addCase(fetchSinglePrescription.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchSinglePrescription.fulfilled, (state, action) => {
+        state.loading = false;
+        state.singlePrescription = action.payload;
+        state.error = null;
+      })
+      .addCase(fetchSinglePrescription.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || 'Failed to fetch prescription';
       });
   },
 });

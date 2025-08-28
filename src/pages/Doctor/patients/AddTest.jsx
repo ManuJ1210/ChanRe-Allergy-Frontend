@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { submitPatientTests } from "../../../features/patient/patientThunks";
-import { resetPatientState } from "../../../features/patient/patientSlice";
+import { createTestRequest } from "../../../features/doctor/doctorThunks";
 import { FileText, ArrowLeft, Save, FlaskConical, CheckCircle } from 'lucide-react';
 
 const testFields = [
@@ -18,39 +17,43 @@ const AddTest = () => {
 
   const [reports, setReports] = useState({});
 
-  const {
-    testSubmitting,
-    testSubmitSuccess,
-    testSubmitError,
-  } = useSelector((state) => state.patient);
+  const { loading, error } = useSelector((state) => state.doctor);
 
   const handleChange = (testName, value) => {
     setReports((prev) => ({ ...prev, [testName]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const filledReports = Object.fromEntries(
-      Object.entries(reports).filter(([_, val]) => val && val.trim() !== "")
+    const selectedTests = Object.fromEntries(
+      Object.entries(reports).filter(([_, val]) => val === true)
     );
 
-    if (Object.keys(filledReports).length === 0) {
-      alert("Please fill in at least one test report.");
+    if (Object.keys(selectedTests).length === 0) {
+      alert("Please select at least one test to request.");
       return;
     }
 
-    dispatch(submitPatientTests({ patientId, testData: filledReports }));
+    try {
+      // Create test request with the selected tests
+      await dispatch(createTestRequest({
+        patientId,
+        testType: "Laboratory Tests",
+        requestedTests: Object.keys(selectedTests),
+        notes: `Test request for: ${Object.keys(selectedTests).join(", ")}`,
+        priority: "Normal",
+        status: "Pending"
+      })).unwrap();
+      
+      // Navigate back to patient profile
+      navigate(`/dashboard/Doctor/patients/profile/ViewProfile/${patientId}`);
+    } catch (error) {
+      console.error('Failed to create test request:', error);
+    }
   };
 
-  useEffect(() => {
-    if (testSubmitSuccess) {
-              setTimeout(() => {
-          dispatch(resetPatientState());
-          navigate("/dashboard/CenterAdmin/patients/PatientList");
-        }, 1500);
-    }
-  }, [testSubmitSuccess, dispatch, navigate]);
+  // Remove the useEffect since we handle navigation in handleSubmit
 
   // Simple fallback to test if component is rendering
   if (!patientId) {
@@ -60,7 +63,7 @@ const AddTest = () => {
           <h1 className="text-md font-bold text-red-800 mb-2">Error: No Patient ID</h1>
           <p className="text-red-600 text-xs">Patient ID is missing from URL parameters.</p>
           <button
-            onClick={() => navigate('/CenterAdmin/patients/PatientList')}
+            onClick={() => navigate('/dashboard/Doctor/patients/PatientList')}
             className="mt-4 bg-blue-500 text-white px-4 py-2 rounded-lg text-xs"
           >
             Back to Patients List
@@ -76,31 +79,25 @@ const AddTest = () => {
         {/* Header */}
         <div className="mb-8">
           <button
-            onClick={() => navigate('/dashboard/CenterAdmin/patients/PatientList')}
+            onClick={() => navigate(`/dashboard/Doctor/patients/profile/ViewProfile/${patientId}`)}
             className="flex items-center text-slate-600 hover:text-slate-800 mb-4 transition-colors text-xs"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Patients List
+            Back to Patient Profile
           </button>
           <h1 className="text-md font-bold text-slate-800 mb-2">
-            Add Test Reports
+            Create Test Request
           </h1>
           <p className="text-slate-600 text-xs">
-            Enter test results for patient ID: {patientId}
+            Request laboratory tests for patient ID: {patientId}
           </p>
         </div>
 
         {/* Alert Messages */}
-        {testSubmitSuccess && (
-          <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4 flex items-center">
-            <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-            <span className="text-green-700 text-xs">Test reports submitted successfully!</span>
-          </div>
-        )}
-        {testSubmitError && (
+        {error && (
           <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-center">
             <CheckCircle className="h-5 w-5 text-red-500 mr-3" />
-            <span className="text-red-700 text-xs">{testSubmitError}</span>
+            <span className="text-red-700 text-xs">{error}</span>
           </div>
         )}
 
@@ -109,27 +106,27 @@ const AddTest = () => {
           <div className="p-6 border-b border-blue-100">
             <h2 className="text-sm font-semibold text-slate-800 flex items-center">
               <FlaskConical className="h-5 w-5 mr-2 text-blue-500" />
-              Test Results
+              Test Request
             </h2>
             <p className="text-slate-600 mt-1 text-xs">
-              Fill in the test results below. Leave empty fields for tests not performed.
+              Select the tests to be requested. Check the boxes for tests that need to be performed.
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {testFields.map((testName) => (
-                <div key={testName}>
-                  <label className="block text-xs font-medium text-slate-700 mb-2">
+                <div key={testName} className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id={testName}
+                    checked={reports[testName] || false}
+                    onChange={(e) => handleChange(testName, e.target.checked)}
+                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                  />
+                  <label htmlFor={testName} className="ml-2 text-xs font-medium text-slate-700">
                     {testName}
                   </label>
-                  <input
-                    type="text"
-                    value={reports[testName] || ""}
-                    onChange={(e) => handleChange(testName, e.target.value)}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs"
-                    placeholder={`Enter ${testName} result`}
-                  />
                 </div>
               ))}
             </div>
@@ -137,7 +134,7 @@ const AddTest = () => {
             <div className="flex gap-4 pt-6 mt-6 border-t border-slate-200">
               <button
                 type="button"
-                onClick={() => navigate('/dashboard/CenterAdmin/patients/PatientList')}
+                onClick={() => navigate(`/dashboard/Doctor/patients/profile/ViewProfile/${patientId}`)}
                 className="px-6 py-3 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-2 text-xs"
               >
                 <ArrowLeft className="h-4 w-4" />
@@ -145,18 +142,18 @@ const AddTest = () => {
               </button>
               <button
                 type="submit"
-                disabled={testSubmitting}
+                disabled={loading}
                 className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2 text-xs"
               >
-                {testSubmitting ? (
+                {loading ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    Submitting Tests...
+                    Creating Test Request...
                   </>
                 ) : (
                   <>
                     <Save className="h-4 w-4" />
-                    Submit Test Reports
+                    Create Test Request
                   </>
                 )}
               </button>

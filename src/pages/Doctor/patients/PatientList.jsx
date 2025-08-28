@@ -30,6 +30,14 @@ export default function PatientList() {
 
   const { assignedPatients = [], loading } = useSelector((state) => state.doctor);
   const { user } = useSelector((state) => state.auth);
+  
+  // Function to get doctor name with fallback
+  const getDoctorName = (patient) => {
+    if (patient?.assignedDoctorName) return patient.assignedDoctorName;
+    if (patient?.assignedDoctor?.name) return `Dr. ${patient.assignedDoctor.name}`;
+    if (user?.name) return `Dr. ${user.name}`;
+    return 'Not assigned';
+  };
 
   useEffect(() => {
     dispatch(fetchAssignedPatients());
@@ -219,7 +227,7 @@ export default function PatientList() {
                     <div className="flex items-center gap-2 bg-white p-2 rounded-lg border border-slate-200">
                       <Users className="h-4 w-4 text-orange-500" />
                       <span className="text-slate-700 text-xs font-medium">
-                        Dr. {patient?.assignedDoctor?.name || 'Not assigned'}
+                        {getDoctorName(patient)}
                       </span>
                     </div>
                     
@@ -347,7 +355,7 @@ export default function PatientList() {
                         </td>
                         <td className="px-6 py-4">
                           <div className="text-xs text-slate-600">
-                            {patient?.assignedDoctor?.name || 'Not assigned'}
+                            {getDoctorName(patient)}
                           </div>
                         </td>
                         <td className="px-6 py-4">

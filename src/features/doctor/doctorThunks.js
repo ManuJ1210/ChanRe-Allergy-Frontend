@@ -98,7 +98,7 @@ export const fetchAssignedPatients = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await API.get('/doctors/assigned-patients', {
+      const response = await API.get('/doctors/assigned-patients?populate=assignedDoctor', {
         headers: { Authorization: `Bearer ${token}` },
       });
       return response.data;
@@ -692,6 +692,78 @@ export const fetchPrescriptions = createAsyncThunk(
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch prescriptions');
+    }
+  }
+);
+
+// ✅ Add prescription (for doctors)
+export const addPrescription = createAsyncThunk(
+  'doctor/addPrescription',
+  async (prescriptionData, { rejectWithValue }) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await API.post('/prescriptions', prescriptionData, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      toast.success('Prescription added successfully!');
+      return response.data;
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || 'Failed to add prescription';
+      toast.error(errorMsg);
+      return rejectWithValue(errorMsg);
+    }
+  }
+);
+
+// ✅ Delete prescription (for doctors)
+export const deletePrescription = createAsyncThunk(
+  'doctor/deletePrescription',
+  async (prescriptionId, { rejectWithValue }) => {
+    try {
+      const token = localStorage.getItem('token');
+      await API.delete(`/prescriptions/${prescriptionId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      toast.success('Prescription deleted successfully!');
+      return prescriptionId;
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || 'Failed to delete prescription';
+      toast.error(errorMsg);
+      return rejectWithValue(errorMsg);
+    }
+  }
+);
+
+// ✅ Fetch single prescription by ID (for doctors)
+export const fetchSinglePrescription = createAsyncThunk(
+  'doctor/fetchSinglePrescription',
+  async (prescriptionId, { rejectWithValue }) => {
+    try {
+      console.log('🔍 fetchSinglePrescription called with ID:', prescriptionId);
+      const token = localStorage.getItem('token');
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      console.log('🔍 Current user:', user);
+      console.log('🔍 API URL:', `/prescriptions/${prescriptionId}`);
+      
+      // Try the doctor-specific endpoint first, then fallback to general endpoint
+      try {
+        const response = await API.get(`/doctors/prescriptions/${prescriptionId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        console.log('✅ fetchSinglePrescription response (doctor endpoint):', response.data);
+        return response.data;
+      } catch (doctorError) {
+        console.log('⚠️  Doctor endpoint failed, trying general endpoint');
+        const response = await API.get(`/prescriptions/${prescriptionId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        console.log('✅ fetchSinglePrescription response (general endpoint):', response.data);
+        return response.data;
+      }
+    } catch (error) {
+      console.error('❌ fetchSinglePrescription error:', error);
+      console.error('❌ Error response:', error.response?.data);
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch prescription');
     }
   }
 );
