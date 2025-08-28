@@ -471,6 +471,7 @@ export default function AppRoutes() {
         <Route path="Doctor/patients/AddHistory/:patientId" element={<DoctorAddHistory />} />
         <Route path="Doctor/patients/AddHistory/ViewHistory/:patientId" element={<DoctorViewHistoryPatients />} />
         <Route path="Doctor/AddTestRequest" element={<AddTestRequest />} />
+        <Route path="Doctor/TestRequests" element={<TestRequests />} />
         
         {/* Doctor Followup Management */}
         <Route path="doctor/patients/followup/:id" element={<DoctorFollowUp />} />

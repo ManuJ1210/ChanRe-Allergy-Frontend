@@ -1,5 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { fetchAtopicDermatitis, fetchAllFollowUps, fetchCenterFollowUps, fetchPatientDetails, fetchPatientPrescriptions, fetchPatientHistory, fetchPatientMedications, addPatientHistory, addPatientMedication, createDoctor, updateDoctor, fetchAllergicRhinitis, fetchSingleAllergicRhinitis, fetchAllergicConjunctivitis, addAtopicDermatitis, addAllergicBronchitis, fetchAllergicBronchitis, addGPE, fetchGPE, addPatientPrescription, fetchPrescription, fetchSinglePrescription, deletePrescription, addFollowUp, updatePatient, deletePatient } from './centerAdminThunks';
+import { fetchAtopicDermatitis, fetchAllFollowUps, fetchCenterFollowUps, fetchPatientDetails, fetchPatientPrescriptions, fetchPatientHistory, fetchPatientMedications, addPatientHistory, addPatientMedication, createDoctor, updateDoctor, fetchAllergicRhinitis, fetchSingleAllergicRhinitis, fetchAllergicConjunctivitis, addAtopicDermatitis, addAllergicBronchitis, fetchAllergicBronchitis, addGPE, fetchGPE, addPatientPrescription, fetchPrescription, fetchSinglePrescription, deletePrescription, addFollowUp, updatePatient, deletePatient, submitPatientTests } from './centerAdminThunks';
 
 const initialState = {
   center: null,
@@ -30,6 +30,9 @@ const initialState = {
   addSuccess: false,
   addHistorySuccess: false,
   addMedicationSuccess: false,
+  testSubmitting: false,
+  testSubmitSuccess: false,
+  testSubmitError: null,
   addAtopicDermatitisSuccess: false,
   addAllergicRhinitisSuccess: false,
   addAllergicBronchitisSuccess: false,
@@ -150,6 +153,9 @@ const centerAdminSlice = createSlice({
       state.deleteSuccess = false;
       state.addHistorySuccess = false;
       state.addMedicationSuccess = false;
+      state.testSubmitting = false;
+      state.testSubmitSuccess = false;
+      state.testSubmitError = null;
       state.addAllergicRhinitisSuccess = false;
       state.addAtopicDermatitisSuccess = false;
       state.addAllergicBronchitisSuccess = false;
@@ -319,6 +325,23 @@ const centerAdminSlice = createSlice({
       .addCase(addPatientMedication.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+      })
+
+      // Submit patient tests
+      .addCase(submitPatientTests.pending, (state) => {
+        state.testSubmitting = true;
+        state.testSubmitError = null;
+        state.testSubmitSuccess = false;
+      })
+      .addCase(submitPatientTests.fulfilled, (state, action) => {
+        state.testSubmitting = false;
+        state.testSubmitSuccess = true;
+        state.testSubmitError = null;
+      })
+      .addCase(submitPatientTests.rejected, (state, action) => {
+        state.testSubmitting = false;
+        state.testSubmitError = action.payload || 'Failed to submit test reports';
+        state.testSubmitSuccess = false;
       })
       
       // Create doctor

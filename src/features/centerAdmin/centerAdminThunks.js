@@ -524,6 +524,44 @@ export const fetchTests = createAsyncThunk(
   }
 );
 
+// ✅ Submit patient tests (for center admin)
+export const submitPatientTests = createAsyncThunk(
+  'centerAdmin/submitPatientTests',
+  async ({ patientId, testData }, { rejectWithValue }) => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      // Since backend expects one test at a time, create multiple test entries
+      const testResults = [];
+      const currentDate = new Date().toISOString();
+      
+      // Convert testData object to individual test submissions
+      for (const [testName, result] of Object.entries(testData)) {
+        if (result && result.trim() !== '') {
+          const testEntry = {
+            testType: testName,
+            testDate: currentDate,
+            results: result,
+            status: 'completed'
+          };
+          
+          const response = await API.post(`/patients/${patientId}/tests`, testEntry, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          testResults.push(response.data);
+        }
+      }
+      
+      toast.success(`${testResults.length} test report(s) submitted successfully!`);
+      return testResults;
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || 'Failed to submit test reports';
+      toast.error(errorMsg);
+      return rejectWithValue(errorMsg);
+    }
+  }
+);
+
 // Add tests
 export const createTests = createAsyncThunk(
   'centerAdmin/createTests',
@@ -790,9 +828,40 @@ export const fetchSinglePrescription = createAsyncThunk(
   'centerAdmin/fetchSinglePrescription',
   async (prescriptionId, { rejectWithValue }) => {
     try {
-      const res = await API.get(`/prescriptions/${prescriptionId}`);
-      return res.data;
+      // Validate prescription ID
+      if (!prescriptionId || prescriptionId === 'undefined' || prescriptionId === 'null') {
+        console.warn('❌ fetchSinglePrescription: Invalid prescription ID:', prescriptionId);
+        return rejectWithValue('Invalid prescription ID');
+      }
+
+      console.log('🔍 fetchSinglePrescription: Fetching prescription with ID:', prescriptionId);
+      
+      // Try the RESTful endpoint first, fallback to patient endpoint if it looks like a patient ID
+      let response;
+      try {
+        response = await API.get(`/prescriptions/${prescriptionId}`);
+      } catch (notFoundError) {
+        // If we get a 404, it might be because we're getting a patient ID instead of prescription ID
+        // Try to fetch prescriptions by patient ID and return the latest one
+        console.log('🔍 fetchSinglePrescription: Prescription not found, trying as patient ID');
+        try {
+          const patientPrescriptions = await API.get(`/prescriptions/patient/${prescriptionId}`);
+          if (patientPrescriptions.data && patientPrescriptions.data.length > 0) {
+            // Return the most recent prescription
+            const sortedPrescriptions = patientPrescriptions.data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            return sortedPrescriptions[0];
+          } else {
+            return rejectWithValue('No prescriptions found for this patient');
+          }
+        } catch (fallbackError) {
+          return rejectWithValue('Prescription not found');
+        }
+      }
+      
+      console.log('✅ fetchSinglePrescription: Success');
+      return response.data;
     } catch (error) {
+      console.error('❌ fetchSinglePrescription: Error:', error);
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch prescription');
     }
   }

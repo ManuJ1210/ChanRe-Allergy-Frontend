@@ -163,10 +163,10 @@ const AddTestRequest = () => {
     try {
       // Create test request using the existing thunk
       await dispatch(createTestRequest(formData)).unwrap();
-      toast.success('Test request created successfully!');
-      navigate('/dashboard/doctor/test-requests');
+      // Note: Success toast is already shown by the thunk
+      navigate('/dashboard/Doctor/TestRequests');
     } catch (error) {
-      toast.error(error.message || 'Failed to create test request. Please try again.');
+      // Note: Error toast is already shown by the thunk
       console.error('Error creating test request:', error);
     }
   };
@@ -228,7 +228,7 @@ const AddTestRequest = () => {
         {/* Header */}
         <div className="mb-8">
           <button
-            onClick={() => navigate('/dashboard/doctor/test-requests')}
+            onClick={() => navigate('/dashboard/Doctor/TestRequests')}
             className="flex items-center text-slate-600 hover:text-slate-800 mb-4 transition-colors"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -533,7 +533,7 @@ const AddTestRequest = () => {
             <div className="flex justify-end space-x-3 pt-4">
               <button
                 type="button"
-                onClick={() => navigate('/dashboard/doctor/test-requests')}
+                onClick={() => navigate('/dashboard/Doctor/TestRequests')}
                 className="px-6 py-3 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
               >
                 Cancel

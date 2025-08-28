@@ -9,7 +9,7 @@ export default function AddHistory() {
   const patientId = id; // Map the id parameter to patientId for consistency
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { loading, error, addHistorySuccess, history, historyLoading, historyError } = useSelector((state) => state.doctor);
+  const { loading, error, addHistorySuccess, patientHistory: history, patientHistoryLoading: historyLoading, patientHistoryError: historyError } = useSelector((state) => state.doctor);
   
 
   
