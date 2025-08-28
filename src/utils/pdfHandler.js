@@ -129,6 +129,21 @@ export const isReportAvailable = (testRequest) => {
 };
 
 /**
+ * Check report availability from server
+ * @param {string} reportId - The test request ID
+ * @returns {Promise<object>} - Report status information
+ */
+export const checkReportAvailability = async (reportId) => {
+  try {
+    const response = await API.get(`/test-requests/report-status/${reportId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error checking report availability:', error);
+    throw new Error(error.response?.data?.message || 'Failed to check report availability');
+  }
+};
+
+/**
  * Get appropriate message for report status
  * @param {object} testRequest - The test request object
  * @returns {string}
@@ -164,5 +179,6 @@ export default {
   downloadPDFReport,
   viewPDFReport,
   isReportAvailable,
+  checkReportAvailability,
   getReportStatusMessage
 };

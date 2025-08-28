@@ -1,10 +1,7 @@
 import axios from 'axios';
 
-// Use production API since local backend is not running
-const baseURL = 'https://api.chanreallergyclinic.com/api';
-
 const API = axios.create({
-  baseURL,
+  baseURL: 'http://localhost:5000/api',
   timeout: 10000, // 10 second timeout
 });
 
@@ -12,46 +9,9 @@ const API = axios.create({
 export const testAPIConnection = async () => {
   try {
     const response = await API.get('/auth/me');
-    return { success: true, data: response.data };
+    return true;
   } catch (error) {
-    return { 
-      success: false, 
-      error: error.message,
-      status: error.response?.status,
-      data: error.response?.data 
-    };
-  }
-};
-
-// Test backend health endpoint
-export const testBackendHealth = async () => {
-  try {
-    const response = await axios.get('https://api.chanreallergyclinic.com/');
-    return { success: true, data: response.data };
-  } catch (error) {
-    return { 
-      success: false, 
-      error: error.message,
-      status: error.response?.status 
-    };
-  }
-};
-
-// Test login endpoint connectivity
-export const testLoginEndpoint = async () => {
-  try {
-    const response = await API.post('/auth/login', { 
-      emailOrUsername: 'test@test.com', 
-      password: 'testpassword' 
-    });
-    return { success: true, data: response.data };
-  } catch (error) {
-    return { 
-      success: false, 
-      error: error.message,
-      status: error.response?.status,
-      data: error.response?.data 
-    };
+    return false;
   }
 };
 

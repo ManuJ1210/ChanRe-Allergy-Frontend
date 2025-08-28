@@ -91,13 +91,12 @@ const CenterAdminBilling = () => {
     }
   };
 
-  // Fetch billing data for the center
+  // ✅ REAL DATA: Fetch billing data for the center
   const fetchBillingData = async () => {
     try {
       setLoading(true);
       
-      // Debug: Log user object to see its structure
-      console.log('User object:', user);
+      console.log('🚀 Fetching real billing data for center admin');
       
       // Safety check: ensure localUser exists
       if (!localUser) {
@@ -133,7 +132,7 @@ const CenterAdminBilling = () => {
       
       if (response.ok) {
         const data = await response.json();
-        console.log('Billing data received:', data);
+        console.log('✅ Real billing data received:', data.billingRequests?.length || 0, 'items');
         
         // Ensure we have an array of billing requests
         if (data && Array.isArray(data.billingRequests)) {
@@ -149,10 +148,12 @@ const CenterAdminBilling = () => {
         const errorData = await response.json().catch(() => ({}));
         console.error('API Error:', errorData);
         toast.error(`Failed to fetch billing data: ${errorData.message || 'Unknown error'}`);
+        setBillingData([]);
       }
     } catch (error) {
-      console.error('Error fetching billing data:', error);
+      console.error('Error fetching real billing data:', error);
       toast.error('Error fetching billing data');
+      setBillingData([]);
     } finally {
       setLoading(false);
     }

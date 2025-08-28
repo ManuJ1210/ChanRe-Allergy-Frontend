@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { addGPE } from '../../../../../features/centerAdmin/centerAdminThunks';
-import { resetCenterAdminState } from '../../../../../features/centerAdmin/centerAdminSlice';
+import { addGPE } from '../../../../../features/doctor/doctorThunks';
+
 import { 
   ArrowLeft, 
   AlertCircle,
@@ -34,12 +34,11 @@ const AddGPE = () => {
     eyeMedication: ''
   });
 
-  const { loading, error, addGPESuccess } = useSelector(state => state.centerAdmin);
+  const { loading, error, addGPESuccess } = useSelector(state => state.doctor);
 
   useEffect(() => {
     if (addGPESuccess) {
-      dispatch(resetCenterAdminState());
-      navigate(`/dashboard/CenterAdmin/patients/ViewProfile/${patientId}`);
+      navigate(`/dashboard/Doctor/patients/profile/ViewProfile/${patientId}`);
     }
   }, [addGPESuccess, dispatch, navigate, patientId]);
 

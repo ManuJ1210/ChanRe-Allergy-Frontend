@@ -100,19 +100,27 @@ const SuperAdminDoctorList = () => {
     });
   };
 
-  const renderSpecializations = (specializations) => {
-    if (!specializations) return 'N/A';
+  const renderSpecializations = (specializations, doctorId) => {
+    console.log('🔍 renderSpecializations called:', { specializations, doctorId, type: typeof specializations, isArray: Array.isArray(specializations) });
+    
+    if (!specializations) {
+      console.log('🔍 No specializations found');
+      return 'N/A';
+    }
     
     if (Array.isArray(specializations) && specializations.length > 0) {
+      console.log('🔍 Found array specializations:', specializations);
       return specializations.join(', ');
     } else if (typeof specializations === 'string' && specializations.trim()) {
+      console.log('🔍 Found string specializations:', specializations);
       return specializations;
     } else {
+      console.log('🔍 No valid specializations, showing Add button');
       return (
         <span className="text-slate-400 italic">
           No specializations
           <button
-            onClick={() => navigate(`/dashboard/Superadmin/Docters/EditSuperadminDoctor/${doctor._id}`)}
+            onClick={() => navigate(`/dashboard/Superadmin/Docters/EditSuperadminDoctor/${doctorId}`)}
             className="ml-2 text-blue-600 hover:text-blue-800 text-xs underline"
             title="Click to add specializations"
           >
@@ -317,7 +325,7 @@ const SuperAdminDoctorList = () => {
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-xs text-slate-900">
-                          {renderSpecializations(doctor.specializations)}
+                          {renderSpecializations(doctor.specializations, doctor._id)}
                         </div>
                         <div className="text-xs text-slate-500">{doctor.designation || 'N/A'}</div>
                       </td>
@@ -441,7 +449,7 @@ const SuperAdminDoctorList = () => {
                     <div className="text-xs">
                       <span className="text-slate-500">Specializations: </span>
                       <span className="text-slate-700">
-                        {renderSpecializations(doctor.specializations)}
+                        {renderSpecializations(doctor.specializations, doctor._id)}
                       </span>
                     </div>
                     {doctor.designation && (

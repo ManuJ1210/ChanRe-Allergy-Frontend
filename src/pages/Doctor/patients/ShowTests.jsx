@@ -19,7 +19,7 @@ const ShowTests = () => {
         <h1 className="text-md font-bold text-red-800 mb-2">TEST - Show Tests</h1>
         <p className="text-xs text-slate-600 mb-4">Patient ID: {id}</p>
         <button 
-          onClick={() => navigate('/dashboard/doctor/patients')}
+          onClick={() => navigate('/CenterAdmin/patients/PatientList')}
           className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium transition-colors text-xs"
         >
           Back to Patients List

@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchAtopicDermatitis } from '../../../../../features/centerAdmin/centerAdminThunks';
+import { fetchAtopicDermatitis } from '../../../../../features/doctor/doctorThunks';
 
 import { 
   ArrowLeft, 
@@ -17,7 +17,7 @@ const ViewAtopicDermatitis = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  const { atopicDermatitis, loading, error } = useSelector(state => state.centerAdmin);
+  const { atopicDermatitis, loading, error } = useSelector(state => state.doctor);
 
   useEffect(() => {
     if (patientId) {

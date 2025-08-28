@@ -153,6 +153,7 @@ import DoctorEditPatient from '../pages/Doctor/patients/EditPatient';
 import DoctorAddTest from '../pages/Doctor/patients/AddTest';
 import DoctorShowTests from '../pages/Doctor/patients/ShowTests';
 import DoctorAddHistory from '../pages/Doctor/patients/AddHistory/AddHistory';
+import DoctorViewHistoryPatients from '../pages/Doctor/patients/AddHistory/ViewHistory';
 import DoctorAddMedications from '../pages/Doctor/patients/profile/AddMedications';
 import DoctorViewProfile from '../pages/Doctor/patients/profile/ViewProfile';
 import DoctorFollowUp from '../pages/Doctor/patients/FollowUp/FollowUp';
@@ -458,6 +459,19 @@ export default function AppRoutes() {
         <Route path="doctor/patients/profile/add-medications/:id" element={<DoctorAddMedications />} />
         <Route path="doctor/patients/add-history/:patientId" element={<DoctorAddHistory />} />
         
+        {/* Doctor Routes with Capital D (to match navigation patterns) */}
+        <Route path="Doctor/dashboard" element={<DoctorDashboard />} />
+        <Route path="Doctor/patients/PatientList" element={<DoctorPatientList />} />
+        <Route path="Doctor/patients/AddPatient" element={<DoctorAddPatient />} />
+        <Route path="Doctor/patients/EditPatient/:id" element={<DoctorEditPatient />} />
+        <Route path="Doctor/patients/ShowTests/:id" element={<DoctorShowTests />} />
+        <Route path="Doctor/patients/AddTest/:id" element={<DoctorAddTest />} />
+        <Route path="Doctor/patients/profile/ViewProfile/:id" element={<DoctorViewProfile />} />
+        <Route path="Doctor/patients/profile/AddMedications/:id" element={<DoctorAddMedications />} />
+        <Route path="Doctor/patients/AddHistory/:patientId" element={<DoctorAddHistory />} />
+        <Route path="Doctor/patients/AddHistory/ViewHistory/:patientId" element={<DoctorViewHistoryPatients />} />
+        <Route path="Doctor/AddTestRequest" element={<AddTestRequest />} />
+        
         {/* Doctor Followup Management */}
         <Route path="doctor/patients/followup/:id" element={<DoctorFollowUp />} />
         <Route path="doctor/patients/followup/add/:id" element={<DoctorAddFollowUp />} />
@@ -476,8 +490,27 @@ export default function AppRoutes() {
         <Route path="doctor/patients/followup/addprescription/:patientId" element={<DoctorAddPrescription />} />
         <Route path="doctor/patients/followup/viewprescription/:id" element={<DoctorViewPrescription />} />
         
+        {/* Doctor FollowUp Routes with Capital D (to match navigation patterns) */}
+        <Route path="Doctor/patients/FollowUp/:id" element={<DoctorFollowUp />} />
+        <Route path="Doctor/patients/FollowUp/add/:id" element={<DoctorAddFollowUp />} />
+        <Route path="Doctor/patients/FollowUp/view/:id" element={<DoctorFollowUp />} />
+        <Route path="Doctor/patients/FollowUp/AddAllergicRhinitis/:patientId" element={<DoctorAddAllergicRhinitis />} />
+        <Route path="Doctor/patients/FollowUp/ViewAllergicRhinitis/:id" element={<DoctorViewAllergicRhinitis />} />
+        <Route path="Doctor/patients/FollowUp/AddAllergicConjunctivitis/:patientId" element={<DoctorAddAllergicConjunctivitis />} />
+        <Route path="Doctor/patients/FollowUp/ViewAllergicConjunctivitis/:id" element={<DoctorViewAllergicConjunctivitis />} />
+        <Route path="Doctor/patients/FollowUp/AtopicDermatitis/:patientId" element={<DoctorAtopicDermatitis />} />
+        <Route path="Doctor/patients/FollowUp/ViewAtopicDermatitis/:id" element={<DoctorViewAtopicDermatitis />} />
+        <Route path="Doctor/patients/FollowUp/AddAllergicBronchitis/:patientId" element={<DoctorAddAllergicBronchitis />} />
+        <Route path="Doctor/patients/FollowUp/ViewAllergicBronchitis/:id" element={<DoctorViewAllergicBronchitis />} />
+        <Route path="Doctor/patients/FollowUp/AddGPE/:patientId" element={<DoctorAddGPE />} />
+        <Route path="Doctor/patients/FollowUp/ViewGPE/:id" element={<DoctorViewGPE />} />
+        <Route path="Doctor/patients/FollowUp/PrescriptionList/:patientId" element={<DoctorPrescriptionList />} />
+        <Route path="Doctor/patients/FollowUp/AddPrescription/:patientId" element={<DoctorAddPrescription />} />
+        <Route path="Doctor/patients/FollowUp/ViewPrescription/:id" element={<DoctorViewPrescription />} />
+        
         {/* Doctor History Management */}
         <Route path="doctor/patients/view-history/:id" element={<DoctorViewHistory />} />
+        <Route path="Doctor/patients/ViewHistory/:id" element={<DoctorViewHistory />} />
         
         {/* Doctor Test Request Management */}
         <Route path="doctor/patients/add-test-request/:id" element={<AddTestRequest />} />

@@ -29,6 +29,8 @@ export default function ReceptionistBilling() {
   const [selectedForPayment, setSelectedForPayment] = useState(null);
 
   useEffect(() => {
+    // ✅ REAL DATA: Use real API call to fetch billing data
+    console.log('🚀 Loading real receptionist billing data');
     dispatch(fetchReceptionistBillingRequests());
   }, [dispatch]);
 

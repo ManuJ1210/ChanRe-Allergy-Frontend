@@ -47,7 +47,7 @@ const AddTest = () => {
     if (testSubmitSuccess) {
               setTimeout(() => {
           dispatch(resetPatientState());
-          navigate("/dashboard/doctor/patients");
+          navigate("/dashboard/CenterAdmin/patients/PatientList");
         }, 1500);
     }
   }, [testSubmitSuccess, dispatch, navigate]);
@@ -60,7 +60,7 @@ const AddTest = () => {
           <h1 className="text-md font-bold text-red-800 mb-2">Error: No Patient ID</h1>
           <p className="text-red-600 text-xs">Patient ID is missing from URL parameters.</p>
           <button
-            onClick={() => navigate('/dashboard/doctor/patients')}
+            onClick={() => navigate('/CenterAdmin/patients/PatientList')}
             className="mt-4 bg-blue-500 text-white px-4 py-2 rounded-lg text-xs"
           >
             Back to Patients List
@@ -76,7 +76,7 @@ const AddTest = () => {
         {/* Header */}
         <div className="mb-8">
           <button
-            onClick={() => navigate('/dashboard/doctor/patients')}
+            onClick={() => navigate('/dashboard/CenterAdmin/patients/PatientList')}
             className="flex items-center text-slate-600 hover:text-slate-800 mb-4 transition-colors text-xs"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -137,7 +137,7 @@ const AddTest = () => {
             <div className="flex gap-4 pt-6 mt-6 border-t border-slate-200">
               <button
                 type="button"
-                onClick={() => navigate('/dashboard/doctor/patients')}
+                onClick={() => navigate('/dashboard/CenterAdmin/patients/PatientList')}
                 className="px-6 py-3 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-2 text-xs"
               >
                 <ArrowLeft className="h-4 w-4" />

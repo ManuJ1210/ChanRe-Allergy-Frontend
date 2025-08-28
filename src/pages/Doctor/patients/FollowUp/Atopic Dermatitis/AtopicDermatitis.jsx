@@ -57,7 +57,7 @@ export default function AtopicDermatitisFollowUp() {
         }
       );
       alert("Submitted successfully!");
-      navigate(`/Receptionist/profile/${params.patientId}`);
+      navigate(`/dashboard/Doctor/patients/profile/ViewProfile/${params.patientId}`);
     } catch (err) {
       alert("Failed to submit. Please try again.");
     }

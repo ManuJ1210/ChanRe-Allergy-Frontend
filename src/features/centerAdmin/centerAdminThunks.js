@@ -893,5 +893,71 @@ export const deletePatient = createAsyncThunk(
   }
 );
 
+// ===============================
+// BILLING APIS
+// ===============================
+
+// Fetch billing data for center
+export const fetchCenterAdminBillingData = createAsyncThunk(
+  'centerAdmin/fetchBillingData',
+  async (centerId, { rejectWithValue }) => {
+    try {
+      const res = await API.get(`/test-requests/billing/center/${centerId}`);
+      return res.data;
+    } catch (error) {
+      console.error('Center billing data fetch error:', error.response?.data || error.message);
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch billing data');
+    }
+  }
+);
+
+// Generate bill for a test request (center admin)
+export const generateCenterBill = createAsyncThunk(
+  'centerAdmin/generateBill',
+  async ({ requestId, billData }, { rejectWithValue }) => {
+    try {
+      const res = await API.put(`/test-requests/${requestId}/billing/generate`, billData);
+      toast.success('Bill generated successfully!');
+      return res.data;
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || 'Failed to generate bill';
+      toast.error(errorMsg);
+      return rejectWithValue(errorMsg);
+    }
+  }
+);
+
+// Mark bill as paid (center admin)
+export const markCenterBillPaid = createAsyncThunk(
+  'centerAdmin/markBillPaid',
+  async ({ requestId, paymentData }, { rejectWithValue }) => {
+    try {
+      const res = await API.put(`/test-requests/${requestId}/billing/paid`, paymentData);
+      toast.success('Bill marked as paid!');
+      return res.data;
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || 'Failed to mark bill as paid';
+      toast.error(errorMsg);
+      return rejectWithValue(errorMsg);
+    }
+  }
+);
+
+// Verify payment (center admin)
+export const verifyCenterPayment = createAsyncThunk(
+  'centerAdmin/verifyPayment',
+  async ({ requestId, verificationNotes }, { rejectWithValue }) => {
+    try {
+      const res = await API.put(`/test-requests/${requestId}/billing/verify`, { verificationNotes });
+      toast.success('Payment verified successfully!');
+      return res.data;
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || 'Failed to verify payment';
+      toast.error(errorMsg);
+      return rejectWithValue(errorMsg);
+    }
+  }
+);
+
 // Re-export resetCenterAdminState from slice
 export { resetCenterAdminState } from './centerAdminSlice';

@@ -1,13 +1,11 @@
-import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import {
-  getSinglePatient,
-  editPatient,
-} from "../../../features/patient/patientThunks";
-import { resetPatientState } from "../../../features/patient/patientSlice";
-import { fetchPatientDetails } from "../../../features/centerAdmin/centerAdminThunks";
-import { ArrowLeft, User, Phone, Calendar, MapPin, Mail, Save } from 'lucide-react';
+import { useNavigate, useParams } from "react-router-dom";
+import { toast } from 'react-toastify';
+import API from "../../../services/api";
+import { Users, ArrowLeft, User, Mail, Phone, MapPin, Building, Save, Edit, AlertCircle } from 'lucide-react';
+import { fetchPatientDetails, updatePatient } from "../../../features/doctor/doctorThunks";
+import { canDoctorEditPatient, getEditRestrictionMessage } from "../../../utils/patientPermissions";
 
 export default function EditPatient() {
   const { id } = useParams();
@@ -24,7 +22,15 @@ export default function EditPatient() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const { patientDetails: patient, loading: patientLoading, error: patientError } = useSelector((state) => state.centerAdmin);
+  const { patientDetails, loading: patientLoading, error: patientError } = useSelector((state) => state.doctor);
+  const { user } = useSelector((state) => state.auth);
+  
+  // Extract patient data from the new structure
+  const patient = patientDetails?.patient || patientDetails;
+  
+  // Check if doctor can edit this patient
+  const editPermission = canDoctorEditPatient(patient, user);
+  const editRestrictionMessage = getEditRestrictionMessage(patient, user);
 
   useEffect(() => {
     if (id) {
@@ -32,7 +38,17 @@ export default function EditPatient() {
     }
   }, [dispatch, id]);
 
+  // Check permissions and redirect if not allowed
   useEffect(() => {
+    if (patient && user && !editPermission.canEdit) {
+      toast.error(editRestrictionMessage);
+      navigate(`/dashboard/Doctor/patients/profile/ViewProfile/${id}`);
+    }
+  }, [patient, user, editPermission.canEdit, editRestrictionMessage, navigate, id]);
+
+  useEffect(() => {
+    console.log('🔍 EditPatient Debug:', { patientDetails, patient, id });
+    
     if (patient) {
       setFormData({
         name: patient.name || '',
@@ -43,7 +59,7 @@ export default function EditPatient() {
         address: patient.address || ''
       });
     }
-  }, [patient]);
+  }, [patient, patientDetails, id]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -59,8 +75,8 @@ export default function EditPatient() {
     setError('');
 
     try {
-      await dispatch(editPatient({ id, updatedData: formData })).unwrap();
-              navigate('/dashboard/doctor/patients');
+      await dispatch(updatePatient({ id: id, patientData: formData })).unwrap();
+      navigate('/dashboard/Doctor/patients/PatientList');
     } catch (err) {
       setError(err.message || 'Failed to update patient');
     } finally {
@@ -68,14 +84,16 @@ export default function EditPatient() {
     }
   };
 
-  if (patientLoading) {
+  if (patientLoading || !patient) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 sm:p-6">
         <div className="max-w-4xl mx-auto">
           <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-6">
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
-              <p className="text-slate-600 text-xs">Loading patient information...</p>
+              <p className="text-slate-600 text-xs">
+                {patientLoading ? 'Loading patient information...' : 'Patient not found'}
+              </p>
             </div>
           </div>
         </div>
@@ -88,7 +106,42 @@ export default function EditPatient() {
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 sm:p-6">
         <div className="max-w-4xl mx-auto">
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <p className="text-red-600 text-xs">{patientError}</p>
+            <p className="text-red-600 text-xs mb-4">{patientError}</p>
+            <button
+              onClick={() => navigate('/dashboard/Doctor/patients/PatientList')}
+              className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 text-xs"
+            >
+              Back to Patients List
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show permission denied message if user can't edit
+  if (patient && user && !editPermission.canEdit) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 sm:p-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 text-center">
+            <AlertCircle className="h-12 w-12 text-yellow-600 mx-auto mb-4" />
+            <h2 className="text-lg font-semibold text-yellow-800 mb-2">Edit Access Restricted</h2>
+            <p className="text-yellow-700 text-sm mb-4">{editRestrictionMessage}</p>
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={() => navigate(`/dashboard/Doctor/patients/profile/ViewProfile/${id}`)}
+                className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 text-xs"
+              >
+                View Patient Profile
+              </button>
+              <button
+                onClick={() => navigate('/dashboard/Doctor/patients/PatientList')}
+                className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 text-xs"
+              >
+                Back to Patients List
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -101,13 +154,13 @@ export default function EditPatient() {
         {/* Header */}
         <div className="mb-8">
           <button
-            onClick={() => navigate('/dashboard/doctor/patients')}
+            onClick={() => navigate('/dashboard/Doctor/patients/PatientList')}
             className="flex items-center text-slate-600 hover:text-slate-800 mb-4 transition-colors text-xs"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Patients List
           </button>
-          <h1 className="text-md font-bold text-slate-800 mb-2">Edit Patient</h1>
+          <h1 className="text-md font-bold text-slate-800 mb-2">Edit Patient (Doctor)</h1>
           <p className="text-slate-600 text-xs">Update patient information</p>
         </div>
 

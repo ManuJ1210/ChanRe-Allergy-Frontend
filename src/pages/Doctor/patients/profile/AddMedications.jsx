@@ -26,7 +26,7 @@ export default function AddMedications() {
     if (addMedicationSuccess) {
       setTimeout(() => {
         dispatch(resetCenterAdminState());
-        navigate('/dashboard/doctor/patients');
+        navigate('/dashboard/CenterAdmin/patients/PatientList');
       }, 1500);
     }
   }, [addMedicationSuccess, dispatch, navigate]);
@@ -51,7 +51,7 @@ export default function AddMedications() {
           {/* Header */}
           <div className="mb-8">
             <button
-                              onClick={() => navigate(`/dashboard/doctor/patients/profile/${id}`)}
+                              onClick={() => navigate(`/dashboard/CenterAdmin/patients/profile/ViewProfile/${id}`)}
               className="flex items-center text-slate-600 hover:text-slate-800 mb-4 transition-colors text-xs"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
@@ -200,7 +200,7 @@ export default function AddMedications() {
               <div className="flex gap-4 pt-6">
                 <button
                   type="button"
-                  onClick={() => navigate(`/dashboard/doctor/patients/profile/${id}`)}
+                  onClick={() => navigate(`/dashboard/CenterAdmin/patients/profile/ViewProfile/${id}`)}
                   className="px-6 py-3 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-2 text-xs"
                 >
                   <ArrowLeft className="h-4 w-4" />

@@ -2,18 +2,27 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { ArrowLeft, Calendar, FileText, User, CheckCircle, AlertCircle } from "lucide-react";
-import { fetchHistory } from "../../../../features/centerAdmin/centerAdminThunks";
+import { fetchPatientHistory } from "../../../../features/doctor/doctorThunks";
 
 const ViewHistory = () => {
   const { patientId } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
   
-  const { history, historyLoading, historyError } = useSelector((state) => state.centerAdmin);
+  const { patientHistory: history, patientHistoryLoading: historyLoading, patientHistoryError: historyError } = useSelector((state) => state.doctor);
+
+  // Debug logging
+  useEffect(() => {
+    console.log('🔍 ViewHistory - patientId:', patientId);
+    console.log('🔍 ViewHistory - history data:', history);
+    console.log('🔍 ViewHistory - historyLoading:', historyLoading);
+    console.log('🔍 ViewHistory - historyError:', historyError);
+  }, [patientId, history, historyLoading, historyError]);
 
   useEffect(() => {
     if (patientId) {
-      dispatch(fetchHistory(patientId));
+      console.log('🔄 ViewHistory - Dispatching fetchPatientHistory for:', patientId);
+      dispatch(fetchPatientHistory(patientId));
     }
   }, [dispatch, patientId]);
 

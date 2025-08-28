@@ -90,7 +90,7 @@ export default function Login() {
         <input
           name="emailOrUsername"
           type="text"
-          placeholder="Email or Username"
+                          placeholder="Email or Username"
           value={form.emailOrUsername}
           onChange={handleChange}
           className="w-full p-3 border border-blue-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300 bg-slate-50 text-blue-700 placeholder-blue-400 transition"

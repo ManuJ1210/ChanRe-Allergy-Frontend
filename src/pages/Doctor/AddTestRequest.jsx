@@ -271,52 +271,69 @@ const AddTestRequest = () => {
                 {preSelectedPatientId && formData.patientId && (
                   <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                     <CheckCircle className="h-3 w-3 mr-1" />
-                    Pre-selected
+                    Pre-selected & Locked
                   </span>
                 )}
               </label>
-              <div className="relative">
-                <div className="flex items-center border border-slate-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent">
-                  <Search className="h-4 w-4 text-slate-400 ml-3" />
+              
+              {/* If patient is pre-selected from URL, show locked field */}
+              {preSelectedPatientId && formData.patientId ? (
+                <div className="flex items-center border border-slate-300 rounded-lg bg-slate-50">
+                  <User className="h-4 w-4 text-slate-500 ml-3" />
                   <input
                     type="text"
-                    placeholder="Search for patient by name, phone, or email..."
-                    value={searchTerm}
-                    onChange={(e) => {
-                      setSearchTerm(e.target.value);
-                      setShowPatientList(true);
-                    }}
-                    onFocus={() => setShowPatientList(true)}
-                    className="flex-1 px-3 py-3 border-0 focus:ring-0 focus:outline-none text-sm"
+                    value={formData.patientName || 'Selected Patient'}
+                    readOnly
+                    className="flex-1 px-3 py-3 border-0 bg-slate-50 text-slate-700 cursor-not-allowed text-sm"
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPatientList(!showPatientList)}
-                    className="px-3 py-3 text-slate-400 hover:text-slate-600"
-                  >
-                    <User className="h-4 w-4" />
-                  </button>
-                  {formData.patientId && (
+                  <div className="px-3 py-3 text-slate-500">
+                    <CheckCircle className="h-4 w-4" />
+                  </div>
+                </div>
+              ) : (
+                <div className="relative">
+                  <div className="flex items-center border border-slate-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent">
+                    <Search className="h-4 w-4 text-slate-400 ml-3" />
+                    <input
+                      type="text"
+                      placeholder="Search for patient by name, phone, or email..."
+                      value={searchTerm}
+                      onChange={(e) => {
+                        setSearchTerm(e.target.value);
+                        setShowPatientList(true);
+                      }}
+                      onFocus={() => setShowPatientList(true)}
+                      className="flex-1 px-3 py-3 border-0 focus:ring-0 focus:outline-none text-sm"
+                    />
                     <button
                       type="button"
-                      onClick={() => {
-                        setFormData(prev => ({ ...prev, patientId: '', patientName: '' }));
-                        setSearchTerm('');
-                        // Remove patient ID from toast tracking so it can show again if re-selected
-                        if (formData.patientId) {
-                          shownToastForPatientRef.current.delete(formData.patientId);
-                        }
-                      }}
-                      className="px-3 py-3 text-slate-400 hover:text-slate-600 border-l border-slate-300"
-                      title="Clear patient selection"
+                      onClick={() => setShowPatientList(!showPatientList)}
+                      className="px-3 py-3 text-slate-400 hover:text-slate-600"
+                      title="Select patient"
                     >
-                      <X className="h-4 w-4" />
+                      <User className="h-4 w-4" />
                     </button>
-                  )}
-                </div>
-                
-                {/* Patient List Dropdown */}
-                {showPatientList && (
+                    {formData.patientId && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData(prev => ({ ...prev, patientId: '', patientName: '' }));
+                          setSearchTerm('');
+                          // Remove patient ID from toast tracking so it can show again if re-selected
+                          if (formData.patientId) {
+                            shownToastForPatientRef.current.delete(formData.patientId);
+                          }
+                        }}
+                        className="px-3 py-3 text-slate-400 hover:text-slate-600 border-l border-slate-300"
+                        title="Clear patient selection"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                  
+                  {/* Patient List Dropdown */}
+                  {showPatientList && (
                   <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                     {searchTerm ? (
                       // Show filtered patients when searching
@@ -414,29 +431,30 @@ const AddTestRequest = () => {
                       )
                     )}
                   </div>
-                )}
-                
-                {/* Selected Patient Display */}
-                {formData.patientName && (
-                  <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <div className="flex items-center">
-                      <User className="h-4 w-4 text-blue-600 mr-2" />
-                      <span className="text-blue-800 font-medium">
-                        Selected: {formData.patientName}
-                      </span>
-                    </div>
-                  </div>
-                )}
-                
-                {/* Patient Count Info */}
-                <div className="mt-2 text-xs text-slate-500">
-                  {assignedPatients.filter(p => p.billingStatus === 'clear').length} of {assignedPatients.length} patient{assignedPatients.length !== 1 ? 's' : ''} available for test requests
-                  {assignedPatients.filter(p => p.billingStatus === 'pending').length > 0 && (
-                    <span className="text-yellow-600 ml-2">
-                      • {assignedPatients.filter(p => p.billingStatus === 'pending').length} with pending billing
-                    </span>
                   )}
                 </div>
+              )}
+              
+              {/* Selected Patient Display */}
+              {formData.patientName && (
+                <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center">
+                    <User className="h-4 w-4 text-blue-600 mr-2" />
+                    <span className="text-blue-800 font-medium">
+                      Selected: {formData.patientName}
+                    </span>
+                  </div>
+                </div>
+              )}
+              
+              {/* Patient Count Info */}
+              <div className="mt-2 text-xs text-slate-500">
+                {assignedPatients.filter(p => p.billingStatus === 'clear').length} of {assignedPatients.length} patient{assignedPatients.length !== 1 ? 's' : ''} available for test requests
+                {assignedPatients.filter(p => p.billingStatus === 'pending').length > 0 && (
+                  <span className="text-yellow-600 ml-2">
+                    • {assignedPatients.filter(p => p.billingStatus === 'pending').length} with pending billing
+                  </span>
+                )}
               </div>
             </div>
             

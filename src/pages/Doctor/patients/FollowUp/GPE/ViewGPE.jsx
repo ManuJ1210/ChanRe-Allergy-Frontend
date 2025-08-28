@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchGPE } from '../../../../../features/centerAdmin/centerAdminThunks';
+import { fetchGPE } from '../../../../../features/doctor/doctorThunks';
 
 import { 
   ArrowLeft, 
@@ -21,7 +21,7 @@ const ViewGPE = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  const { gpe, loading, error } = useSelector(state => state.centerAdmin);
+  const { gpe, loading, error } = useSelector(state => state.doctor);
 
   useEffect(() => {
     if (patientId) {

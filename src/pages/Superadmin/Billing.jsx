@@ -31,10 +31,13 @@ const SuperadminBilling = () => {
   const [selectedBilling, setSelectedBilling] = useState(null);
   const [showBillingModal, setShowBillingModal] = useState(false);
 
-  // Fetch billing data
+  // ✅ REAL DATA: Fetch billing data
   const fetchBillingData = async () => {
     try {
       setLoading(true);
+      
+      console.log('🚀 Fetching real billing data for superadmin');
+      
       const response = await fetch('/api/test-requests/billing/all', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -44,21 +47,28 @@ const SuperadminBilling = () => {
       
       if (response.ok) {
         const data = await response.json();
+        console.log('✅ Real billing data received:', data.billingRequests?.length || 0, 'items');
         setBillingData(data.billingRequests || []);
       } else {
-        toast.error('Failed to fetch billing data');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('API Error:', errorData);
+        toast.error(`Failed to fetch billing data: ${errorData.message || 'Unknown error'}`);
+        setBillingData([]);
       }
     } catch (error) {
-      console.error('Error fetching billing data:', error);
+      console.error('Error fetching real billing data:', error);
       toast.error('Error fetching billing data');
+      setBillingData([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Fetch centers for filtering
+  // ✅ REAL DATA: Fetch centers for filtering
   const fetchCenters = async () => {
     try {
+      console.log('🚀 Fetching real centers data');
+      
       const response = await fetch('/api/centers', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -68,10 +78,15 @@ const SuperadminBilling = () => {
       
       if (response.ok) {
         const data = await response.json();
+        console.log('✅ Real centers data received:', data.centers?.length || 0, 'centers');
         setCenters(data.centers || []);
+      } else {
+        console.error('Failed to fetch centers data');
+        setCenters([]);
       }
     } catch (error) {
-      console.error('Error fetching centers:', error);
+      console.error('Error fetching real centers data:', error);
+      setCenters([]);
     }
   };
 

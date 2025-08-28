@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchAllergicConjunctivitis } from '../../../../../features/centerAdmin/centerAdminThunks';
+import { fetchAllergicConjunctivitis } from '../../../../../features/doctor/doctorThunks';
 
 import { 
   ArrowLeft, 
@@ -22,7 +22,7 @@ const ViewAllergicConjunctivitis = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  const { allergicConjunctivitis, loading, error } = useSelector(state => state.centerAdmin);
+  const { allergicConjunctivitis, loading, error } = useSelector(state => state.doctor);
 
   useEffect(() => {
     if (patientId) {
