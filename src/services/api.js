@@ -1,57 +1,19 @@
 import axios from 'axios';
-
-// Use production API since local backend is not running
-const baseURL = 'https://api.chanreallergyclinic.com/api';
+import { API_CONFIG } from '../config/environment.js';
 
 const API = axios.create({
-  baseURL,
-  timeout: 10000, // 10 second timeout
+  baseURL: API_CONFIG.BASE_URL,
+  timeout: API_CONFIG.TIMEOUT,
+  headers: API_CONFIG.DEFAULT_HEADERS,
 });
 
 // Test function to check API connectivity
 export const testAPIConnection = async () => {
   try {
     const response = await API.get('/auth/me');
-    return { success: true, data: response.data };
+    return true;
   } catch (error) {
-    return { 
-      success: false, 
-      error: error.message,
-      status: error.response?.status,
-      data: error.response?.data 
-    };
-  }
-};
-
-// Test backend health endpoint
-export const testBackendHealth = async () => {
-  try {
-    const response = await axios.get('https://api.chanreallergyclinic.com/');
-    return { success: true, data: response.data };
-  } catch (error) {
-    return { 
-      success: false, 
-      error: error.message,
-      status: error.response?.status 
-    };
-  }
-};
-
-// Test login endpoint connectivity
-export const testLoginEndpoint = async () => {
-  try {
-    const response = await API.post('/auth/login', { 
-      emailOrUsername: 'test@test.com', 
-      password: 'testpassword' 
-    });
-    return { success: true, data: response.data };
-  } catch (error) {
-    return { 
-      success: false, 
-      error: error.message,
-      status: error.response?.status,
-      data: error.response?.data 
-    };
+    return false;
   }
 };
 
@@ -80,7 +42,7 @@ API.interceptors.request.use((config) => {
       config.headers.Authorization = `Bearer ${token}`;
     }
   } catch (err) {
-    // Silent error handling
+    console.error('Error in request interceptor:', err);
   }
   
   return config;
@@ -89,17 +51,30 @@ API.interceptors.request.use((config) => {
 // Add response interceptor to handle errors
 API.interceptors.response.use(
   (response) => {
+    // Check if response data is HTML when JSON was expected (but not for blob responses)
+    if (typeof response.data === 'string' && 
+        response.data.trim().toLowerCase().startsWith('<!doctype') &&
+        response.config?.responseType !== 'blob') {
+      const error = new Error('API endpoint returned HTML page instead of JSON data. The endpoint may not exist on the server.');
+      error.response = response;
+      error.isHTMLResponse = true;
+      throw error;
+    }
     return response;
   },
   (error) => {
-    // Handle specific error cases silently
+    // Handle specific error cases
     if (error.response?.status === 401) {
       // Optionally redirect to login
       // window.location.href = '/login';
-    } else if (error.response?.status === 403) {
-      // Authorization error
-    } else if (error.code === 'ECONNREFUSED') {
-      // Connection error
+    }
+    
+    // Check if error response contains HTML (but not for blob responses)
+    if (error.response?.data && typeof error.response.data === 'string' && 
+        error.response.data.trim().toLowerCase().startsWith('<!doctype') &&
+        error.config?.responseType !== 'blob') {
+      error.isHTMLResponse = true;
+      error.message = 'API endpoint returned HTML page instead of JSON data. The endpoint may not exist on the server.';
     }
     
     return Promise.reject(error);

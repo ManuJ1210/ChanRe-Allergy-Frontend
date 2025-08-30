@@ -46,7 +46,7 @@ const AddPrescription = ({ patientId: propPatientId, onSuccess, onCancel }) => {
       );
       setSuccess(true);
       setTimeout(() => {
-        navigate(`/dashboard/CenterAdmin/patients/FollowUp/prescriptionlist/${patientId}`);
+        navigate(`/dashboard/Doctor/patients/ViewProfile/${patientId}`);
       }, 1000);
     } catch (err) {
       setError("Failed to add prescription");

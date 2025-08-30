@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { submitPatientTests } from "../../../features/patient/patientThunks";
-import { resetPatientState } from "../../../features/patient/patientSlice";
+import { submitPatientTests } from "../../../features/centerAdmin/centerAdminThunks";
+import { resetCenterAdminState } from "../../../features/centerAdmin/centerAdminSlice";
 import { FileText, ArrowLeft, Save, FlaskConical, CheckCircle } from 'lucide-react';
 
 const testFields = [
@@ -22,7 +22,7 @@ const AddTest = () => {
     testSubmitting,
     testSubmitSuccess,
     testSubmitError,
-  } = useSelector((state) => state.patient);
+  } = useSelector((state) => state.centerAdmin);
 
   const handleChange = (testName, value) => {
     setReports((prev) => ({ ...prev, [testName]: value }));
@@ -46,11 +46,11 @@ const AddTest = () => {
   useEffect(() => {
     if (testSubmitSuccess) {
               setTimeout(() => {
-          dispatch(resetPatientState());
-          navigate("/dashboard/CenterAdmin/patients/PatientList");
+                  dispatch(resetCenterAdminState());
+        navigate(`/dashboard/CenterAdmin/patients/profile/ViewProfile/${patientId}?refresh=${Date.now()}`);
         }, 1500);
     }
-  }, [testSubmitSuccess, dispatch, navigate]);
+  }, [testSubmitSuccess, dispatch, navigate, patientId]);
 
   // Simple fallback to test if component is rendering
   if (!patientId) {

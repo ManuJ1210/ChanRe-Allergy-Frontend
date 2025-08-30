@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchSinglePrescription } from '../../../../../features/centerAdmin/centerAdminThunks';
+import { fetchSinglePrescription } from '../../../../../features/doctor/doctorThunks';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
@@ -110,7 +110,7 @@ const ViewPrescription = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   
-  const { prescription, loading, error } = useSelector(state => state.centerAdmin);
+  const { singlePrescription: prescription, loading, error } = useSelector(state => state.doctor);
 
   useEffect(() => {
     if (id) {

@@ -17,6 +17,22 @@ import {
   fetchPatientHistory,
   fetchPatientMedications,
   fetchPatientFollowUps,
+  fetchTests,
+  fetchAllergicRhinitis,
+  addAllergicRhinitis,
+  fetchAllergicConjunctivitis,
+  addAllergicConjunctivitis,
+  addAtopicDermatitis,
+  addAllergicBronchitis,
+  addGPE,
+  addPatientHistory,
+  addPatientMedication,
+  submitPatientTests,
+  fetchAllergicBronchitis,
+  fetchAtopicDermatitis,
+  fetchGPE,
+  fetchPrescriptions,
+  fetchSinglePrescription,
   fetchDoctorNotifications,
   markNotificationAsRead,
   markAllNotificationsAsRead,
@@ -42,6 +58,24 @@ const initialState = {
   patientHistory: [],
   patientMedications: [],
   patientFollowUps: [],
+  tests: [],
+  allergicRhinitis: [],
+  allergicConjunctivitis: [],
+  allergicBronchitis: [],
+  atopicDermatitis: [],
+  gpe: [],
+  prescriptions: [],
+  singlePrescription: null,
+  addAllergicRhinitisSuccess: false,
+  addAllergicConjunctivitisSuccess: false,
+  addAtopicDermatitisSuccess: false,
+  addAllergicBronchitisSuccess: false,
+  addGPESuccess: false,
+  addHistorySuccess: false,
+  addMedicationSuccess: false,
+  testSubmitting: false,
+  testSubmitSuccess: false,
+  testSubmitError: null,
   patientsLoading: false,
   patientDetailsLoading: false,
   testRequestsLoading: false,
@@ -189,7 +223,19 @@ const doctorSlice = createSlice({
       })
       .addCase(fetchPatientDetails.fulfilled, (state, action) => {
         state.patientDetailsLoading = false;
-        state.patientDetails = action.payload;
+        
+        // Handle structured response from doctor-specific endpoint
+        if (action.payload.patient) {
+          // New structure: { patient, history, medications, tests }
+          state.patientDetails = action.payload.patient;
+          state.patientHistory = action.payload.history || [];
+          state.patientMedications = action.payload.medications || [];
+          state.tests = action.payload.tests || [];
+        } else {
+          // Fallback: treat payload as patient object directly
+          state.patientDetails = action.payload;
+        }
+        
         state.patientDetailsError = null;
       })
       .addCase(fetchPatientDetails.rejected, (state, action) => {
@@ -393,6 +439,252 @@ const doctorSlice = createSlice({
       .addCase(fetchPatientFollowUps.rejected, (state, action) => {
         state.patientFollowUpsLoading = false;
         state.patientFollowUpsError = action.payload || 'Failed to fetch patient follow-ups';
+      })
+
+      // Fetch tests
+      .addCase(fetchTests.pending, (state) => {
+        state.testRequestsLoading = true;
+        state.testRequestsError = null;
+      })
+      .addCase(fetchTests.fulfilled, (state, action) => {
+        state.testRequestsLoading = false;
+        state.patientTestRequests = action.payload;
+        state.testRequestsError = null;
+      })
+      .addCase(fetchTests.rejected, (state, action) => {
+        state.testRequestsLoading = false;
+        state.testRequestsError = action.payload || 'Failed to fetch tests';
+      })
+
+      // Fetch allergic rhinitis
+      .addCase(fetchAllergicRhinitis.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchAllergicRhinitis.fulfilled, (state, action) => {
+        state.loading = false;
+        state.allergicRhinitis = action.payload;
+        state.error = null;
+      })
+      .addCase(fetchAllergicRhinitis.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || 'Failed to fetch allergic rhinitis';
+      })
+
+      // Add allergic rhinitis
+      .addCase(addAllergicRhinitis.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(addAllergicRhinitis.fulfilled, (state, action) => {
+        state.loading = false;
+        state.addAllergicRhinitisSuccess = true;
+        state.error = null;
+      })
+      .addCase(addAllergicRhinitis.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || 'Failed to add allergic rhinitis';
+      })
+
+      // Add allergic conjunctivitis
+      .addCase(addAllergicConjunctivitis.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(addAllergicConjunctivitis.fulfilled, (state, action) => {
+        state.loading = false;
+        state.addAllergicConjunctivitisSuccess = true;
+        state.error = null;
+      })
+      .addCase(addAllergicConjunctivitis.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || 'Failed to add allergic conjunctivitis';
+      })
+
+      // Add atopic dermatitis
+      .addCase(addAtopicDermatitis.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(addAtopicDermatitis.fulfilled, (state, action) => {
+        state.loading = false;
+        state.addAtopicDermatitisSuccess = true;
+        state.error = null;
+      })
+      .addCase(addAtopicDermatitis.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || 'Failed to add atopic dermatitis';
+      })
+
+      // Add allergic bronchitis
+      .addCase(addAllergicBronchitis.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(addAllergicBronchitis.fulfilled, (state, action) => {
+        state.loading = false;
+        state.addAllergicBronchitisSuccess = true;
+        state.error = null;
+      })
+      .addCase(addAllergicBronchitis.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || 'Failed to add allergic bronchitis';
+      })
+
+      // Add GPE
+      .addCase(addGPE.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(addGPE.fulfilled, (state, action) => {
+        state.loading = false;
+        state.addGPESuccess = true;
+        state.error = null;
+      })
+      .addCase(addGPE.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || 'Failed to add GPE';
+      })
+
+      // Fetch allergic conjunctivitis
+      .addCase(fetchAllergicConjunctivitis.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchAllergicConjunctivitis.fulfilled, (state, action) => {
+        state.loading = false;
+        state.allergicConjunctivitis = action.payload;
+        state.error = null;
+      })
+      .addCase(fetchAllergicConjunctivitis.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || 'Failed to fetch allergic conjunctivitis';
+      })
+
+      // Fetch allergic bronchitis
+      .addCase(fetchAllergicBronchitis.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchAllergicBronchitis.fulfilled, (state, action) => {
+        state.loading = false;
+        state.allergicBronchitis = action.payload;
+        state.error = null;
+      })
+      .addCase(fetchAllergicBronchitis.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || 'Failed to fetch allergic bronchitis';
+      })
+
+      // Fetch atopic dermatitis
+      .addCase(fetchAtopicDermatitis.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchAtopicDermatitis.fulfilled, (state, action) => {
+        state.loading = false;
+        state.atopicDermatitis = action.payload;
+        state.error = null;
+      })
+      .addCase(fetchAtopicDermatitis.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || 'Failed to fetch atopic dermatitis';
+      })
+
+      // Fetch GPE
+      .addCase(fetchGPE.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchGPE.fulfilled, (state, action) => {
+        state.loading = false;
+        state.gpe = action.payload;
+        state.error = null;
+      })
+      .addCase(fetchGPE.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || 'Failed to fetch GPE';
+      })
+
+      // Fetch prescriptions
+      .addCase(fetchPrescriptions.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchPrescriptions.fulfilled, (state, action) => {
+        state.loading = false;
+        state.prescriptions = action.payload;
+        state.error = null;
+      })
+      .addCase(fetchPrescriptions.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || 'Failed to fetch prescriptions';
+      })
+
+      // Fetch single prescription
+      .addCase(fetchSinglePrescription.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchSinglePrescription.fulfilled, (state, action) => {
+        state.loading = false;
+        state.singlePrescription = action.payload;
+        state.error = null;
+      })
+      .addCase(fetchSinglePrescription.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || 'Failed to fetch prescription';
+      })
+
+      // Add patient history
+      .addCase(addPatientHistory.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+        state.addHistorySuccess = false;
+      })
+      .addCase(addPatientHistory.fulfilled, (state, action) => {
+        state.loading = false;
+        state.addHistorySuccess = true;
+        state.error = null;
+      })
+      .addCase(addPatientHistory.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || 'Failed to add patient history';
+        state.addHistorySuccess = false;
+      })
+
+      // Add patient medication
+      .addCase(addPatientMedication.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+        state.addMedicationSuccess = false;
+      })
+      .addCase(addPatientMedication.fulfilled, (state, action) => {
+        state.loading = false;
+        state.addMedicationSuccess = true;
+        state.error = null;
+      })
+      .addCase(addPatientMedication.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || 'Failed to add medication';
+        state.addMedicationSuccess = false;
+      })
+
+      // Submit patient tests
+      .addCase(submitPatientTests.pending, (state) => {
+        state.testSubmitting = true;
+        state.testSubmitError = null;
+        state.testSubmitSuccess = false;
+      })
+      .addCase(submitPatientTests.fulfilled, (state, action) => {
+        state.testSubmitting = false;
+        state.testSubmitSuccess = true;
+        state.testSubmitError = null;
+      })
+      .addCase(submitPatientTests.rejected, (state, action) => {
+        state.testSubmitting = false;
+        state.testSubmitError = action.payload || 'Failed to submit test reports';
+        state.testSubmitSuccess = false;
       });
   },
 });

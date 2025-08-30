@@ -1,20 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
-import { toast } from 'react-toastify';
-import API from '../../../../services/api';
+import { useDispatch, useSelector } from 'react-redux';
+import { addFollowUp } from '../../../../features/centerAdmin/centerAdminThunks';
+import { resetCenterAdminState } from '../../../../features/centerAdmin/centerAdminSlice';
 import { 
   ArrowLeft, 
   Calendar, 
   User, 
   Activity, 
-  Save
+  AlertCircle,
+  CheckCircle,
+  Clock
 } from 'lucide-react';
 
-export default function AddFollowUp() {
+const AddFollowUp = () => {
   const { patientId } = useParams();
   const navigate = useNavigate();
-  const { user } = useSelector((state) => state.auth);
+  const dispatch = useDispatch();
 
   const [formData, setFormData] = useState({
     followUpType: '',
@@ -22,23 +24,15 @@ export default function AddFollowUp() {
     notes: '',
     status: 'pending'
   });
-  const [loading, setLoading] = useState(false);
 
-  const followUpTypes = [
-    { value: 'allergic-rhinitis', label: 'Allergic Rhinitis', icon: '🤧' },
-    { value: 'allergic-conjunctivitis', label: 'Allergic Conjunctivitis', icon: '👁️' },
-    { value: 'allergic-bronchitis', label: 'Allergic Bronchitis', icon: '🫁' },
-    { value: 'atopic-dermatitis', label: 'Atopic Dermatitis', icon: '🦠' },
-    { value: 'gpe', label: 'GPE', icon: '🏥' },
-    { value: 'general', label: 'General Follow-up', icon: '📋' }
-  ];
+  const { loading, error, addFollowUpSuccess } = useSelector(state => state.centerAdmin);
 
-  const statusOptions = [
-    { value: 'pending', label: 'Pending', color: 'text-yellow-600' },
-    { value: 'completed', label: 'Completed', color: 'text-green-600' },
-    { value: 'overdue', label: 'Overdue', color: 'text-red-600' },
-    { value: 'cancelled', label: 'Cancelled', color: 'text-gray-600' }
-  ];
+  useEffect(() => {
+    if (addFollowUpSuccess) {
+      dispatch(resetCenterAdminState());
+      navigate(`/dashboard/CenterAdmin/patients/FollowUp`);
+    }
+  }, [addFollowUpSuccess, dispatch, navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -48,151 +42,176 @@ export default function AddFollowUp() {
     }));
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    
-    if (!formData.followUpType || !formData.scheduledDate) {
-      toast.error('Please fill in all required fields');
-      return;
-    }
-
-    try {
-      setLoading(true);
-      
-      const followUpData = {
-        ...formData,
-        patientId: patientId,
-        doctorId: user._id || user.id
-      };
-
-      await API.post('/followups', followUpData);
-      
-      toast.success('Follow-up scheduled successfully!');
-      
-      // Navigate back to patient profile
-      setTimeout(() => {
-        navigate(`/dashboard/doctor/patients/profile/${patientId}`);
-      }, 1500);
-      
-    } catch (error) {
-      console.error('Error scheduling follow-up:', error);
-      toast.error(error.response?.data?.message || 'Failed to schedule follow-up');
-    } finally {
-      setLoading(false);
-    }
+    const payload = {
+      ...formData,
+      patientId
+    };
+    dispatch(addFollowUp(payload));
   };
 
+  const followUpTypes = [
+    { value: 'allergic-rhinitis', label: 'Allergic Rhinitis', icon: '🤧' },
+    { value: 'allergic-conjunctivitis', label: 'Allergic Conjunctivitis', icon: '👁️' },
+    { value: 'allergic-bronchitis', label: 'Allergic Bronchitis', icon: '🫁' },
+    { value: 'atopic-dermatitis', label: 'Atopic Dermatitis', icon: '🦠' },
+    { value: 'gpe', label: 'GPE', icon: '🏥' }
+  ];
+
+  const statusOptions = [
+    { value: 'pending', label: 'Pending', color: 'text-yellow-600' },
+    { value: 'completed', label: 'Completed', color: 'text-green-600' },
+    { value: 'overdue', label: 'Overdue', color: 'text-red-600' }
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 sm:p-6">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+      <div className="max-w-2xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <button
-            onClick={() => navigate(`/dashboard/doctor/patients/profile/${patientId}`)}
-            className="flex items-center text-slate-600 hover:text-slate-800 mb-4 transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Patient
-          </button>
-          <h1 className="text-xl font-bold text-slate-800 mb-2">
-            Schedule Follow-up
-          </h1>
-          <p className="text-slate-600">
-            Schedule a follow-up appointment for the patient
-          </p>
+        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => navigate(-1)}
+                className="flex items-center space-x-2 text-blue-600 hover:text-blue-700 transition-colors text-xs"
+              >
+                <ArrowLeft size={20} />
+                <span>Back</span>
+              </button>
+              <h1 className="text-md font-bold text-gray-800">Add Follow-up</h1>
+            </div>
+          </div>
         </div>
 
         {/* Form */}
-        <div className="bg-white rounded-xl shadow-sm border border-blue-100">
-          <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
             {/* Follow-up Type */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                <Activity className="h-4 w-4 inline mr-2" />
-                Follow-up Type *
+              <label className="block text-xs font-medium text-gray-700 mb-3">
+                Follow-up Type <span className="text-red-500">*</span>
               </label>
-              <select
-                name="followUpType"
-                value={formData.followUpType}
-                onChange={handleChange}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                required
-              >
-                <option value="">Select follow-up type</option>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {followUpTypes.map((type) => (
-                  <option key={type.value} value={type.value}>
-                    {type.icon} {type.label}
-                  </option>
+                  <label
+                    key={type.value}
+                    className={`relative flex items-center p-4 border-2 rounded-lg cursor-pointer transition-colors ${
+                      formData.followUpType === type.value
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="followUpType"
+                      value={type.value}
+                      checked={formData.followUpType === type.value}
+                      onChange={handleChange}
+                      className="sr-only"
+                      required
+                    />
+                    <div className="flex items-center space-x-3">
+                      <span className="text-xl">{type.icon}</span>
+                      <span className="font-medium text-gray-900 text-xs">{type.label}</span>
+                    </div>
+                    {formData.followUpType === type.value && (
+                      <CheckCircle className="absolute top-2 right-2 h-5 w-5 text-blue-500" />
+                    )}
+                  </label>
                 ))}
-              </select>
+              </div>
             </div>
 
             {/* Scheduled Date */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                <Calendar className="h-4 w-4 inline mr-2" />
-                Scheduled Date *
+              <label className="block text-xs font-medium text-gray-700 mb-2">
+                Scheduled Date <span className="text-red-500">*</span>
               </label>
-              <input
-                type="datetime-local"
-                name="scheduledDate"
-                value={formData.scheduledDate}
-                onChange={handleChange}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                required
-              />
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <input
+                  type="datetime-local"
+                  name="scheduledDate"
+                  value={formData.scheduledDate}
+                  onChange={handleChange}
+                  required
+                  className="pl-10 pr-4 py-3 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
+                />
+              </div>
             </div>
 
             {/* Status */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Status
+              <label className="block text-xs font-medium text-gray-700 mb-2">
+                Status <span className="text-red-500">*</span>
               </label>
-              <select
-                name="status"
-                value={formData.status}
-                onChange={handleChange}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                {statusOptions.map((status) => (
-                  <option key={status.value} value={status.value}>
-                    {status.label}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <select
+                  name="status"
+                  value={formData.status}
+                  onChange={handleChange}
+                  required
+                  className="pl-10 pr-4 py-3 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
+                >
+                  {statusOptions.map((status) => (
+                    <option key={status.value} value={status.value}>
+                      {status.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             {/* Notes */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
+              <label className="block text-xs font-medium text-gray-700 mb-2">
                 Notes
               </label>
               <textarea
                 name="notes"
                 value={formData.notes}
                 onChange={handleChange}
-                rows="4"
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Additional notes about the follow-up..."
+                rows={4}
+                placeholder="Enter any additional notes or instructions..."
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-xs"
               />
             </div>
 
+            {/* Error Message */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div className="flex items-center">
+                  <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
+                  <span className="text-red-700 text-xs">{error}</span>
+                </div>
+              </div>
+            )}
+
             {/* Submit Button */}
-            <div className="flex justify-end">
+            <div className="flex items-center justify-end space-x-4 pt-6 border-t">
+              <button
+                type="button"
+                onClick={() => navigate(-1)}
+                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-xs"
+              >
+                Cancel
+              </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="bg-purple-500 text-white px-6 py-2 rounded-lg hover:bg-purple-600 flex items-center disabled:opacity-50"
+                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 text-xs"
               >
                 {loading ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Scheduling Follow-up...
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>Adding...</span>
                   </>
                 ) : (
                   <>
-                    <Save className="h-4 w-4 mr-2" />
-                    Schedule Follow-up
+                    <Activity className="h-4 w-4" />
+                    <span>Add Follow-up</span>
                   </>
                 )}
               </button>
@@ -202,4 +221,6 @@ export default function AddFollowUp() {
       </div>
     </div>
   );
-} 
+};
+
+export default AddFollowUp; 

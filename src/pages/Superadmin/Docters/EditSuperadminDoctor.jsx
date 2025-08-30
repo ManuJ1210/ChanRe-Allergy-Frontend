@@ -5,6 +5,7 @@ import { Eye, EyeOff, UserCheck, ArrowLeft, Save, X } from 'lucide-react';
 import { 
   fetchSuperAdminDoctorById, 
   updateSuperAdminDoctor, 
+  fetchSuperAdminDoctors,
   clearError, 
   clearSuccess 
 } from '../../../features/superadmin/superAdminDoctorSlice';
@@ -133,9 +134,12 @@ const EditSuperadminDoctor = () => {
       submitData.specializations = [];
     }
     
-    const result = await dispatch(updateSuperAdminDoctor({ id, data: submitData }));
+    const result = await dispatch(updateSuperAdminDoctor({ id, doctorData: submitData }));
     
     if (updateSuperAdminDoctor.fulfilled.match(result)) {
+      // Refetch the doctors list to ensure fresh data
+      dispatch(fetchSuperAdminDoctors({ page: 1, limit: 10, search: '', status: '' }));
+      
       setTimeout(() => {
         navigate('/dashboard/Superadmin/Docters/SuperAdminDoctorList');
       }, 1500);

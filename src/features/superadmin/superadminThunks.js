@@ -524,3 +524,77 @@ export const deleteLabStaff = createAsyncThunk(
     }
   }
 ); 
+
+// ===============================
+// BILLING APIS
+// ===============================
+
+// Fetch all billing data for superadmin
+export const fetchSuperadminBillingData = createAsyncThunk(
+  'superadmin/fetchBillingData',
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await API.get('/test-requests/billing/all');
+      return res.data;
+    } catch (error) {
+      console.error('Billing data fetch error:', error.response?.data || error.message);
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch billing data');
+    }
+  }
+);
+
+// Fetch billing data for a specific center (for center admin)
+export const fetchCenterBillingData = createAsyncThunk(
+  'superadmin/fetchCenterBillingData',
+  async (centerId, { rejectWithValue }) => {
+    try {
+      const res = await API.get(`/test-requests/billing/center/${centerId}`);
+      return res.data;
+    } catch (error) {
+      console.error('Center billing data fetch error:', error.response?.data || error.message);
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch center billing data');
+    }
+  }
+);
+
+// Generate bill for a test request
+export const generateBillForTestRequest = createAsyncThunk(
+  'superadmin/generateBill',
+  async ({ requestId, billData }, { rejectWithValue }) => {
+    try {
+      const res = await API.put(`/test-requests/${requestId}/billing/generate`, billData);
+      return res.data;
+    } catch (error) {
+      console.error('Generate bill error:', error.response?.data || error.message);
+      return rejectWithValue(error.response?.data?.message || 'Failed to generate bill');
+    }
+  }
+);
+
+// Mark bill as paid
+export const markBillAsPaid = createAsyncThunk(
+  'superadmin/markBillPaid',
+  async ({ requestId, paymentData }, { rejectWithValue }) => {
+    try {
+      const res = await API.put(`/test-requests/${requestId}/billing/paid`, paymentData);
+      return res.data;
+    } catch (error) {
+      console.error('Mark bill paid error:', error.response?.data || error.message);
+      return rejectWithValue(error.response?.data?.message || 'Failed to mark bill as paid');
+    }
+  }
+);
+
+// Verify payment and approve for lab
+export const verifyPaymentAndApprove = createAsyncThunk(
+  'superadmin/verifyPaymentAndApprove',
+  async ({ requestId, verificationNotes }, { rejectWithValue }) => {
+    try {
+      const res = await API.put(`/test-requests/${requestId}/billing/verify`, { verificationNotes });
+      return res.data;
+    } catch (error) {
+      console.error('Verify payment error:', error.response?.data || error.message);
+      return rejectWithValue(error.response?.data?.message || 'Failed to verify payment');
+    }
+  }
+);

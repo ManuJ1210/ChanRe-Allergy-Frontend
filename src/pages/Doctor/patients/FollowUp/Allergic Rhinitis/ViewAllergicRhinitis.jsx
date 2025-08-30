@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchAllergicRhinitis } from '../../../../../features/centerAdmin/centerAdminThunks';
+import { fetchAllergicRhinitis } from '../../../../../features/doctor/doctorThunks';
 
 import { 
   ArrowLeft, 
@@ -20,7 +20,7 @@ const ViewAllergicRhinitis = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  const { allergicRhinitis, loading, error } = useSelector(state => state.centerAdmin);
+  const { allergicRhinitis, loading, error } = useSelector(state => state.doctor);
 
   useEffect(() => {
     if (patientId) {
@@ -79,7 +79,7 @@ const ViewAllergicRhinitis = () => {
               <h3 className="text-md font-semibold text-gray-800 mb-2">No Allergic Rhinitis Record Found</h3>
               <p className="text-gray-600 mb-4 text-xs">This patient doesn't have any allergic rhinitis records yet.</p>
               <button
-                onClick={() => navigate(`/center-admin/followup/allergic-rhinitis/add/${patientId}`)}
+                onClick={() => navigate(`/dashboard/Doctor/patients/FollowUp/AddAllergicRhinitis/${patientId}`)}
                 className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors mr-2 text-xs"
               >
                 Add Record
@@ -117,7 +117,7 @@ const ViewAllergicRhinitis = () => {
             </div>
             <div className="flex items-center space-x-3">
               <button
-                onClick={() => navigate(`/center-admin/followup/allergic-rhinitis/add/${patientId}`)}
+                onClick={() => navigate(`/dashboard/Doctor/patients/FollowUp/AddAllergicRhinitis/${patientId}`)}
                 className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-xs"
               >
                 Add New Record

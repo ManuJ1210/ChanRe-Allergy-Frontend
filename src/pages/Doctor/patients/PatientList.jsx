@@ -1,359 +1,398 @@
-import React, { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchAssignedPatients } from "../../../features/doctor/doctorThunks";
 import { useNavigate } from "react-router-dom";
-import { useSelector } from "react-redux";
-import API from "../../../services/api";
+import { canDoctorEditPatient } from "../../../utils/patientPermissions";
 import { 
   Users, 
-  UserPlus, 
   Search, 
+  Plus, 
   Eye, 
-  Plus,
-  Filter,
-  RefreshCw,
-  FileText,
-  Pill,
-  Activity
+  Edit, 
+
+  Mail,
+  Phone,
+  User,
+  Calendar,
+  MapPin,
+  ArrowLeft,
+  ArrowRight,
+  Clock,
+  Lock
 } from 'lucide-react';
-import { toast } from 'react-toastify';
 
 export default function PatientList() {
+  const dispatch = useDispatch();
   const navigate = useNavigate();
+  const [selectedPatient, setSelectedPatient] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filteredPatients, setFilteredPatients] = useState([]);
+
+  const { assignedPatients = [], loading } = useSelector((state) => state.doctor);
   const { user } = useSelector((state) => state.auth);
-  
-  const [patients, setPatients] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [stats, setStats] = useState({
-    totalPatients: 0,
-    todayPatients: 0,
-    pendingTests: 0,
-    completedTests: 0
-  });
 
   useEffect(() => {
-    fetchPatients();
-  }, [currentPage, searchTerm, statusFilter]);
+    dispatch(fetchAssignedPatients());
+  }, [dispatch]);
 
-  const fetchPatients = async () => {
-    try {
-      setLoading(true);
-      const centerId = getCenterId();
-      
-      let url = `/patients?page=${currentPage}&limit=10`;
-      if (searchTerm) url += `&search=${searchTerm}`;
-      if (statusFilter) url += `&status=${statusFilter}`;
-      
-      const response = await API.get(url);
-      setPatients(response.data.patients);
-      setTotalPages(response.data.pagination.totalPages);
-      setStats(response.data.stats);
-    } catch (error) {
-      console.error('Error fetching patients:', error);
-      setError('Failed to fetch patients');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getCenterId = () => {
-    if (!user) return null;
-    
-    if (user.centerId) {
-      if (typeof user.centerId === 'object' && user.centerId._id) {
-        return user.centerId._id;
-      }
-      if (typeof user.centerId === 'string') {
-        return user.centerId;
-      }
-    }
-    
-    if (user.centerID) return user.centerID;
-    if (user.center_id) return user.center_id;
-    if (user.center && user.center._id) return user.center._id;
-    
-    return null;
-  };
-
-  const handleSearch = (e) => {
-    e.preventDefault();
-    setCurrentPage(1);
-    fetchPatients();
-  };
-
-  const handleRefresh = () => {
-    setCurrentPage(1);
-    setSearchTerm("");
-    setStatusFilter("");
-    fetchPatients();
-  };
-
-  if (loading && patients.length === 0) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 sm:p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-            <p className="text-slate-600">Loading patients...</p>
-          </div>
-        </div>
-      </div>
+  // Filter patients based on search term
+  useEffect(() => {
+    const filtered = (assignedPatients || []).filter(patient =>
+      patient?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      patient?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      patient?.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      patient?.contact?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      patient?.centerCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      patient?.assignedDoctor?.name?.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  }
+    setFilteredPatients(filtered);
+  }, [searchTerm, assignedPatients]);
+
+  // Doctors typically can't delete patients - this functionality is removed
+
+  const getGenderStats = () => {
+    const maleCount = (assignedPatients || []).filter(p => p?.gender === 'male').length;
+    const femaleCount = (assignedPatients || []).filter(p => p?.gender === 'female').length;
+    const otherCount = (assignedPatients || []).filter(p => p?.gender === 'other').length;
+    return { maleCount, femaleCount, otherCount };
+  };
+
+  const genderStats = getGenderStats();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 sm:p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-2 sm:p-3 md:p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-slate-800 mb-2">
-                Patient Management
-              </h1>
-              <p className="text-slate-600">
-                Manage all patients in your center
-              </p>
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-md font-bold text-slate-800 mb-2 text-center sm:text-left">
+            Patient List
+          </h1>
+          <p className="text-slate-600 text-xs text-center sm:text-left">
+            View and manage your assigned patients
+          </p>
+        </div>
+
+        {/* Search and Add Button */}
+        <div className="bg-white rounded-xl shadow-sm border border-blue-100 mb-6">
+          <div className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+              <div className="relative flex-1 max-w-md w-full">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search patients by name, email, phone..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 sm:py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
+                />
+              </div>
+              <button
+                onClick={() => navigate('/dashboard/Doctor/patients/AddPatient')}
+                className="bg-blue-500 hover:bg-blue-600 text-white px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2 w-full sm:w-auto justify-center text-xs"
+              >
+                <Plus className="h-4 w-4" />
+                Add Patient
+              </button>
             </div>
-            <button
-              onClick={() => navigate('/dashboard/doctor/add-patient')}
-              className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 flex items-center"
-            >
-              <UserPlus className="h-4 w-4 mr-2" />
-              Add Patient
-            </button>
           </div>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-blue-100">
-            <div className="flex items-center">
-              <Users className="h-8 w-8 text-blue-500 mr-3" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6 mb-6">
+          <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-blue-100">
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-600">Total Patients</p>
-                <p className="text-2xl font-bold text-slate-800">{stats.totalPatients}</p>
+                <p className="text-slate-600 text-xs font-medium">Total Patients</p>
+                <p className="text-sm font-bold text-slate-800">{(assignedPatients || []).length}</p>
               </div>
+              <Users className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500" />
             </div>
           </div>
-          
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-green-100">
-            <div className="flex items-center">
-              <Users className="h-8 w-8 text-green-500 mr-3" />
+          <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-blue-100">
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-600">Today's Patients</p>
-                <p className="text-2xl font-bold text-slate-800">{stats.todayPatients}</p>
+                <p className="text-slate-600 text-xs font-medium">Male Patients</p>
+                <p className="text-sm font-bold text-slate-800">{genderStats.maleCount}</p>
               </div>
+              <User className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
             </div>
           </div>
-          
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-yellow-100">
-            <div className="flex items-center">
-              <Users className="h-8 w-8 text-yellow-500 mr-3" />
+          <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-blue-100">
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-600">Pending Tests</p>
-                <p className="text-2xl font-bold text-slate-800">{stats.pendingTests}</p>
+                <p className="text-slate-600 text-xs font-medium">Female Patients</p>
+                <p className="text-sm font-bold text-slate-800">{genderStats.femaleCount}</p>
               </div>
+              <User className="h-6 w-6 sm:h-8 sm:w-8 text-pink-500" />
             </div>
           </div>
-          
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-purple-100">
-            <div className="flex items-center">
-              <Users className="h-8 w-8 text-purple-500 mr-3" />
+          <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-blue-100">
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-600">Completed Tests</p>
-                <p className="text-2xl font-bold text-slate-800">{stats.completedTests}</p>
+                <p className="text-slate-600 text-xs font-medium">With Email</p>
+                <p className="text-sm font-bold text-slate-800">
+                  {(assignedPatients || []).filter(p => p?.email).length}
+                </p>
               </div>
+              <Mail className="h-6 w-6 sm:h-8 sm:w-8 text-green-500" />
             </div>
           </div>
-        </div>
-
-        {/* Search and Filters */}
-        <div className="bg-white rounded-xl shadow-sm border border-blue-100 mb-6">
-          <div className="p-6">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <form onSubmit={handleSearch} className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-                  <input
-                    type="text"
-                    placeholder="Search patients by name, email, or phone..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-              </form>
-              
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">All Statuses</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </select>
-              
-              <button
-                onClick={handleRefresh}
-                className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 flex items-center"
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Refresh
-              </button>
+          <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-blue-100 sm:col-span-2 lg:col-span-1">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-slate-600 text-xs font-medium">With Phone</p>
+                <p className="text-sm font-bold text-slate-800">
+                  {(assignedPatients || []).filter(p => p?.phone || p?.contact).length}
+                </p>
+              </div>
+              <Phone className="h-6 w-6 sm:h-8 sm:w-8 text-orange-500" />
             </div>
           </div>
         </div>
 
         {/* Patients Table */}
         <div className="bg-white rounded-xl shadow-sm border border-blue-100">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-full">
-              <thead className="bg-slate-50 border-b border-slate-200">
-                <tr>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Patient
-                  </th>
-                  <th className="hidden sm:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Contact
-                  </th>
-                  <th className="hidden md:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Center
-                  </th>
-                  <th className="hidden lg:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Assigned Doctor
-                  </th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider min-w-[200px]">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-slate-200">
-                {patients.map((patient) => (
-                  <tr key={patient._id} className="hover:bg-slate-50">
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                          <Users className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
-                        </div>
-                        <div className="ml-2 sm:ml-4 min-w-0 flex-1">
-                          <div className="text-sm font-medium text-slate-900 truncate">{patient.name}</div>
-                          <div className="text-xs sm:text-sm text-slate-500">{patient.age} years • {patient.gender}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="hidden sm:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-slate-900">{patient.phone}</div>
-                      <div className="text-sm text-slate-500 truncate max-w-[150px]">{patient.email}</div>
-                    </td>
-                    <td className="hidden md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-slate-900">{patient.centerId?.name || 'N/A'}</div>
-                      <div className="text-sm text-slate-500">{patient.centerCode}</div>
-                    </td>
-                    <td className="hidden lg:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-slate-900">
-                        {patient.assignedDoctor?.name || 'Not Assigned'}
-                      </div>
-                    </td>
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        patient.status === 'active' 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {patient.status || 'active'}
-                      </span>
-                    </td>
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
-                        <button
-                          onClick={() => navigate(`/dashboard/doctor/patients/profile/${patient._id}`)}
-                          className="text-blue-600 hover:text-blue-900 p-1.5 rounded transition-colors flex-shrink-0"
-                          title="View Profile"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => navigate(`/dashboard/doctor/patients/add-history/${patient._id}`)}
-                          className="text-green-600 hover:text-green-900 p-1.5 rounded transition-colors flex-shrink-0"
-                          title="Add History"
-                        >
-                          <FileText className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => navigate(`/dashboard/doctor/patients/profile/add-medications/${patient._id}`)}
-                          className="text-purple-600 hover:text-purple-900 p-1.5 rounded transition-colors flex-shrink-0"
-                          title="Add Medications"
-                        >
-                          <Pill className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => navigate(`/dashboard/doctor/patients/add-test/${patient._id}`)}
-                          className="text-orange-600 hover:text-orange-900 p-1.5 rounded transition-colors flex-shrink-0"
-                          title="Add Test"
-                        >
-                          <Activity className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="p-4 sm:p-6 border-b border-blue-100">
+            <h2 className="text-sm font-semibold text-slate-800 flex items-center justify-center sm:justify-start">
+              <Users className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-blue-500" />
+              Patients List
+            </h2>
+            <p className="text-slate-600 mt-1 text-xs text-center sm:text-left">
+              {filteredPatients.length} of {(assignedPatients || []).length} patients
+            </p>
           </div>
           
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="px-6 py-4 border-t border-slate-200">
-              <div className="flex items-center justify-between">
-                <div className="text-sm text-slate-700">
-                  Page {currentPage} of {totalPages}
-                </div>
-                <div className="flex space-x-2">
-                  <button
-                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                    disabled={currentPage === 1}
-                    className="px-3 py-1 border border-slate-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50"
-                  >
-                    Previous
-                  </button>
-                  <button
-                    onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                    disabled={currentPage === totalPages}
-                    className="px-3 py-1 border border-slate-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50"
-                  >
-                    Next
-                  </button>
-                </div>
+          {/* Mobile Card View */}
+          <div className="block lg:hidden p-4">
+            {loading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                <p className="text-slate-600 text-xs">Loading patients...</p>
               </div>
-            </div>
-          )}
-        </div>
-
-        {/* Empty State */}
-        {patients.length === 0 && !loading && (
-          <div className="text-center py-12">
-            <Users className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-slate-900 mb-2">No patients found</h3>
-            <p className="text-slate-600 mb-4">
-              {searchTerm || statusFilter ? 'Try adjusting your search or filters.' : 'Get started by adding your first patient.'}
-            </p>
-            <button
-              onClick={() => navigate('/dashboard/doctor/add-patient')}
-              className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 flex items-center mx-auto"
-            >
-              <UserPlus className="h-4 w-4 mr-2" />
-              Add Patient
-            </button>
+            ) : filteredPatients.length === 0 ? (
+              <div className="text-center py-8">
+                <Users className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                <p className="text-slate-500 text-xs">
+                  {searchTerm ? 'No patients found matching your search.' : 'No patients found.'}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredPatients.map((patient, index) => (
+                  <div key={patient?._id || index} className="bg-slate-50 rounded-lg p-4 space-y-3 border border-slate-200">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-semibold text-slate-800 text-sm">{patient?.name || 'N/A'}</h3>
+                        <p className="text-slate-500 text-xs">#{index + 1}</p>
+                      </div>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${
+                        patient?.gender === 'male' ? 'bg-blue-100 text-blue-700' :
+                        patient?.gender === 'female' ? 'bg-pink-100 text-pink-700' :
+                        'bg-slate-100 text-slate-700'
+                      }`}>
+                        {patient?.gender || 'N/A'}
+                      </span>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="flex items-center gap-2 bg-white p-2 rounded-lg border border-slate-200">
+                        <Mail className="h-4 w-4 text-blue-500" />
+                        <span className="text-slate-700 text-xs font-medium">{patient?.email || 'No email'}</span>
+                      </div>
+                      <div className="flex items-center gap-2 bg-white p-2 rounded-lg border border-slate-200">
+                        <Phone className="h-4 w-4 text-green-500" />
+                        <span className="text-slate-700 text-xs font-medium">{patient?.phone || patient?.contact || 'No phone'}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="flex items-center gap-2 bg-white p-2 rounded-lg border border-slate-200">
+                        <User className="h-4 w-4 text-indigo-500" />
+                        <span className="text-slate-700 text-xs font-medium">{patient?.age || 'N/A'} years</span>
+                      </div>
+                      <div className="flex items-center gap-2 bg-white p-2 rounded-lg border border-slate-200">
+                        <MapPin className="h-4 w-4 text-purple-500" />
+                        <span className="text-slate-700 text-xs font-medium">{patient?.centerCode || 'Not assigned'}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 bg-white p-2 rounded-lg border border-slate-200">
+                      <Users className="h-4 w-4 text-orange-500" />
+                      <span className="text-slate-700 text-xs font-medium">
+                        Dr. {patient?.assignedDoctor?.name || 'Not assigned'}
+                      </span>
+                    </div>
+                    
+                    <div className="flex gap-2 pt-3 border-t border-slate-200">
+                      <button
+                        onClick={() => {
+                          if (patient?._id) {
+                            navigate(`/dashboard/Doctor/patients/profile/ViewProfile/${patient._id}`);
+                          } else {
+                            alert('Patient ID not found. Please refresh the page and try again.');
+                          }
+                        }}
+                        className="flex-1 bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-2 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-2"
+                      >
+                        <Eye className="h-4 w-4" />
+                        View
+                      </button>
+                      {canDoctorEditPatient(patient, user).canEdit ? (
+                        <button
+                          onClick={() => navigate(`/dashboard/Doctor/patients/EditPatient/${patient?._id}`)}
+                          className="flex-1 bg-green-50 hover:bg-green-100 text-green-700 px-3 py-2 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-2"
+                        >
+                          <Edit className="h-4 w-4" />
+                          Edit
+                        </button>
+                      ) : (
+                        <button
+                          disabled
+                          className="flex-1 bg-gray-50 text-gray-400 px-3 py-2 rounded-lg text-xs font-medium flex items-center justify-center gap-2 cursor-not-allowed"
+                          title={canDoctorEditPatient(patient, user).reason}
+                        >
+                          <Clock className="h-4 w-4" />
+                          Edit
+                        </button>
+                      )}
+                      {/* Delete button removed - doctors can't delete patients */}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-        )}
+          
+          {/* Desktop Table View */}
+          <div className="hidden lg:block p-6">
+            {loading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                <p className="text-slate-600 text-xs">Loading patients...</p>
+              </div>
+            ) : filteredPatients.length === 0 ? (
+              <div className="text-center py-8">
+                <Users className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                <p className="text-slate-500 text-xs">
+                  {searchTerm ? 'No patients found matching your search.' : 'No patients found.'}
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                      <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                        Patient
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                        Contact
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                        Age/Gender
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                        Center Code
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                        Assigned Doctor
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200">
+                    {filteredPatients.map((patient, index) => (
+                      <tr key={patient?._id || index} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-6 py-4">
+                          <div>
+                            <div className="font-semibold text-slate-800 text-xs">{patient?.name || 'N/A'}</div>
+                            <div className="text-xs text-slate-500">#{index + 1}</div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="space-y-1">
+                            {patient?.email && (
+                              <div className="flex items-center text-xs text-slate-600">
+                                <Mail className="h-3 w-3 mr-2" />
+                                {patient.email}
+                              </div>
+                            )}
+                            {(patient?.phone || patient?.contact) && (
+                              <div className="flex items-center text-xs text-slate-600">
+                                <Phone className="h-3 w-3 mr-2" />
+                                {patient.phone || patient.contact}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center space-x-2">
+                            <span className="text-xs font-medium text-slate-800">{patient?.age || 'N/A'} years</span>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${
+                              patient?.gender === 'male' ? 'bg-blue-100 text-blue-700' :
+                              patient?.gender === 'female' ? 'bg-pink-100 text-pink-700' :
+                              'bg-slate-100 text-slate-700'
+                            }`}>
+                              {patient?.gender || 'N/A'}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center text-xs text-slate-600">
+                            <MapPin className="h-3 w-3 mr-2" />
+                            {patient?.centerCode || 'Not assigned'}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-xs text-slate-600">
+                            {patient?.assignedDoctor?.name || 'Not assigned'}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={() => {
+                                if (patient?._id) {
+                                  navigate(`/dashboard/Doctor/patients/profile/ViewProfile/${patient._id}`);
+                                } else {
+                                  alert('Patient ID not found. Please refresh the page and try again.');
+                                }
+                              }}
+                              className="text-blue-600 hover:text-blue-700 p-1 rounded transition-colors"
+                              title="View Profile"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </button>
+                            {canDoctorEditPatient(patient, user).canEdit ? (
+                              <button
+                                onClick={() => navigate(`/dashboard/Doctor/patients/EditPatient/${patient?._id}`)}
+                                className="text-green-600 hover:text-green-700 p-1 rounded transition-colors"
+                                title="Edit"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </button>
+                            ) : (
+                              <button
+                                disabled
+                                className="text-gray-400 p-1 rounded cursor-not-allowed"
+                                title={canDoctorEditPatient(patient, user).reason}
+                              >
+                                <Clock className="h-4 w-4" />
+                              </button>
+                            )}
+                            {/* Delete button removed - doctors can't delete patients */}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

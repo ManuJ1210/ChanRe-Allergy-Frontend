@@ -35,9 +35,21 @@ const TestRequests = () => {
   const [lastRefreshTime, setLastRefreshTime] = useState(new Date());
 
   useEffect(() => {
+    console.log('🔄 TestRequests: Fetching test requests...');
     dispatch(fetchTestRequests());
     setLastRefreshTime(new Date());
   }, [dispatch]);
+
+  // Debug logging
+  useEffect(() => {
+    console.log('📊 TestRequests Debug:', {
+      testRequests: testRequests,
+      testRequestsLength: testRequests ? testRequests.length : 'undefined',
+      testRequestsLoading: testRequestsLoading,
+      testRequestsError: testRequestsError,
+      isArray: Array.isArray(testRequests)
+    });
+  }, [testRequests, testRequestsLoading, testRequestsError]);
 
   // Refresh data when component becomes visible
   useEffect(() => {
@@ -62,8 +74,8 @@ const TestRequests = () => {
     return () => clearInterval(interval);
   }, [dispatch]);
 
-  // Filter and sort test requests
-  const filteredTestRequests = testRequests
+  // Filter and sort test requests (with safety check)
+  const filteredTestRequests = (testRequests || [])
     .filter(test => {
       const matchesSearch = test.patientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            test.testType?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -129,6 +141,8 @@ const TestRequests = () => {
   };
 
   const getStatusCount = (status) => {
+    if (!testRequests || !Array.isArray(testRequests)) return 0;
+    
     switch (status) {
       case 'Pending':
         return testRequests.filter(test => test.status === 'Pending').length;
@@ -194,7 +208,7 @@ const TestRequests = () => {
               <div>
                 <h1 className="text-xl font-bold text-slate-800 mb-2">Test Requests</h1>
                 <p className="text-slate-600">
-                  Manage and track test requests for your patients ({testRequests.length} total)
+                  Manage and track test requests for your patients ({testRequests ? testRequests.length : 0} total)
                 </p>
                 <p className="text-xs text-slate-500 mt-1">
                   Last updated: {lastRefreshTime.toLocaleTimeString()}
@@ -293,7 +307,7 @@ const TestRequests = () => {
             {/* Results Count */}
             <div className="flex items-center justify-end text-slate-600">
               <FileText className="h-4 w-4 mr-2" />
-              {filteredTestRequests.length} of {testRequests.length} requests
+              {filteredTestRequests.length} of {testRequests ? testRequests.length : 0} requests
             </div>
           </div>
         </div>

@@ -32,10 +32,12 @@ const TestRequestDetails = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [reportStatus, setReportStatus] = useState(null);
 
   useEffect(() => {
     if (id) {
       fetchTestRequestDetails();
+      checkReportStatus();
     }
   }, [id]);
 
@@ -52,11 +54,34 @@ const TestRequestDetails = () => {
     }
   };
 
+  const checkReportStatus = async () => {
+    try {
+      const response = await API.get(`/test-requests/report-status/${id}`);
+      setReportStatus(response.data);
+    } catch (error) {
+      console.warn('Could not check report status:', error);
+      setReportStatus(null);
+    }
+  };
+
   // PDF handling functions
   const handleViewPDF = async () => {
     try {
       setPdfLoading(true);
       setError(null);
+      
+      // First check if report is available
+      try {
+        const statusResponse = await API.get(`/test-requests/report-status/${id}`);
+        const reportStatus = statusResponse.data;
+        
+        if (!reportStatus.isAvailable) {
+          setError(`Report not available: ${reportStatus.message}`);
+          return;
+        }
+      } catch (statusError) {
+        console.warn('Could not check report status, proceeding with download attempt:', statusError);
+      }
       
       const response = await API.get(`/test-requests/download-report/${id}`, {
         responseType: 'blob',
@@ -110,8 +135,12 @@ const TestRequestDetails = () => {
       console.error('Error viewing PDF:', error);
       if (error.response?.status === 401) {
         setError('Authentication failed. Please login again to view reports.');
+      } else if (error.response?.status === 400) {
+        const errorData = error.response.data;
+        setError(`Report not available: ${errorData.message}. Current status: ${errorData.currentStatus}`);
       } else if (error.response?.status === 404) {
-        setError('Report not found. The report may not have been generated yet.');
+        const errorData = error.response.data;
+        setError(`Report not found: ${errorData.message}. ${errorData.suggestion || ''}`);
       } else {
         setError('Failed to view report. Please try again.');
       }
@@ -124,6 +153,19 @@ const TestRequestDetails = () => {
     try {
       setPdfLoading(true);
       setError(null);
+      
+      // First check if report is available
+      try {
+        const statusResponse = await API.get(`/test-requests/report-status/${id}`);
+        const reportStatus = statusResponse.data;
+        
+        if (!reportStatus.isAvailable) {
+          setError(`Report not available: ${reportStatus.message}`);
+          return;
+        }
+      } catch (statusError) {
+        console.warn('Could not check report status, proceeding with download attempt:', statusError);
+      }
       
       const response = await API.get(`/test-requests/download-report/${id}`, {
         responseType: 'blob',
@@ -178,8 +220,12 @@ const TestRequestDetails = () => {
       console.error('Error downloading PDF:', error);
       if (error.response?.status === 401) {
         setError('Authentication failed. Please login again to download reports.');
+      } else if (error.response?.status === 400) {
+        const errorData = error.response.data;
+        setError(`Report not available: ${errorData.message}. Current status: ${errorData.currentStatus}`);
       } else if (error.response?.status === 404) {
-        setError('Report not found. The report may not have been generated yet.');
+        const errorData = error.response.data;
+        setError(`Report not found: ${errorData.message}. ${errorData.suggestion || ''}`);
       } else {
         setError('Failed to download report. Please try again.');
       }
@@ -642,6 +688,46 @@ const TestRequestDetails = () => {
                     )}
                   </button>
                 </div>
+                
+                {/* Report Status Information */}
+                {reportStatus && (
+                  <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <h4 className="text-xs font-medium text-blue-800 mb-2">Report Status</h4>
+                    <div className="space-y-1 text-xs">
+                      <div className="flex justify-between">
+                        <span className="text-blue-700">Available:</span>
+                        <span className={`font-medium ${reportStatus.isAvailable ? 'text-green-600' : 'text-red-600'}`}>
+                          {reportStatus.isAvailable ? 'Yes' : 'No'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-blue-700">Current Status:</span>
+                        <span className="font-medium text-blue-800">{reportStatus.currentStatus}</span>
+                      </div>
+                      {reportStatus.reportGeneratedDate && (
+                        <div className="flex justify-between">
+                          <span className="text-blue-700">Generated:</span>
+                          <span className="font-medium text-blue-800">
+                            {new Date(reportStatus.reportGeneratedDate).toLocaleDateString()}
+                          </span>
+                        </div>
+                      )}
+                      {reportStatus.reportGeneratedBy && (
+                        <div className="flex justify-between">
+                          <span className="text-blue-700">Generated By:</span>
+                          <span className="font-medium text-blue-800">{reportStatus.reportGeneratedBy}</span>
+                        </div>
+                      )}
+                      {!reportStatus.isAvailable && (
+                        <div className="mt-2 p-2 bg-yellow-50 rounded border border-yellow-200">
+                          <p className="text-xs text-yellow-800">
+                            {reportStatus.message}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           ) : (
@@ -691,6 +777,46 @@ const TestRequestDetails = () => {
               <p className="text-xs text-gray-500 mt-3">
                 Note: PDF will only be available if a report has been generated for this test request.
               </p>
+              
+              {/* Report Status Information */}
+              {reportStatus && (
+                <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <h4 className="text-xs font-medium text-blue-800 mb-2">Report Status</h4>
+                  <div className="space-y-1 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-blue-700">Available:</span>
+                      <span className={`font-medium ${reportStatus.isAvailable ? 'text-green-600' : 'text-red-600'}`}>
+                        {reportStatus.isAvailable ? 'Yes' : 'No'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-blue-700">Current Status:</span>
+                      <span className="font-medium text-blue-800">{reportStatus.currentStatus}</span>
+                    </div>
+                    {reportStatus.reportGeneratedDate && (
+                      <div className="flex justify-between">
+                        <span className="text-blue-700">Generated:</span>
+                        <span className="font-medium text-blue-800">
+                          {new Date(reportStatus.reportGeneratedDate).toLocaleDateString()}
+                        </span>
+                      </div>
+                    )}
+                    {reportStatus.reportGeneratedBy && (
+                      <div className="flex justify-between">
+                        <span className="text-blue-700">Generated By:</span>
+                        <span className="font-medium text-blue-800">{reportStatus.reportGeneratedBy}</span>
+                      </div>
+                    )}
+                    {!reportStatus.isAvailable && (
+                      <div className="mt-2 p-2 bg-yellow-50 rounded border border-yellow-200">
+                        <p className="text-xs text-yellow-800">
+                          {reportStatus.message}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

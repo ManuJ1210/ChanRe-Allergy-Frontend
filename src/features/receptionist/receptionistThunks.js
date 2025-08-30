@@ -78,6 +78,19 @@ export const markReceptionistBillPaid = createAsyncThunk(
   }
 );
 
+// Billing: verify payment
+export const verifyReceptionistPayment = createAsyncThunk(
+  'receptionist/verifyPayment',
+  async ({ requestId, verificationNotes }, { rejectWithValue }) => {
+    try {
+      const res = await API.put(`/test-requests/${requestId}/billing/verify`, { verificationNotes });
+      return res.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to verify payment');
+    }
+  }
+);
+
 // Fetch patients for receptionist
 export const fetchReceptionistPatients = createAsyncThunk(
   'receptionist/fetchPatients',

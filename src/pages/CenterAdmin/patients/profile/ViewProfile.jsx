@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import { fetchPatientDetails, fetchPatientMedications, fetchPatientHistory, fetchFollowUps, fetchAllergicRhinitis, fetchAllergicConjunctivitis, fetchAllergicBronchitis, fetchAtopicDermatitis, fetchGPE, fetchPrescriptions, fetchTests, updatePatient, deletePatient } from '../../../../features/centerAdmin/centerAdminThunks';
@@ -12,6 +12,7 @@ const TABS = ["Overview", "Follow Up", "Prescription"];
 const ViewProfile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useDispatch();
   const [activeTab, setActiveTab] = useState("Overview");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -70,6 +71,16 @@ const ViewProfile = () => {
         return;
       }
 
+      // Check for refresh parameter (from successful test submission)
+      const urlParams = new URLSearchParams(location.search);
+      const refreshParam = urlParams.get('refresh');
+      
+      if (refreshParam) {
+        console.log('🔄 Refresh detected, re-fetching patient data after test submission');
+        // Clear the refresh parameter from URL
+        window.history.replaceState({}, '', `/dashboard/CenterAdmin/patients/profile/ViewProfile/${id}`);
+      }
+
       dispatch(fetchPatientDetails(id));
       dispatch(fetchPatientMedications(id));
       dispatch(fetchPatientHistory(id));
@@ -82,7 +93,7 @@ const ViewProfile = () => {
       dispatch(fetchGPE(id));
       dispatch(fetchPrescriptions(id));
     }
-  }, [dispatch, id, navigate]);
+  }, [dispatch, id, navigate, location.search]);
 
 
 

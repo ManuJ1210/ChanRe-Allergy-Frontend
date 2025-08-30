@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchReceptionistPrescriptions, deleteReceptionistPrescription } from '../../../../../features/receptionist/receptionistThunks';
+import { fetchPrescriptions } from '../../../../../features/doctor/doctorThunks';
 import { Plus, Eye, FileText, Trash2, ArrowLeft, User, Calendar } from 'lucide-react';
 
 const PrescriptionList = ({ patientId: propPatientId }) => {
@@ -9,23 +9,25 @@ const PrescriptionList = ({ patientId: propPatientId }) => {
   const params = useParams();
   const dispatch = useDispatch();
   const patientId = propPatientId || params.patientId || params.id;
-  const { prescriptions, loading, error } = useSelector((state) => state.receptionist);
+  const { prescriptions, loading, error } = useSelector((state) => state.doctor);
 
   useEffect(() => {
     if (patientId && patientId !== 'undefined') {
-      dispatch(fetchReceptionistPrescriptions(patientId));
+      console.log('🔍 PrescriptionList: Fetching prescriptions for patient:', patientId);
+      dispatch(fetchPrescriptions(patientId));
     }
   }, [dispatch, patientId]);
 
   const handleDelete = (prescriptionId, patientName) => {
     if (window.confirm(`Are you sure you want to delete the prescription for ${patientName}?`)) {
-      dispatch(deleteReceptionistPrescription(prescriptionId));
+      // Note: Delete functionality would need to be implemented in doctorThunks
+      console.warn('Delete prescription functionality not yet implemented for doctors');
     }
   };
 
   const handleBack = () => {
     // Navigate back to patient profile or follow-up page
-    navigate(`/dashboard/CenterAdmin/patients/ViewProfile/${patientId}`);
+    navigate(`/dashboard/Doctor/patients/ViewProfile/${patientId}`);
   };
 
   return (

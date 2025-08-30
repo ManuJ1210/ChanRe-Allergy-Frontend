@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { toast } from 'react-toastify';
+import API from '../../services/api';
 import { 
   Search, 
   Filter, 
@@ -15,7 +16,6 @@ import {
   Clock,
   AlertCircle
 } from 'lucide-react';
-import API from '../../services/api';
 
 const SuperadminBilling = () => {
   const dispatch = useDispatch();
@@ -32,29 +32,65 @@ const SuperadminBilling = () => {
   const [selectedBilling, setSelectedBilling] = useState(null);
   const [showBillingModal, setShowBillingModal] = useState(false);
 
-  // Fetch billing data
+  // ✅ REAL DATA: Fetch billing data
   const fetchBillingData = async () => {
     try {
       setLoading(true);
-      // Use the API service instead of hardcoded fetch
-      const response = await API.get('test-requests/billing/all');
+      
+      console.log('🚀 Fetching real billing data for superadmin');
+      
+      const response = await API.get('/test-requests/billing/all');
+      
+      // Check if response is HTML (indicating 404 or server error)
+      if (typeof response.data === 'string' && response.data.toLowerCase().includes('<!doctype')) {
+        throw new Error('API endpoint returned HTML page instead of JSON data. The billing endpoint may not exist on the server.');
+      }
+      
+      console.log('✅ Real billing data received:', response.data.billingRequests?.length || 0, 'items');
       setBillingData(response.data.billingRequests || []);
     } catch (error) {
-      console.error('Error fetching billing data:', error);
-      toast.error('Error fetching billing data');
+      console.error('Error fetching real billing data:', error);
+      
+      // Check if this is a JSON parsing error due to HTML response
+      if (error.message.includes('Unexpected token') && error.message.includes('<!doctype')) {
+        toast.error('Billing API endpoint not available. The server returned an HTML page instead of data. Please check if the billing feature is implemented on the backend.');
+      } else if (error.message.includes('API endpoint returned HTML page')) {
+        toast.error('Billing feature is not available. The API endpoint does not exist on the server.');
+      } else if (error.response?.status === 404) {
+        toast.error('Billing endpoint not found. Please check server configuration.');
+      } else {
+        toast.error('Error fetching billing data');
+      }
+      
+      setBillingData([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Fetch centers for filtering
+  // ✅ REAL DATA: Fetch centers for filtering
   const fetchCenters = async () => {
     try {
-      // Use the API service instead of hardcoded fetch
-      const response = await API.get('centers');
-      setCenters(response.data.centers || []);
+      console.log('🚀 Fetching real centers data');
+      
+      const response = await fetch('/api/centers', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Real centers data received:', data.centers?.length || 0, 'centers');
+        setCenters(data.centers || []);
+      } else {
+        console.error('Failed to fetch centers data');
+        setCenters([]);
+      }
     } catch (error) {
-      console.error('Error fetching centers:', error);
+      console.error('Error fetching real centers data:', error);
+      setCenters([]);
     }
   };
 

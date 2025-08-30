@@ -1,6 +1,12 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { toast } from 'react-toastify';
+import { 
+  fetchCenterAdminBillingData, 
+  generateCenterBill, 
+  markCenterBillPaid, 
+  verifyCenterPayment 
+} from '../../features/centerAdmin/centerAdminThunks';
 import { 
   Search, 
   Filter, 
@@ -15,18 +21,15 @@ import {
   Clock,
   AlertCircle,
   Shield,
-  TrendingUp,
-  RefreshCw,
-  X
+  TrendingUp
 } from 'lucide-react';
-import API from '../../services/api';
 
 const CenterAdminBilling = () => {
   const dispatch = useDispatch();
   const { user } = useSelector(state => state.auth);
+  const { billingData, loading: billingLoading } = useSelector(state => state.centerAdmin);
   
-  const [billingData, setBillingData] = useState([]);
-  const [loading, setLoading] = useState(false);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('all');
@@ -36,7 +39,6 @@ const CenterAdminBilling = () => {
   const [showVerificationModal, setShowVerificationModal] = useState(false);
   const [verificationNotes, setVerificationNotes] = useState('');
   const [selectedBillingForVerification, setSelectedBillingForVerification] = useState(null);
-  const [localUser, setLocalUser] = useState(null);
 
   // Helper function to safely get user information for debugging
   const getSafeUserInfo = (user) => {
@@ -94,75 +96,38 @@ const CenterAdminBilling = () => {
     }
   };
 
-  // Fetch billing data for the center
+  // ✅ REAL DATA: Fetch billing data for the center using Redux thunk
   const fetchBillingData = async () => {
     try {
-      setLoading(true);
-      
-      // Debug: Log user object to see its structure
-      console.log('User object:', user);
-      
-      // Safety check: ensure localUser exists
-      if (!localUser) {
-        console.error('localUser is not available');
-        toast.error('User data not available. Please refresh the page.');
-        setLoading(false);
-        return;
-      }
-      
       // Try different possible properties for center ID
-      let centerId = localUser?.centerId || localUser?.center?.id || localUser?.centerId || localUser?.center_id;
+      let centerId = user?.centerId || user?.center?.id || user?.centerId || user?.center_id;
       
       // If centerId is an object, extract the _id property
       if (centerId && typeof centerId === 'object' && centerId._id) {
-        console.log('CenterId is an object, extracting _id:', centerId);
         centerId = centerId._id;
       }
       
-      console.log('Final centerId for API call:', centerId);
-      
       if (!centerId) {
         toast.error('Center ID not found. Please check your user profile.');
-        setLoading(false);
         return;
       }
       
-      // Use the API service instead of hardcoded fetch
-      const response = await API.get(`test-requests/billing/center/${centerId}`);
+      console.log('🚀 Fetching billing data for center:', centerId);
+      await dispatch(fetchCenterAdminBillingData(centerId)).unwrap();
+      console.log('✅ Billing data fetched successfully');
       
-      console.log('Billing data received:', response.data);
-      
-      // Ensure we have an array of billing requests
-      if (response.data && Array.isArray(response.data.billingRequests)) {
-        setBillingData(response.data.billingRequests);
-      } else if (response.data && Array.isArray(response.data)) {
-        // If the response is directly an array
-        setBillingData(response.data);
-      } else {
-        console.warn('Unexpected billing data format:', response.data);
-        setBillingData([]);
-      }
     } catch (error) {
       console.error('Error fetching billing data:', error);
-      toast.error('Error fetching billing data');
-    } finally {
-      setLoading(false);
+      toast.error(error || 'Failed to fetch billing data');
     }
   };
 
   useEffect(() => {
     console.log('User effect triggered:', user);
     
-    try {
-      // Initialize localUser with the Redux user
-      if (user && !localUser) {
-        // Create a safe copy of the user object
-        const safeUser = { ...user };
-        setLocalUser(safeUser);
-      }
-      
+    if (user) {
       // Try different possible properties for center ID
-      let centerId = localUser?.centerId || localUser?.center?.id || localUser?.centerId || localUser?.center_id;
+      let centerId = user?.centerId || user?.center?.id || user?.centerId || user?.center_id;
       
       // If centerId is an object, extract the _id property
       if (centerId && typeof centerId === 'object' && centerId._id) {
@@ -174,26 +139,19 @@ const CenterAdminBilling = () => {
         console.log('Found center ID:', centerId);
         fetchBillingData();
       } else {
-        console.log('User or centerId not available:', localUser);
-        console.log('Available user properties:', Object.keys(localUser || {}));
+        console.log('User centerId not available:', user);
+        console.log('Available user properties:', Object.keys(user || {}));
         
-        // If user exists but no centerId, show helpful message
-        if (localUser && Object.keys(localUser).length > 0) {
-          // Try to get centerId from user's role or other properties
-          if (localUser.role === 'centeradmin') {
-            // For center admin, we might need to fetch center info separately
-            console.log('User is center admin but no centerId found. Attempting to fetch center info...');
-            fetchCenterInfo();
-          } else {
-            toast.warning('Center ID not found in user profile. Please contact support.');
-          }
+        // Try to fetch center info if user is centeradmin
+        if (user.role === 'centeradmin') {
+          console.log('User is center admin but no centerId found. Attempting to fetch center info...');
+          fetchCenterInfo();
+        } else {
+          toast.warning('Center ID not found in user profile. Please contact support.');
         }
       }
-    } catch (error) {
-      console.error('Error in user effect:', error);
-      toast.error('Error processing user data');
     }
-  }, [user, localUser, localUser?.centerId, localUser?.center?.id]);
+  }, [user]);
 
   // Fetch center information if centerId is not available
   const fetchCenterInfo = async () => {
@@ -205,23 +163,19 @@ const CenterAdminBilling = () => {
         return;
       }
       
-      // Use the correct endpoint to get center by admin ID
-      const response = await API.get(`centers/by-admin/${user._id}`);
+              // Import API for center lookup
+        const API = (await import('../../services/api')).default;
       
+      // Use the correct endpoint to get center by admin ID
+      const response = await API.get(`/centers/by-admin/${user._id}`);
+      
+      console.log('Center info fetched:', response.data);
       if (response.data._id) {
-        // Update the user object with centerId
-        const updatedUser = { ...user, centerId: response.data._id };
-        console.log('Updated user with centerId:', updatedUser);
+        console.log('Found center ID from API:', response.data._id);
         
-        // Update the local state temporarily
-        // In a real app, you'd dispatch an action to update the Redux store
-        setLocalUser(updatedUser);
-        
-        // Now fetch billing data with the centerId
-        // We need to wait for the state update to take effect
-        setTimeout(() => {
-          fetchBillingData();
-        }, 100);
+        // Directly fetch billing data with the found centerId
+        await dispatch(fetchCenterAdminBillingData(response.data._id)).unwrap();
+        console.log('✅ Billing data fetched using found center ID');
       } else {
         console.error('Center data missing _id:', response.data);
         toast.error('Invalid center data received');
@@ -234,7 +188,7 @@ const CenterAdminBilling = () => {
 
   // Apply filters
   useEffect(() => {
-    let filtered = billingData;
+    let filtered = billingData || [];
 
     // Safety check: ensure billingData is an array
     if (!Array.isArray(filtered)) {
@@ -380,45 +334,26 @@ const CenterAdminBilling = () => {
     if (!selectedBillingForVerification) return;
 
     try {
-      const response = await API.put(`test-requests/${selectedBillingForVerification._id}/billing/verify`, {
-        verificationNotes: verificationNotes
-      });
-
-      if (response.data.success) {
-        toast.success('Payment verified successfully');
-        setShowVerificationModal(false);
-        setSelectedBillingForVerification(null);
-        fetchBillingData(); // Refresh data
-      } else {
-        toast.error(response.data.message || 'Failed to verify payment');
-      }
+      await dispatch(verifyCenterPayment({ 
+        requestId: selectedBillingForVerification._id, 
+        verificationNotes: verificationNotes 
+      })).unwrap();
+      
+      setShowVerificationModal(false);
+      setSelectedBillingForVerification(null);
+      setVerificationNotes('');
+      
+      // Refresh billing data
+      fetchBillingData();
     } catch (error) {
       console.error('Error verifying payment:', error);
-      toast.error('Error verifying payment');
+      toast.error(error || 'Failed to verify payment');
     }
   };
 
   // Download invoice (placeholder)
-  const downloadInvoice = async (billingId) => {
-    try {
-      // Use the API service instead of hardcoded fetch
-      const response = await API.get(`test-requests/${billingId}/billing/invoice`, {
-        responseType: 'blob'
-      });
-      
-      const blob = new Blob([response.data], { type: 'application/pdf' });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `invoice-${billingId}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Error downloading invoice:', error);
-      toast.error('Failed to download invoice');
-    }
+  const downloadInvoice = (billingId) => {
+    toast.info('Invoice download functionality will be implemented');
   };
 
   // Calculate totals
@@ -461,36 +396,7 @@ const CenterAdminBilling = () => {
 
   const totals = calculateTotals();
 
-  // Safety check: if there's a critical error, show a simple error message
-  if (!localUser && user) {
-    return (
-      <div className="p-6 bg-gray-50 min-h-screen">
-        <div className="max-w-7xl mx-auto">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <AlertCircle className="h-5 w-5 text-red-400" />
-              </div>
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-red-800">
-                  Error Loading User Data
-                </h3>
-                <div className="mt-2 text-sm text-red-700">
-                  <p>There was an error processing your user data. Please refresh the page or contact support.</p>
-                  <button 
-                    onClick={() => window.location.reload()} 
-                    className="mt-2 px-3 py-1 bg-red-100 text-red-700 rounded text-sm hover:bg-red-200"
-                  >
-                    Refresh Page
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+
 
   try {
     return (
@@ -503,7 +409,7 @@ const CenterAdminBilling = () => {
           </div>
 
           {/* Error State - No Center ID */}
-          {localUser && !localUser.centerId && !localUser.center?.id && !localUser.center_id && (
+          {user && !user.centerId && !user.center?.id && !user.center_id && (
             <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
               <div className="flex">
                 <div className="flex-shrink-0">
@@ -648,10 +554,10 @@ const CenterAdminBilling = () => {
               {/* Refresh Button */}
               <button
                 onClick={fetchBillingData}
-                disabled={loading}
+                disabled={billingLoading}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center"
               >
-                {loading ? 'Loading...' : 'Refresh'}
+                {billingLoading ? 'Loading...' : 'Refresh'}
               </button>
             </div>
           </div>
@@ -686,7 +592,7 @@ const CenterAdminBilling = () => {
                   {filteredData.length === 0 ? (
                     <tr>
                       <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
-                        {loading ? 'Loading billing data...' : 'No billing records found'}
+                        {billingLoading ? 'Loading billing data...' : 'No billing records found'}
                       </td>
                     </tr>
                   ) : (

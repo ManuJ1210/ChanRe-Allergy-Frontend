@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { submitPatientTests } from "../../../features/patient/patientThunks";
-import { resetPatientState } from "../../../features/patient/patientSlice";
+import { submitPatientTests } from "../../../features/doctor/doctorThunks";
+import { resetDoctorState } from "../../../features/doctor/doctorSlice";
 import { FileText, ArrowLeft, Save, FlaskConical, CheckCircle } from 'lucide-react';
 
 const testFields = [
@@ -22,7 +22,7 @@ const AddTest = () => {
     testSubmitting,
     testSubmitSuccess,
     testSubmitError,
-  } = useSelector((state) => state.patient);
+  } = useSelector((state) => state.doctor);
 
   const handleChange = (testName, value) => {
     setReports((prev) => ({ ...prev, [testName]: value }));
@@ -45,12 +45,12 @@ const AddTest = () => {
 
   useEffect(() => {
     if (testSubmitSuccess) {
-              setTimeout(() => {
-          dispatch(resetPatientState());
-          navigate("/dashboard/doctor/patients");
-        }, 1500);
+      setTimeout(() => {
+        // Don't reset state immediately - let the profile page handle the refresh
+        navigate(`/dashboard/Doctor/patients/profile/ViewProfile/${patientId}?refresh=${Date.now()}`);
+      }, 1500);
     }
-  }, [testSubmitSuccess, dispatch, navigate]);
+  }, [testSubmitSuccess, dispatch, navigate, patientId]);
 
   // Simple fallback to test if component is rendering
   if (!patientId) {
@@ -60,7 +60,7 @@ const AddTest = () => {
           <h1 className="text-md font-bold text-red-800 mb-2">Error: No Patient ID</h1>
           <p className="text-red-600 text-xs">Patient ID is missing from URL parameters.</p>
           <button
-            onClick={() => navigate('/dashboard/doctor/patients')}
+            onClick={() => navigate('/dashboard/Doctor/patients/PatientList')}
             className="mt-4 bg-blue-500 text-white px-4 py-2 rounded-lg text-xs"
           >
             Back to Patients List
@@ -76,11 +76,11 @@ const AddTest = () => {
         {/* Header */}
         <div className="mb-8">
           <button
-            onClick={() => navigate('/dashboard/doctor/patients')}
+            onClick={() => navigate(`/dashboard/Doctor/patients/profile/ViewProfile/${patientId}`)}
             className="flex items-center text-slate-600 hover:text-slate-800 mb-4 transition-colors text-xs"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Patients List
+            Back to Patient Profile
           </button>
           <h1 className="text-md font-bold text-slate-800 mb-2">
             Add Test Reports
@@ -137,7 +137,7 @@ const AddTest = () => {
             <div className="flex gap-4 pt-6 mt-6 border-t border-slate-200">
               <button
                 type="button"
-                onClick={() => navigate('/dashboard/doctor/patients')}
+                onClick={() => navigate(`/dashboard/Doctor/patients/profile/ViewProfile/${patientId}`)}
                 className="px-6 py-3 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-2 text-xs"
               >
                 <ArrowLeft className="h-4 w-4" />

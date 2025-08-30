@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
-import { addAllergicConjunctivitis } from '../../../../../features/centerAdmin/centerAdminThunks';
-import { resetCenterAdminState } from '../../../../../features/centerAdmin/centerAdminSlice';
+import { addAllergicConjunctivitis } from '../../../../../features/doctor/doctorThunks';
 
 const SYMPTOM_OPTIONS = ['Itching', 'Tearing', 'Redness', 'Discomfort', 'Discharge', 'Photophobia'];
 const TYPE_OPTIONS = [
@@ -103,7 +102,7 @@ export default function AddAllergicConjunctivitis() {
       await dispatch(addAllergicConjunctivitis(formData));
       
       toast.success("Submitted successfully!");
-      navigate(`/dashboard/CenterAdmin/patients/ViewProfile/${params.patientId}`);
+      navigate(`/dashboard/Doctor/patients/profile/ViewProfile/${params.patientId}`);
     } catch (err) {
       console.error('Error submitting form:', err);
       toast.error(`Failed to submit. Error: ${err.message}`);

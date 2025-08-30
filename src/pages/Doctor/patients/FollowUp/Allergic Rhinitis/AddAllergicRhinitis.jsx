@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { addAllergicRhinitis } from '../../../../../features/centerAdmin/centerAdminThunks';
-import { resetCenterAdminState } from '../../../../../features/centerAdmin/centerAdminSlice';
+import { addAllergicRhinitis } from '../../../../../features/doctor/doctorThunks';
 import { 
   ArrowLeft, 
   AlertCircle,
@@ -50,12 +49,11 @@ const AddAllergicRhinitis = () => {
     }
   });
 
-  const { loading, error, addAllergicRhinitisSuccess } = useSelector(state => state.centerAdmin);
+  const { loading, error, addAllergicRhinitisSuccess } = useSelector(state => state.doctor);
 
   useEffect(() => {
     if (addAllergicRhinitisSuccess) {
-      dispatch(resetCenterAdminState());
-      navigate(`/dashboard/CenterAdmin/patients/ViewProfile/${patientId}`);
+      navigate(`/dashboard/Doctor/patients/profile/ViewProfile/${patientId}`);
     }
   }, [addAllergicRhinitisSuccess, dispatch, navigate, patientId]);
 

@@ -1,5 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { fetchAtopicDermatitis, fetchAllFollowUps, fetchCenterFollowUps, fetchPatientDetails, fetchPatientPrescriptions, fetchPatientHistory, fetchPatientMedications, addPatientHistory, addPatientMedication, createDoctor, updateDoctor, fetchAllergicRhinitis, fetchSingleAllergicRhinitis, fetchAllergicConjunctivitis, addAtopicDermatitis, addAllergicBronchitis, fetchAllergicBronchitis, addGPE, fetchGPE, addPatientPrescription, fetchPrescription, fetchSinglePrescription, deletePrescription, addFollowUp, updatePatient, deletePatient } from './centerAdminThunks';
+import { fetchAtopicDermatitis, fetchAllFollowUps, fetchCenterFollowUps, fetchPatientDetails, fetchPatientPrescriptions, fetchPatientHistory, fetchPatientMedications, addPatientHistory, addPatientMedication, createDoctor, updateDoctor, fetchAllergicRhinitis, fetchSingleAllergicRhinitis, fetchAllergicConjunctivitis, addAtopicDermatitis, addAllergicBronchitis, fetchAllergicBronchitis, addGPE, fetchGPE, addPatientPrescription, fetchPrescription, fetchSinglePrescription, deletePrescription, addFollowUp, updatePatient, deletePatient, submitPatientTests, fetchCenterAdminBillingData, generateCenterBill, markCenterBillPaid, verifyCenterPayment } from './centerAdminThunks';
 
 const initialState = {
   center: null,
@@ -30,6 +30,9 @@ const initialState = {
   addSuccess: false,
   addHistorySuccess: false,
   addMedicationSuccess: false,
+  testSubmitting: false,
+  testSubmitSuccess: false,
+  testSubmitError: null,
   addAtopicDermatitisSuccess: false,
   addAllergicRhinitisSuccess: false,
   addAllergicBronchitisSuccess: false,
@@ -37,7 +40,10 @@ const initialState = {
   addPrescriptionSuccess: false,
   addFollowUpSuccess: false,
   updateSuccess: false,
-  deleteSuccess: false
+  deleteSuccess: false,
+  billingData: [],
+  billingLoading: false,
+  billingError: null
 };
 
 const centerAdminSlice = createSlice({
@@ -106,6 +112,18 @@ const centerAdminSlice = createSlice({
     setAddMedicationSuccess: (state, action) => {
       state.addMedicationSuccess = action.payload;
     },
+    setBillingData: (state, action) => {
+      state.billingData = action.payload;
+      state.billingLoading = false;
+      state.billingError = null;
+    },
+    setBillingLoading: (state, action) => {
+      state.billingLoading = action.payload;
+    },
+    setBillingError: (state, action) => {
+      state.billingError = action.payload;
+      state.billingLoading = false;
+    },
     setAddAllergicRhinitisSuccess: (state, action) => {
       state.addAllergicRhinitisSuccess = action.payload;
     },
@@ -150,6 +168,9 @@ const centerAdminSlice = createSlice({
       state.deleteSuccess = false;
       state.addHistorySuccess = false;
       state.addMedicationSuccess = false;
+      state.testSubmitting = false;
+      state.testSubmitSuccess = false;
+      state.testSubmitError = null;
       state.addAllergicRhinitisSuccess = false;
       state.addAtopicDermatitisSuccess = false;
       state.addAllergicBronchitisSuccess = false;
@@ -319,6 +340,23 @@ const centerAdminSlice = createSlice({
       .addCase(addPatientMedication.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+      })
+
+      // Submit patient tests
+      .addCase(submitPatientTests.pending, (state) => {
+        state.testSubmitting = true;
+        state.testSubmitError = null;
+        state.testSubmitSuccess = false;
+      })
+      .addCase(submitPatientTests.fulfilled, (state, action) => {
+        state.testSubmitting = false;
+        state.testSubmitSuccess = true;
+        state.testSubmitError = null;
+      })
+      .addCase(submitPatientTests.rejected, (state, action) => {
+        state.testSubmitting = false;
+        state.testSubmitError = action.payload || 'Failed to submit test reports';
+        state.testSubmitSuccess = false;
       })
       
       // Create doctor
@@ -568,6 +606,59 @@ const centerAdminSlice = createSlice({
       .addCase(deletePatient.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+      })
+      
+      // Billing thunks
+      .addCase(fetchCenterAdminBillingData.pending, (state) => {
+        state.billingLoading = true;
+        state.billingError = null;
+      })
+      .addCase(fetchCenterAdminBillingData.fulfilled, (state, action) => {
+        state.billingLoading = false;
+        state.billingData = action.payload.billingRequests || action.payload || [];
+      })
+      .addCase(fetchCenterAdminBillingData.rejected, (state, action) => {
+        state.billingLoading = false;
+        state.billingError = action.payload;
+      })
+      
+      .addCase(generateCenterBill.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(generateCenterBill.fulfilled, (state, action) => {
+        state.loading = false;
+        // Update the billing item in the list if needed
+      })
+      .addCase(generateCenterBill.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      
+      .addCase(markCenterBillPaid.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(markCenterBillPaid.fulfilled, (state, action) => {
+        state.loading = false;
+        // Update the billing item in the list if needed
+      })
+      .addCase(markCenterBillPaid.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      
+      .addCase(verifyCenterPayment.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(verifyCenterPayment.fulfilled, (state, action) => {
+        state.loading = false;
+        // Update the billing item in the list if needed
+      })
+      .addCase(verifyCenterPayment.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
       });
   }
 });
@@ -610,7 +701,10 @@ export const {
   deleteDoctor,
   addPrescription,
   addMedication,
-  addTest
+  addTest,
+  setBillingData,
+  setBillingLoading,
+  setBillingError
 } = centerAdminSlice.actions;
 
 export default centerAdminSlice.reducer; 
