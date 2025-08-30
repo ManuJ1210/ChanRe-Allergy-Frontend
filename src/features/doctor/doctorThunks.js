@@ -8,10 +8,7 @@ export const createDoctor = createAsyncThunk(
   'doctor/createDoctor',
   async (doctorData, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await API.post('/doctors', doctorData, {
-          headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await API.post('/doctors', doctorData);
       toast.success('Doctor created successfully!');
       return response.data;
     } catch (error) {
@@ -27,10 +24,7 @@ export const fetchAllDoctors = createAsyncThunk(
   'doctor/fetchAllDoctors',
   async (_, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await API.get('/doctors', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await API.get('/doctors');
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch doctors');
@@ -43,10 +37,7 @@ export const fetchDoctorById = createAsyncThunk(
   'doctor/fetchDoctorById',
   async (doctorId, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await API.get(`/doctors/${doctorId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await API.get(`/doctors/${doctorId}`);
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch doctor');
@@ -59,10 +50,7 @@ export const updateDoctor = createAsyncThunk(
   'doctor/updateDoctor',
   async ({ doctorId, doctorData }, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await API.put(`/doctors/${doctorId}`, doctorData, {
-          headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await API.put(`/doctors/${doctorId}`, doctorData);
       toast.success('Doctor updated successfully!');
       return response.data;
     } catch (error) {

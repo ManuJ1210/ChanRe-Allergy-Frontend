@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { ArrowLeft, Calendar, FileText, User, CheckCircle, AlertCircle } from "lucide-react";
 import { fetchPatientHistory } from "../../../../features/doctor/doctorThunks";
+import { getFullApiUrl } from "../../../../config/environment";
 
 const ViewHistory = () => {
   const { patientId } = useParams();
@@ -818,7 +819,7 @@ const ViewHistory = () => {
                       <FileText className="h-5 w-5 text-blue-600" />
                       <span className="text-xs font-medium text-blue-800">{historyRecord.reportFile}</span>
                       <button
-                        onClick={() => window.open(`/api/files/${historyRecord.reportFile}`, '_blank')}
+                        onClick={() => window.open(getFullApiUrl(`files/${historyRecord.reportFile}`), '_blank')}
                         className="ml-auto bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700"
                       >
                         View File

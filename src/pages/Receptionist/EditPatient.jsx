@@ -65,10 +65,8 @@ export default function EditPatient() {
     setDoctorError("");
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`${API}/doctors`, { 
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await response.json();
+      const response = await API.get('/doctors');
+      const data = response.data;
       setDoctors(data);
     } catch (err) {
       setDoctorError("Failed to load doctors");

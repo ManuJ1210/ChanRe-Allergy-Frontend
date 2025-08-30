@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useParams, useNavigate } from 'react-router-dom';
+import API from '../../../services/api';
 import { 
   ArrowLeft, 
   FileText, 
@@ -38,16 +39,8 @@ const PatientHistory = () => {
     
     setLabReportsLoading(true);
     try {
-      const response = await fetch(`/api/superadmin/doctors/working/patient/${patientId}/lab-reports`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setLabReports(data);
-      }
+      const response = await API.get(`/superadmin/doctors/working/patient/${patientId}/lab-reports`);
+      setLabReports(response.data);
     } catch (error) {
       console.error('Error fetching lab reports:', error);
     } finally {
