@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Calendar, FileText, User, CheckCircle, AlertCircle, Download } from "lucide-react";
 import api from "../../services/api";
+import { getFullApiUrl } from "../../config/environment";
 
 const ViewHistory = () => {
   const { patientId } = useParams();
@@ -810,8 +811,7 @@ const ViewHistory = () => {
                     </div>
                     <button
                       onClick={() => {
-                        const fileUrl = `${api.defaults.baseURL}/uploads/${history.reportFile}`;  
-                        window.open(fileUrl, '_blank');
+                        window.open(getFullApiUrl(`uploads/${history.reportFile}`), '_blank');
                       }}
                       className="group flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 text-sm font-semibold shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
                     >

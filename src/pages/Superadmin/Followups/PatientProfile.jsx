@@ -8,6 +8,7 @@ import {
   fetchSuperAdminDoctorPatientLabReports
 } from '../../../features/superadmin/superAdminDoctorSlice';
 import { fetchPatientGeneralFollowUps } from '../../../features/superadmin/superadminThunks';
+import { getFullApiUrl } from '../../../config/environment';
 import { 
   ArrowLeft, User, Phone, Calendar, MapPin, Activity, Pill, FileText, Eye, Mail, UserCheck, Building, Stethoscope,
   Download, ExternalLink, Image, Video, Music, File, AlertCircle
@@ -86,14 +87,14 @@ const PatientProfile = () => {
 
   const handleViewFile = (fileUrl, fileName) => {
     if (fileUrl) {
-      window.open(`/api/files/${fileUrl}`, '_blank');
+      window.open(getFullApiUrl(`files/${fileUrl}`), '_blank');
     }
   };
 
   const handleDownloadFile = (fileUrl, fileName) => {
     if (fileUrl) {
       const link = document.createElement('a');
-      link.href = `/api/files/${fileUrl}`;
+      link.href = getFullApiUrl(`files/${fileUrl}`);
       link.download = fileName || 'download';
       document.body.appendChild(link);
       link.click();

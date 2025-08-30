@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useParams, useNavigate } from 'react-router-dom';
+import { getFullApiUrl } from '../../../config/environment';
 import { 
   ArrowLeft, 
   Activity, 
@@ -403,7 +404,7 @@ const PatientLabReports = () => {
                               </p>
                             </div>
                             <button
-                              onClick={() => window.open(`/api/files/${report.pdfFile}`, '_blank')}
+                              onClick={() => window.open(getFullApiUrl(`files/${report.pdfFile}`), '_blank')}
                               className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center text-xs"
                             >
                               <Eye className="w-4 h-4 mr-1" />

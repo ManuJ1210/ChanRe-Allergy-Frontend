@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
+import { getFullApiUrl } from '../../../config/environment';
 import { 
   fetchSuperAdminDoctorPatientById,
   fetchSuperAdminDoctorPatientHistory
@@ -49,14 +50,14 @@ const PatientHistory = () => {
 
   const handleViewFile = (fileUrl, fileName) => {
     if (fileUrl) {
-      window.open(`/api/files/${fileUrl}`, '_blank');
+      window.open(getFullApiUrl(`files/${fileUrl}`), '_blank');
     }
   };
 
   const handleDownloadFile = (fileUrl, fileName) => {
     if (fileUrl) {
       const link = document.createElement('a');
-      link.href = `/api/files/${fileUrl}`;
+      link.href = getFullApiUrl(`files/${fileUrl}`);
       link.download = fileName || 'download';
       document.body.appendChild(link);
       link.click();
