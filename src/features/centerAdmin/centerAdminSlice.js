@@ -1,5 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { fetchAtopicDermatitis, fetchAllFollowUps, fetchCenterFollowUps, fetchPatientDetails, fetchPatientPrescriptions, fetchPatientHistory, fetchPatientMedications, addPatientHistory, addPatientMedication, createDoctor, updateDoctor, fetchAllergicRhinitis, fetchSingleAllergicRhinitis, fetchAllergicConjunctivitis, addAtopicDermatitis, addAllergicBronchitis, fetchAllergicBronchitis, addGPE, fetchGPE, addPatientPrescription, fetchPrescription, fetchSinglePrescription, deletePrescription, addFollowUp, updatePatient, deletePatient, submitPatientTests } from './centerAdminThunks';
+import { fetchAtopicDermatitis, fetchAllFollowUps, fetchCenterFollowUps, fetchPatientDetails, fetchPatientPrescriptions, fetchPatientHistory, fetchPatientMedications, addPatientHistory, addPatientMedication, createDoctor, updateDoctor, fetchAllergicRhinitis, fetchSingleAllergicRhinitis, fetchAllergicConjunctivitis, addAtopicDermatitis, addAllergicBronchitis, fetchAllergicBronchitis, addGPE, fetchGPE, addPatientPrescription, fetchPrescription, fetchSinglePrescription, deletePrescription, addFollowUp, updatePatient, deletePatient, submitPatientTests, fetchCenterAdminBillingRequests, verifyCenterAdminPayment, rejectCenterAdminPayment, fetchCenterAdminBillingSummary } from './centerAdminThunks';
 
 const initialState = {
   center: null,
@@ -39,6 +39,13 @@ const initialState = {
   addGPESuccess: false,
   addPrescriptionSuccess: false,
   addFollowUpSuccess: false,
+  // Billing verification state
+  billingRequests: [],
+  billingRequestsLoading: false,
+  billingRequestsError: null,
+  billingSummary: null,
+  billingVerificationLoading: false,
+  billingVerificationError: null,
   updateSuccess: false,
   deleteSuccess: false
 };
@@ -162,6 +169,11 @@ const centerAdminSlice = createSlice({
       state.addGPESuccess = false;
       state.addPrescriptionSuccess = false;
       state.addFollowUpSuccess = false;
+      // Reset billing verification state
+      state.billingRequestsLoading = false;
+      state.billingRequestsError = null;
+      state.billingVerificationLoading = false;
+      state.billingVerificationError = null;
       state.error = null;
       state.centerError = null;
     },
@@ -589,6 +601,80 @@ const centerAdminSlice = createSlice({
         state.patientDetails = null;
       })
       .addCase(deletePatient.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
+      // ===============================
+      // BILLING VERIFICATION REDUCERS
+      // ===============================
+      
+      // Fetch billing requests for verification
+      .addCase(fetchCenterAdminBillingRequests.pending, (state) => {
+        state.billingRequestsLoading = true;
+        state.billingRequestsError = null;
+      })
+      .addCase(fetchCenterAdminBillingRequests.fulfilled, (state, action) => {
+        state.billingRequestsLoading = false;
+        state.billingRequests = action.payload || [];
+      })
+      .addCase(fetchCenterAdminBillingRequests.rejected, (state, action) => {
+        state.billingRequestsLoading = false;
+        state.billingRequestsError = action.payload;
+      })
+
+      // Verify payment
+      .addCase(verifyCenterAdminPayment.pending, (state) => {
+        state.billingVerificationLoading = true;
+        state.billingVerificationError = null;
+      })
+      .addCase(verifyCenterAdminPayment.fulfilled, (state, action) => {
+        state.billingVerificationLoading = false;
+        // Update the billing request in the list
+        const updatedRequest = action.payload?.testRequest;
+        if (updatedRequest) {
+          const index = state.billingRequests.findIndex(req => req._id === updatedRequest._id);
+          if (index !== -1) {
+            state.billingRequests[index] = updatedRequest;
+          }
+        }
+      })
+      .addCase(verifyCenterAdminPayment.rejected, (state, action) => {
+        state.billingVerificationLoading = false;
+        state.billingVerificationError = action.payload;
+      })
+
+      // Reject payment 
+      .addCase(rejectCenterAdminPayment.pending, (state) => {
+        state.billingVerificationLoading = true;
+        state.billingVerificationError = null;
+      })
+      .addCase(rejectCenterAdminPayment.fulfilled, (state, action) => {
+        state.billingVerificationLoading = false;
+        // Update the billing request in the list
+        const updatedRequest = action.payload?.testRequest;
+        if (updatedRequest) {
+          const index = state.billingRequests.findIndex(req => req._id === updatedRequest._id);
+          if (index !== -1) {
+            state.billingRequests[index] = updatedRequest;
+          }
+        }
+      })
+      .addCase(rejectCenterAdminPayment.rejected, (state, action) => {
+        state.billingVerificationLoading = false;
+        state.billingVerificationError = action.payload;
+      })
+
+      // Fetch billing summary
+      .addCase(fetchCenterAdminBillingSummary.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchCenterAdminBillingSummary.fulfilled, (state, action) => {
+        state.loading = false;
+        state.billingSummary = action.payload;
+      })
+      .addCase(fetchCenterAdminBillingSummary.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       });

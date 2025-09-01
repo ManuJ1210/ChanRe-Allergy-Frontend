@@ -963,67 +963,77 @@ export const deletePatient = createAsyncThunk(
 );
 
 // ===============================
-// BILLING APIS
+// BILLING VERIFICATION APIS (Center Admin)
 // ===============================
 
-// Fetch billing data for center
-export const fetchCenterAdminBillingData = createAsyncThunk(
-  'centerAdmin/fetchBillingData',
-  async (centerId, { rejectWithValue }) => {
+// Fetch billing requests that need verification (Center Admin receives them from Receptionist)
+export const fetchCenterAdminBillingRequests = createAsyncThunk(
+  'centerAdmin/fetchBillingRequests',
+  async (_, { rejectWithValue }) => {
     try {
-      const res = await API.get(`/test-requests/billing/center/${centerId}`);
+      // Fetch test requests with billing that need center admin verification
+      const res = await API.get('/test-requests/billing/pending-verification');
       return res.data;
     } catch (error) {
-      console.error('Center billing data fetch error:', error.response?.data || error.message);
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch billing data');
+      console.error('Center admin billing requests fetch error:', error.response?.data || error.message);
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch billing requests for verification');
     }
   }
 );
 
-// Generate bill for a test request (center admin)
-export const generateCenterBill = createAsyncThunk(
-  'centerAdmin/generateBill',
-  async ({ requestId, billData }, { rejectWithValue }) => {
-    try {
-      const res = await API.put(`/test-requests/${requestId}/billing/generate`, billData);
-      toast.success('Bill generated successfully!');
-      return res.data;
-    } catch (error) {
-      const errorMsg = error.response?.data?.message || 'Failed to generate bill';
-      toast.error(errorMsg);
-      return rejectWithValue(errorMsg);
-    }
-  }
-);
-
-// Mark bill as paid (center admin)
-export const markCenterBillPaid = createAsyncThunk(
-  'centerAdmin/markBillPaid',
-  async ({ requestId, paymentData }, { rejectWithValue }) => {
-    try {
-      const res = await API.put(`/test-requests/${requestId}/billing/paid`, paymentData);
-      toast.success('Bill marked as paid!');
-      return res.data;
-    } catch (error) {
-      const errorMsg = error.response?.data?.message || 'Failed to mark bill as paid';
-      toast.error(errorMsg);
-      return rejectWithValue(errorMsg);
-    }
-  }
-);
-
-// Verify payment (center admin)
-export const verifyCenterPayment = createAsyncThunk(
+// Verify and approve payment (Center Admin verifies what Receptionist marked as paid)
+export const verifyCenterAdminPayment = createAsyncThunk(
   'centerAdmin/verifyPayment',
-  async ({ requestId, verificationNotes }, { rejectWithValue }) => {
+  async ({ requestId, verificationData }, { rejectWithValue }) => {
     try {
-      const res = await API.put(`/test-requests/${requestId}/billing/verify`, { verificationNotes });
-      toast.success('Payment verified successfully!');
+      const res = await API.put(`/test-requests/${requestId}/billing/verify`, {
+        verificationNotes: verificationData.verificationNotes,
+        verificationStatus: verificationData.verificationStatus, // 'approved' or 'rejected'
+        verifiedBy: verificationData.verifiedBy,
+        verificationDate: new Date().toISOString()
+      });
+      
+      const status = verificationData.verificationStatus === 'approved' ? 'approved' : 'rejected';
+      toast.success(`Payment ${status} successfully!`);
       return res.data;
     } catch (error) {
       const errorMsg = error.response?.data?.message || 'Failed to verify payment';
       toast.error(errorMsg);
       return rejectWithValue(errorMsg);
+    }
+  }
+);
+
+// Reject payment verification (if Center Admin finds issues)
+export const rejectCenterAdminPayment = createAsyncThunk(
+  'centerAdmin/rejectPayment', 
+  async ({ requestId, rejectionReason }, { rejectWithValue }) => {
+    try {
+      const res = await API.put(`/test-requests/${requestId}/billing/reject`, {
+        rejectionReason,
+        rejectedBy: 'center_admin',
+        rejectionDate: new Date().toISOString()
+      });
+      toast.success('Payment verification rejected!');
+      return res.data;
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || 'Failed to reject payment';
+      toast.error(errorMsg);
+      return rejectWithValue(errorMsg);
+    }
+  }
+);
+
+// Fetch billing summary/stats for center admin dashboard
+export const fetchCenterAdminBillingSummary = createAsyncThunk(
+  'centerAdmin/fetchBillingSummary',
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await API.get('/test-requests/billing/center-admin-summary');
+      return res.data;
+    } catch (error) {
+      console.error('Center admin billing summary fetch error:', error.response?.data || error.message);
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch billing summary');
     }
   }
 );
