@@ -47,7 +47,6 @@ export default function EditPatient() {
   }, [patient, user, editPermission.canEdit, editRestrictionMessage, navigate, id]);
 
   useEffect(() => {
-    console.log('🔍 EditPatient Debug:', { patientDetails, patient, id });
     
     if (patient) {
       setFormData({

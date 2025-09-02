@@ -67,7 +67,6 @@ const PatientDetails = () => {
           
           // If patient not found or error occurred, redirect to first available patient
           if (result.error || !result.payload) {
-            console.log('⚠️ Invalid patient ID, redirecting to first available patient');
             if (assignedPatients.length > 0) {
               navigate(`/dashboard/superadmin/doctor/patient/${assignedPatients[0]._id}/profile`);
             } else {
@@ -76,7 +75,6 @@ const PatientDetails = () => {
             return;
           }
         } catch (error) {
-          console.log('⚠️ Error fetching patient, redirecting to patient list');
           navigate('/dashboard/superadmin/doctor/patients');
         }
       };

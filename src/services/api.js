@@ -1,8 +1,10 @@
 import axios from 'axios';
+import { API_CONFIG } from '../config/environment';
 
 const API = axios.create({
-  baseURL: 'http://localhost:5000/api',
-  timeout: 10000, // 10 second timeout
+  baseURL: API_CONFIG.BASE_URL,
+  timeout: API_CONFIG.TIMEOUT,
+  headers: API_CONFIG.DEFAULT_HEADERS,
 });
 
 // Test function to check API connectivity
@@ -36,11 +38,13 @@ API.interceptors.request.use((config) => {
       token = storedToken;
     }
     
+
+    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
   } catch (err) {
-    // Silent error handling
+    console.error('Error in request interceptor:', err);
   }
   
   return config;
@@ -52,14 +56,10 @@ API.interceptors.response.use(
     return response;
   },
   (error) => {
-    // Handle specific error cases silently
+    // Handle specific error cases
     if (error.response?.status === 401) {
       // Optionally redirect to login
       // window.location.href = '/login';
-    } else if (error.response?.status === 403) {
-      // Authorization error
-    } else if (error.code === 'ECONNREFUSED') {
-      // Connection error
     }
     
     return Promise.reject(error);

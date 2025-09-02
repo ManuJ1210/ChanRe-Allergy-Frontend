@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { addFollowUp } from '../../../../features/centerAdmin/centerAdminThunks';
 import { resetCenterAdminState } from '../../../../features/centerAdmin/centerAdminSlice';
+import { fetchPatientDetails } from '../../../../features/doctor/doctorThunks';
+import { canDoctorAddFollowUp, getFollowUpRestrictionMessage } from '../../../../utils/patientPermissions';
 import { 
   ArrowLeft, 
   Calendar, 
@@ -10,7 +12,8 @@ import {
   Activity, 
   AlertCircle,
   CheckCircle,
-  Clock
+  Clock,
+  Lock
 } from 'lucide-react';
 
 const AddFollowUp = () => {
@@ -26,13 +29,35 @@ const AddFollowUp = () => {
   });
 
   const { loading, error, addFollowUpSuccess } = useSelector(state => state.centerAdmin);
+  const { patientDetails } = useSelector(state => state.doctor);
+  const { user } = useSelector(state => state.auth);
+
+  // Extract patient data from the new structure
+  const patient = patientDetails?.patient || patientDetails;
+  
+  // Check if doctor can add followup to this patient
+  const followUpPermission = canDoctorAddFollowUp(patient, user);
+  const followUpRestrictionMessage = getFollowUpRestrictionMessage(patient, user);
+
+  useEffect(() => {
+    if (patientId) {
+      dispatch(fetchPatientDetails(patientId));
+    }
+  }, [dispatch, patientId]);
+
+  // Check permissions and redirect if not allowed
+  useEffect(() => {
+    if (patient && user && !followUpPermission.canAddFollowUp) {
+      navigate(`/dashboard/Doctor/patients/profile/ViewProfile/${patientId}`);
+    }
+  }, [patient, user, followUpPermission.canAddFollowUp, navigate, patientId]);
 
   useEffect(() => {
     if (addFollowUpSuccess) {
       dispatch(resetCenterAdminState());
-      navigate(`/dashboard/CenterAdmin/patients/FollowUp`);
+      navigate(`/dashboard/Doctor/patients/profile/ViewProfile/${patientId}`);
     }
-  }, [addFollowUpSuccess, dispatch, navigate]);
+  }, [addFollowUpSuccess, dispatch, navigate, patientId]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -65,6 +90,45 @@ const AddFollowUp = () => {
     { value: 'overdue', label: 'Overdue', color: 'text-red-600' }
   ];
 
+  // Show loading state while fetching patient details
+  if (!patient || !user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+        <div className="max-w-2xl mx-auto">
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+              <p className="text-slate-600 text-xs">Loading patient information...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show permission denied message if not allowed
+  if (!followUpPermission.canAddFollowUp) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+        <div className="max-w-2xl mx-auto">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+            <div className="flex items-center space-x-3 mb-4">
+              <Lock className="h-6 w-6 text-red-500" />
+              <h2 className="text-lg font-semibold text-red-800">Access Restricted</h2>
+            </div>
+            <p className="text-red-600 text-sm mb-4">{followUpRestrictionMessage}</p>
+            <button
+              onClick={() => navigate(`/dashboard/Doctor/patients/profile/ViewProfile/${patientId}`)}
+              className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 text-sm"
+            >
+              Back to Patient Profile
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
       <div className="max-w-2xl mx-auto">
@@ -73,13 +137,23 @@ const AddFollowUp = () => {
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center space-x-4">
               <button
-                onClick={() => navigate(-1)}
+                onClick={() => navigate(`/dashboard/Doctor/patients/profile/ViewProfile/${patientId}`)}
                 className="flex items-center space-x-2 text-blue-600 hover:text-blue-700 transition-colors text-xs"
               >
                 <ArrowLeft size={20} />
-                <span>Back</span>
+                <span>Back to Patient Profile</span>
               </button>
               <h1 className="text-md font-bold text-gray-800">Add Follow-up</h1>
+            </div>
+          </div>
+          
+          {/* Time restriction notice */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-center space-x-2">
+              <Clock className="h-4 w-4 text-blue-500" />
+              <p className="text-blue-700 text-xs">
+                <strong>Note:</strong> Followups can only be added within 24 hours of patient registration.
+              </p>
             </div>
           </div>
         </div>

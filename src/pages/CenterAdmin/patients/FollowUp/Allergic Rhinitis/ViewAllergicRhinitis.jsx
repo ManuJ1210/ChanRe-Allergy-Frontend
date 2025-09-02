@@ -79,7 +79,7 @@ const ViewAllergicRhinitis = () => {
               <h3 className="text-md font-semibold text-gray-800 mb-2">No Allergic Rhinitis Record Found</h3>
               <p className="text-gray-600 mb-4 text-xs">This patient doesn't have any allergic rhinitis records yet.</p>
               <button
-                onClick={() => navigate(`/center-admin/followup/allergic-rhinitis/add/${patientId}`)}
+                onClick={() => navigate(`/dashboard/CenterAdmin/patients/FollowUp/AddAllergicRhinitis/${patientId}`)}
                 className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors mr-2 text-xs"
               >
                 Add Record
@@ -117,7 +117,7 @@ const ViewAllergicRhinitis = () => {
             </div>
             <div className="flex items-center space-x-3">
               <button
-                onClick={() => navigate(`/center-admin/followup/allergic-rhinitis/add/${patientId}`)}
+                onClick={() => navigate(`/dashboard/CenterAdmin/patients/FollowUp/AddAllergicRhinitis/${patientId}`)}
                 className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-xs"
               >
                 Add New Record
@@ -151,6 +151,7 @@ const ViewAllergicRhinitis = () => {
                 <p className="text-xs"><span className="font-medium">Date:</span> {new Date(record.createdAt).toLocaleDateString()}</p>
                 <p className="text-xs"><span className="font-medium">Quality of Life Score:</span> {record.qualityOfLife || 'N/A'}</p>
                 <p className="text-xs"><span className="font-medium">Updated:</span> {new Date(record.updatedAt).toLocaleDateString()}</p>
+                <p className="text-xs"><span className="font-medium">Updated By:</span> {record.updatedBy?.name ? `${record.updatedBy.name} (${record.updatedBy.role || 'User'})` : 'N/A'}</p>
               </div>
             </div>
           </div>
@@ -316,7 +317,7 @@ const ViewAllergicRhinitis = () => {
               Back to Follow-ups
             </button>
             <button
-              onClick={() => navigate(`/center-admin/followup/allergic-rhinitis/add/${patientId}`)}
+              onClick={() => navigate(`/dashboard/CenterAdmin/patients/FollowUp/AddAllergicRhinitis/${patientId}`)}
               className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs"
             >
               Add New Record

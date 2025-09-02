@@ -104,7 +104,6 @@ export default function AddAllergicConjunctivitis() {
       toast.success("Submitted successfully!");
       navigate(`/dashboard/Doctor/patients/profile/ViewProfile/${params.patientId}`);
     } catch (err) {
-      console.error('Error submitting form:', err);
       toast.error(`Failed to submit. Error: ${err.message}`);
     }
   };

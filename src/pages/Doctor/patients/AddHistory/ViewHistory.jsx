@@ -13,15 +13,12 @@ const ViewHistory = () => {
 
   // Debug logging
   useEffect(() => {
-    console.log('🔍 ViewHistory - patientId:', patientId);
-    console.log('🔍 ViewHistory - history data:', history);
-    console.log('🔍 ViewHistory - historyLoading:', historyLoading);
-    console.log('🔍 ViewHistory - historyError:', historyError);
+    
   }, [patientId, history, historyLoading, historyError]);
 
   useEffect(() => {
     if (patientId) {
-      console.log('🔄 ViewHistory - Dispatching fetchPatientHistory for:', patientId);
+  
       dispatch(fetchPatientHistory(patientId));
     }
   }, [dispatch, patientId]);

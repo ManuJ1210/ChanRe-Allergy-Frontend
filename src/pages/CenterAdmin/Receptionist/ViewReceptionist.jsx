@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchCenterAdminReceptionistById } from '../../../features/centerAdmin/centerAdminReceptionistSlice';
-import { ArrowLeft, User, Mail, Phone, Calendar, Clock } from 'lucide-react';
+import { ArrowLeft, User, Mail, Phone, Calendar, Clock, MapPin, AlertCircle } from 'lucide-react';
 
 const ViewReceptionist = () => {
   const { id } = useParams();
@@ -126,8 +126,8 @@ const ViewReceptionist = () => {
                   <div className="flex items-center space-x-3">
                     <Phone className="h-5 w-5 text-gray-400" />
                     <div>
-                      <p className="text-xs text-gray-500">Phone</p>
-                      <p className="text-gray-900 text-xs">{currentReceptionist.phone || 'Not provided'}</p>
+                      <p className="text-xs text-gray-500">Mobile Number</p>
+                      <p className="text-gray-900 text-xs">{currentReceptionist.mobile || currentReceptionist.phone || 'Not provided'}</p>
                     </div>
                   </div>
                   
@@ -138,6 +138,17 @@ const ViewReceptionist = () => {
                       <p className="text-gray-900 text-xs">{currentReceptionist.username}</p>
                     </div>
                   </div>
+                  
+                  {/* Address */}
+                  {currentReceptionist.address && (
+                    <div className="flex items-start space-x-3">
+                      <MapPin className="h-5 w-5 text-gray-400 mt-0.5" />
+                      <div>
+                        <p className="text-xs text-gray-500">Address</p>
+                        <p className="text-gray-900 text-xs">{currentReceptionist.address}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -180,6 +191,36 @@ const ViewReceptionist = () => {
                 </div>
               </div>
             </div>
+            
+            {/* Emergency Contact Information */}
+            {(currentReceptionist.emergencyContact || currentReceptionist.emergencyContactName) && (
+              <div className="mt-8 border-t border-gray-200 pt-6">
+                <h3 className="text-sm font-semibold text-gray-900 border-b border-gray-200 pb-2 mb-4">
+                  Emergency Contact Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {currentReceptionist.emergencyContactName && (
+                    <div className="flex items-center space-x-3">
+                      <User className="h-5 w-5 text-gray-400" />
+                      <div>
+                        <p className="text-xs text-gray-500">Emergency Contact Name</p>
+                        <p className="text-gray-900 text-xs">{currentReceptionist.emergencyContactName}</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {currentReceptionist.emergencyContact && (
+                    <div className="flex items-center space-x-3">
+                      <AlertCircle className="h-5 w-5 text-gray-400" />
+                      <div>
+                        <p className="text-xs text-gray-500">Emergency Contact Number</p>
+                        <p className="text-gray-900 text-xs">{currentReceptionist.emergencyContact}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

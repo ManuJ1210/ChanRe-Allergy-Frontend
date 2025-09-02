@@ -9,6 +9,7 @@ import {
   fetchSuperAdminDoctorPatientFollowups
 } from '../../../features/superadmin/superAdminDoctorSlice';
 import { fetchPatientGeneralFollowUps } from '../../../features/superadmin/superadminThunks';
+import { downloadPDFReport, viewPDFReport } from '../../../utils/pdfHandler';
 import { 
   ArrowLeft, User, Phone, Calendar, MapPin, Activity, Pill, FileText, Eye, Mail, UserCheck, Building, Stethoscope,
   Download, ExternalLink, Image, Video, Music, File, AlertCircle, RefreshCw
@@ -49,8 +50,6 @@ const PatientProfile = () => {
       // Fetch all patient data
       const fetchData = async () => {
         try {
-          console.log('🚀 Dispatching fetch actions for patientId:', patientId);
-          
           // Fetch follow-ups using the same method as Superadmin Followups PatientProfile
           await dispatch(fetchPatientGeneralFollowUps(patientId));
           
@@ -61,7 +60,6 @@ const PatientProfile = () => {
             dispatch(fetchSuperAdminDoctorPatientHistory(patientId)),
             dispatch(fetchSuperAdminDoctorPatientLabReports(patientId))
           ]);
-          console.log('✅ All data fetched successfully');
         } catch (error) {
           console.error('Error fetching patient data:', error);
         }
@@ -71,39 +69,7 @@ const PatientProfile = () => {
     }
   }, [dispatch, patientId]);
 
-  // Debug logging
-  useEffect(() => {
-    console.log('Patient Profile Debug:', {
-      patientId,
-      patient,
-      patientCenter: patient?.centerId,
-      centerName: patient?.centerId?.name,
-      centerIdType: typeof patient?.centerId,
-      centerIdValue: patient?.centerId,
-      medications,
-      history,
-      labReports,
-      followUps, // New followup state from superadmin
-      followUpsLoading,
-      followUpsError,
-      dataLoading,
-      dataError: apiDataError
-    });
-    
-    // Additional debugging for patient center info
-    if (patient) {
-      console.log('🔍 Patient Center Debug:', {
-        patientName: patient.name,
-        centerId: patient.centerId,
-        centerIdType: typeof patient.centerId,
-        centerName: patient.centerId?.name,
-        centerObject: patient.centerId,
-        hasCenterId: !!patient.centerId,
-        centerIdKeys: patient.centerId ? Object.keys(patient.centerId) : 'No centerId',
-        fullPatientObject: patient
-      });
-    }
-  }, [patientId, patient, medications, history, labReports, followUps, followUpsLoading, followUpsError, dataLoading, apiDataError]);
+
 
   // Sync local error state with Redux state
   useEffect(() => {
@@ -125,7 +91,6 @@ const PatientProfile = () => {
           .filter(([key, val]) => val !== null && val !== undefined && val !== '')
           .map(([key, val]) => `${key}: ${val}`)
           .join(', ');
-        console.log('🔍 Converting object to string:', { original: value, result });
         return result;
       }
     }
@@ -142,18 +107,55 @@ const PatientProfile = () => {
 
   const handleViewFile = (fileUrl, fileName) => {
     if (fileUrl) {
-      window.open(`/api/files/${fileUrl}`, '_blank');
+      // For PDF reports, use the download endpoint
+      if (fileName && fileName.includes('_report.pdf')) {
+        // Extract test request ID from the file URL or use a different approach
+        // For now, we'll try to open the file URL directly
+        window.open(fileUrl, '_blank');
+      } else {
+        window.open(`/api/files/${fileUrl}`, '_blank');
+      }
     }
   };
 
   const handleDownloadFile = (fileUrl, fileName) => {
     if (fileUrl) {
-      const link = document.createElement('a');
-      link.href = `/api/files/${fileUrl}`;
-      link.download = fileName || 'download';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      // For PDF reports, use the download endpoint
+      if (fileName && fileName.includes('_report.pdf')) {
+        // For now, we'll try to download the file URL directly
+        const link = document.createElement('a');
+        link.href = fileUrl;
+        link.download = fileName || 'download';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else {
+        const link = document.createElement('a');
+        link.href = `/api/files/${fileUrl}`;
+        link.download = fileName || 'download';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    }
+  };
+
+  // New functions for handling PDF reports using test request ID
+  const handleViewPDFReport = async (testRequestId, fileName) => {
+    try {
+      await viewPDFReport(testRequestId);
+    } catch (error) {
+      console.error('Error viewing PDF report:', error);
+      alert('Failed to view PDF report: ' + error.message);
+    }
+  };
+
+  const handleDownloadPDFReport = async (testRequestId, fileName) => {
+    try {
+      await downloadPDFReport(testRequestId, fileName);
+    } catch (error) {
+      console.error('Error downloading PDF report:', error);
+      alert('Failed to download PDF report: ' + error.message);
     }
   };
 
@@ -674,7 +676,7 @@ const PatientProfile = () => {
                       )}
 
                       {/* PDF Report */}
-                      {report.hasPdf && (
+                      {(report.reportFile || report.reportFilePath) && (
                         <div className="bg-blue-50 p-4 rounded-lg">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
@@ -688,14 +690,14 @@ const PatientProfile = () => {
                             </div>
                             <div className="flex gap-2">
                               <button
-                                onClick={() => handleViewFile(report.pdfFile, `${report.testType}_report.pdf`)}
+                                onClick={() => handleViewPDFReport(report._id, `${report.testType}_report.pdf`)}
                                 className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center text-xs"
                               >
                                 <Eye className="w-4 h-4 mr-1" />
                                 View PDF
                               </button>
                               <button
-                                onClick={() => handleDownloadFile(report.pdfFile, `${report.testType}_report.pdf`)}
+                                onClick={() => handleDownloadPDFReport(report._id, `${report.testType}_report.pdf`)}
                                 className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center text-xs"
                               >
                                 <Download className="w-4 h-4 mr-1" />
@@ -796,10 +798,6 @@ const PatientProfile = () => {
                               {followUp.type && (
                                 <button
                                   onClick={() => {
-                                    console.log('🔍 Navigating to view page for follow-up type:', followUp.type);
-                                    console.log('🔍 Follow-up ID:', followUp._id);
-                                    console.log('🔍 Patient ID:', patientId);
-                                    
                                     // Map follow-up types to their view routes
                                     const viewRoutes = {
                                       "Allergic Rhinitis": (patientId) => `/dashboard/superadmin/doctor/followups/ViewAllergicRhinitis/${patientId}`,
@@ -812,12 +810,7 @@ const PatientProfile = () => {
                                     const route = viewRoutes[followUp.type];
                                     if (route) {
                                       const fullRoute = route(patientId);
-                                      console.log('🔍 Full route:', fullRoute);
-                                      console.log('🔍 Attempting navigation...');
                                       navigate(fullRoute);
-                                    } else {
-                                      console.log('⚠️ No route found for follow-up type:', followUp.type);
-                                      console.log('⚠️ Available types:', Object.keys(viewRoutes));
                                     }
                                   }}
                                   className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1"

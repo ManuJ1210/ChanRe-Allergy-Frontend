@@ -22,8 +22,8 @@ const ViewProfile = () => {
 
   const { 
     patientDetails,
-    medications, 
-    history, 
+    patientMedications: medications, 
+    patientHistory: history, 
     tests,
     followUps,
     allergicRhinitis,
@@ -37,6 +37,26 @@ const ViewProfile = () => {
 
   // Extract patient data from the new structure
   const patient = patientDetails?.patient || patientDetails;
+  
+  // Transform tests data for display
+  const processedTests = React.useMemo(() => {
+    if (!tests || !Array.isArray(tests)) {
+      return [];
+    }
+    
+    // Filter out tests that have actual data (not just _id and date)
+    const validTests = tests.filter(test => {
+      return test.CBC || test.Hb || test.TC || test.DC || test.Neutrophils || 
+             test.Eosinophil || test.Lymphocytes || test.Monocytes || test.Platelets || 
+             test.ESR || test.SerumCreatinine || test.SerumIgELevels || test.C3C4Levels || 
+             test.ANA_IF || test.UrineRoutine || test.AllergyPanel;
+    });
+    
+    // Sort by date (newest first) and return
+    return validTests.sort((a, b) => 
+      new Date(b.date || b.createdAt) - new Date(a.date || a.createdAt)
+    );
+  }, [tests]);
   
 
 
@@ -75,11 +95,10 @@ const ViewProfile = () => {
       const urlParams = new URLSearchParams(location.search);
       const refreshParam = urlParams.get('refresh');
       
-      if (refreshParam) {
-        console.log('🔄 Refresh detected, re-fetching patient data after test submission');
-        // Clear the refresh parameter from URL
-        window.history.replaceState({}, '', `/dashboard/CenterAdmin/patients/profile/ViewProfile/${id}`);
-      }
+             if (refreshParam) {
+         // Clear the refresh parameter from URL
+         window.history.replaceState({}, '', `/dashboard/CenterAdmin/patients/profile/ViewProfile/${id}`);
+       }
 
       dispatch(fetchPatientDetails(id));
       dispatch(fetchPatientMedications(id));
@@ -329,6 +348,9 @@ const ViewProfile = () => {
                   </p>
                 </div>
                 <div className="p-4 sm:p-6">
+                  
+                  
+
                   <div className="overflow-x-auto">
                     <table className="w-full">
                       <thead>
@@ -353,10 +375,14 @@ const ViewProfile = () => {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-200">
-                        {tests && tests.length > 0 ? (
-                          tests.map((test, idx) => (
+                        {processedTests && processedTests.length > 0 ? (
+                          processedTests.map((test, idx) => (
                             <tr key={test._id || idx} className="hover:bg-slate-50 transition-colors">
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-600">{test.createdAt ? new Date(test.createdAt).toLocaleDateString() : ''}</td>
+                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-600">
+                                {test.date ? new Date(test.date).toLocaleDateString() : 
+                                 test.createdAt ? new Date(test.createdAt).toLocaleDateString() : 
+                                 'N/A'}
+                              </td>
                               <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.CBC || ''}</td>
                               <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.Hb || ''}</td>
                               <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.TC || ''}</td>
@@ -616,9 +642,14 @@ const ViewProfile = () => {
                               </td>
                               <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{dermatitis.symptoms || 'N/A'}</td>
                               <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{patient.centerCode || 'N/A'}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{patient.centerName || 'N/A'}</td>
+                                                            <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{patient.centerName || 'N/A'}</td>
                               <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{patient._id}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{dermatitis.updatedBy || 'N/A'}</td>
+                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">
+                                {dermatitis.updatedBy?.name ? 
+                                  `${dermatitis.updatedBy.name} (${dermatitis.updatedBy.role || 'User'})` : 
+                                  dermatitis.updatedBy || 'N/A'
+                                }
+                              </td>
                               <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">
                                 <button
                                   onClick={() => navigate(`/dashboard/CenterAdmin/patients/FollowUp/ViewAtopicDermatitis/${dermatitis._id}`)}

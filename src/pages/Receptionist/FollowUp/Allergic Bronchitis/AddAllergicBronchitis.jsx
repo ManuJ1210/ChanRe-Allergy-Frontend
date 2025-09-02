@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { addReceptionistAllergicBronchitis, resetReceptionistState } from '../../../../features/receptionist/receptionistThunks.js';
+import { addReceptionistAllergicBronchitis, resetReceptionistState } from '../../../../features/receptionist/receptionistThunks';
 import { 
   ArrowLeft, 
   AlertCircle,

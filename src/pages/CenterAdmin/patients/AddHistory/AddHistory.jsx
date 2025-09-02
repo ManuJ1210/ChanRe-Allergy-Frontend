@@ -990,7 +990,7 @@ export default function AddHistory() {
                 <button
                   type="submit"
                   disabled={loading}
-                  onClick={() => console.log('Submit button clicked')}
+                  onClick={() => {}}
                   className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2 text-xs"
                 >
                   {loading ? (

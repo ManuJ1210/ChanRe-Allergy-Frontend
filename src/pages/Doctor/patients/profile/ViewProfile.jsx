@@ -3,10 +3,11 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import { fetchPatientDetails, fetchPatientMedications, fetchPatientHistory, fetchPatientFollowUps, fetchAllergicRhinitis, fetchAllergicConjunctivitis, fetchAllergicBronchitis, fetchAtopicDermatitis, fetchGPE, fetchPrescriptions, fetchTests, fetchPatientTestRequests, updatePatient } from '../../../../features/doctor/doctorThunks';
-import { canDoctorEditPatient, getEditRestrictionMessage } from '../../../../utils/patientPermissions';
+import { canDoctorEditPatient, getEditRestrictionMessage, canDoctorAddFollowUp } from '../../../../utils/patientPermissions';
 import { 
-  ArrowLeft, User, Phone, Calendar, MapPin, Activity, Pill, FileText, Eye, Edit, Plus, AlertCircle, Mail, UserCheck, Clock
+  ArrowLeft, User, Phone, Calendar, MapPin, Activity, Pill, FileText, Eye, Edit, Plus, AlertCircle, Mail, UserCheck, Clock, Lock
 } from 'lucide-react';
+import API from '../../../../services/api';
 
 const TABS = ["Overview", "Follow Up", "Prescription", "Lab Report Status", "History", "Investigation", "Medications"];
 
@@ -34,11 +35,37 @@ const ViewProfile = () => {
     allergicBronchitis,
     gpe,
     prescriptions,
-    loading, error, patientMedicationsLoading: medLoading, patientMedicationsError: medError, patientHistoryLoading: historyLoading, patientHistoryError: historyError
+    loading, error, patientMedicationsLoading: medLoading, patientMedicationsError: medError, patientHistoryLoading: historyLoading, patientHistoryError: historyError, testsLoading, testsError
   } = useSelector(state => state.doctor);
 
   // Extract patient data from the new structure
   const patient = patientDetails?.patient || patientDetails;
+  
+
+  
+  // Handle assigning doctor to patient
+  const handleAssignDoctor = async () => {
+    if (!user || !user._id || !patient || !patient._id) {
+      toast.error('Unable to assign doctor. Please try again.');
+      return;
+    }
+
+    try {
+      const response = await API.put(`/patients/${patient._id}`, {
+        assignedDoctor: user._id
+      });
+
+      if (response.status === 200) {
+        toast.success('Successfully assigned as doctor to this patient!');
+        // Refresh patient data
+        dispatch(fetchPatientDetails(id));
+      } else {
+        toast.error(response.data?.message || 'Failed to assign doctor');
+      }
+    } catch (error) {
+      toast.error('Failed to assign doctor. Please try again.');
+    }
+  };
   
   // Get current user from auth state
   const { user } = useSelector((state) => state.auth);
@@ -47,24 +74,7 @@ const ViewProfile = () => {
   const editPermission = canDoctorEditPatient(patient, user);
   const editRestrictionMessage = getEditRestrictionMessage(patient, user);
 
-  // Show data availability in console for debugging
-  React.useEffect(() => {
-    if (patient) {
-      console.log('📊 Patient Data Availability:', {
-        patient: patient ? '✅ Loaded' : '❌ Missing',
-        medications: medications ? `✅ ${medications.length} items` : '❌ No data',
-        history: history ? `✅ ${history.length} items` : '❌ No data',
-        tests: tests ? `✅ ${tests.length} items` : '❌ No data',
-        followUps: followUps ? `✅ ${followUps.length} items` : '❌ No data',
-        allergicRhinitis: allergicRhinitis ? `✅ ${allergicRhinitis.length} items` : '❌ No data',
-        allergicConjunctivitis: allergicConjunctivitis ? `✅ ${allergicConjunctivitis.length} items` : '❌ No data',
-        allergicBronchitis: allergicBronchitis ? `✅ ${allergicBronchitis.length} items` : '❌ No data',
-        atopicDermatitis: atopicDermatitis ? `✅ ${atopicDermatitis.length} items` : '❌ No data',
-        gpe: gpe ? `✅ ${gpe.length} items` : '❌ No data',
-        prescriptions: prescriptions ? `✅ ${prescriptions.length} items` : '❌ No data'
-      });
-    }
-  }, [patient, medications, history, tests, followUps, allergicRhinitis, allergicConjunctivitis, allergicBronchitis, atopicDermatitis, gpe, prescriptions]);
+
 
 
   
@@ -91,16 +101,18 @@ const ViewProfile = () => {
       const refreshParam = urlParams.get('refresh');
       
       if (refreshParam) {
-        console.log('🔄 Refresh detected, re-fetching patient data after test submission');
         // Clear the refresh parameter from URL
         window.history.replaceState({}, '', `/dashboard/Doctor/patients/profile/ViewProfile/${id}`);
       }
 
-      // Fetch patient details first (includes history, medications, tests)
+      // Fetch patient details first (includes history, medications)
       dispatch(fetchPatientDetails(id));
       
       // Fetch test requests for Lab Report Status tab
       dispatch(fetchPatientTestRequests(id));
+      
+      // Fetch laboratory tests for Investigation tab
+      dispatch(fetchTests(id));
       
       // Fetch additional follow-up data that's not included in patient details
       dispatch(fetchPatientFollowUps(id));
@@ -110,9 +122,6 @@ const ViewProfile = () => {
       dispatch(fetchAtopicDermatitis(id));
       dispatch(fetchGPE(id));
       dispatch(fetchPrescriptions(id));
-      
-      // Note: fetchPatientMedications, fetchPatientHistory, fetchTests are no longer needed
-      // as they're included in fetchPatientDetails response
     }
   }, [dispatch, id, navigate, location.search]);
 
@@ -271,6 +280,16 @@ const ViewProfile = () => {
 
 
 
+          {/* 24-hour restriction notice */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-6">
+            <div className="flex items-center space-x-2">
+              <Clock className="h-4 w-4 text-blue-500" />
+              <p className="text-blue-700 text-xs">
+                <strong>Note:</strong> Patient editing and followup addition are only available within 24 hours of patient registration
+              </p>
+            </div>
+          </div>
+
           {/* Tabs */}
           <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-2 mb-6 sm:mb-8">
             <div className="flex flex-col sm:flex-row gap-2">
@@ -330,9 +349,20 @@ const ViewProfile = () => {
                     <div className="space-y-3 sm:space-y-4">
                       <div>
                         <label className="block text-xs font-medium text-slate-500 mb-1">Assigned Doctor</label>
-                        <p className="text-slate-800 text-xs">
-                          Dr. {patient.assignedDoctor?.name || user?.name || 'You'}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-slate-800 text-xs">
+                            {patient.assignedDoctor?.name || 'Not assigned'}
+                          </p>
+                          {!patient.assignedDoctor && user && (
+                            <button
+                              onClick={() => handleAssignDoctor()}
+                              className="text-xs bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded transition-colors"
+                            >
+                              Assign Me
+                            </button>
+                          )}
+                        </div>
+
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-slate-500 mb-1">Gender</label>
@@ -353,209 +383,6 @@ const ViewProfile = () => {
                   </div>
                 </div>
               </div>
-
-              {/* Investigations */}
-              <div className="bg-white rounded-xl shadow-sm border border-blue-100">
-                <div className="p-4 sm:p-6 border-b border-blue-100">
-                  <h2 className="text-sm font-semibold text-slate-800 flex items-center">
-                    <Activity className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-blue-500" />
-                    Investigations
-                  </h2>
-                  <p className="text-slate-600 mt-1 text-xs">
-                    Laboratory test results and medical investigations
-                  </p>
-                </div>
-                <div className="p-4 sm:p-6">
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="bg-slate-50 border-b border-slate-200">
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Date</th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">CBC</th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Hb</th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">TC</th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">DC</th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">N</th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">E</th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">L</th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">M</th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Platelets</th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">ESR</th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Serum Creatinine</th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Serum IgE</th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">C3, C4</th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">ANA</th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Urine</th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Allergy Panel</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-200">
-                        {tests && tests.length > 0 ? (
-                          tests.map((test, idx) => (
-                            <tr key={test._id || idx} className="hover:bg-slate-50 transition-colors">
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-600">{test.createdAt ? new Date(test.createdAt).toLocaleDateString() : ''}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.CBC || ''}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.Hb || ''}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.TC || ''}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.DC || ''}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.Neutrophils || ''}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.Eosinophil || ''}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.Lymphocytes || ''}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.Monocytes || ''}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.Platelets || ''}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.ESR || ''}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.SerumCreatinine || ''}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.SerumIgELevels || ''}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.C3C4Levels || ''}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.ANA_IF || ''}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.UrineRoutine || ''}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.AllergyPanel || ''}</td>
-                            </tr>
-                          ))
-                        ) : (
-                          <tr>
-                            <td colSpan={17} className="px-4 py-8 text-center text-slate-500">
-                              <Activity className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                              <p className="text-xs sm:text-sm">No investigations found</p>
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-
-              {/* Medications */}
-              <div className="bg-white rounded-xl shadow-sm border border-blue-100">
-                <div className="p-4 sm:p-6 border-b border-blue-100">
-                  <h2 className="text-sm font-semibold text-slate-800 flex items-center">
-                    <Pill className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-blue-500" />
-                    Medications
-                  </h2>
-                  <p className="text-slate-600 mt-1 text-xs">
-                    Current and past medications prescribed
-                  </p>
-                </div>
-                <div className="p-4 sm:p-6">
-                  {medLoading ? (
-                    <div className="text-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
-                      <p className="text-slate-600 text-xs">Loading medications...</p>
-                    </div>
-                  ) : medError ? (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                      <p className="text-red-600 text-xs">{medError}</p>
-                    </div>
-                  ) : (medications || []).length === 0 ? (
-                    <div className="text-center py-8">
-                      <Pill className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                      <p className="text-slate-500 text-xs">No medications found</p>
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="bg-slate-50 border-b border-slate-200">
-                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Drug Name</th>
-                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Dose</th>
-                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Duration</th>
-                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Frequency</th>
-                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Prescribed By</th>
-                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Adverse Effect</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-200">
-                          {(medications || []).map((med, idx) => (
-                            <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs font-medium text-slate-800">{med.drugName}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-600">{med.dose}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-600">{med.duration}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-600">{med.frequency || 'N/A'}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-600">{med.prescribedBy || 'N/A'}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-600">{med.adverseEvent || 'N/A'}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* History */}
-              <div className="bg-white rounded-xl shadow-sm border border-blue-100">
-                <div className="p-4 sm:p-6 border-b border-blue-100">
-                  <h2 className="text-sm font-semibold text-slate-800 flex items-center">
-                    <FileText className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-blue-500" />
-                    Medical History
-                  </h2>
-                  <p className="text-slate-600 mt-1 text-xs">
-                    Complete patient medical history and examination records
-                  </p>
-                </div>
-                <div className="p-4 sm:p-6">
-                  {historyLoading ? (
-                    <div className="text-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
-                      <p className="text-slate-600 text-xs">Loading history...</p>
-                    </div>
-                  ) : historyError ? (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                      <p className="text-red-600 text-xs">{historyError}</p>
-                    </div>
-                  ) : !Array.isArray(history) || history.length === 0 ? (
-                    <div className="text-center py-8">
-                      <FileText className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                      <p className="text-slate-500 text-xs">No history found</p>
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="bg-slate-50 border-b border-slate-200">
-                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Date</th>
-                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Hay Fever</th>
-                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Asthma</th>
-                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Breathing Problems</th>
-                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Hives/Swelling</th>
-                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Sinus Trouble</th>
-                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Eczema/Rashes</th>
-                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Food Allergies</th>
-                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Drug Allergy</th>
-                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Action</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-200">
-                      {(history || []).map((h, idx) => (
-                            <tr key={h._id || idx} className="hover:bg-slate-50 transition-colors">
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-600">
-                                {h.createdAt ? new Date(h.createdAt).toLocaleDateString() : 'N/A'}
-                              </td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{h.hayFever || 'N/A'}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{h.asthma || 'N/A'}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{h.breathingProblems || 'N/A'}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{h.hivesSwelling || 'N/A'}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{h.sinusTrouble || 'N/A'}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{h.eczemaRashes || 'N/A'}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{h.foodAllergies || 'N/A'}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{h.drugAllergy || 'N/A'}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">
-                                <button
-                                  onClick={() => navigate(`/dashboard/Doctor/patients/ViewHistory/${h._id}`)}
-                                  className="text-blue-600 hover:text-blue-900 font-medium"
-                                >
-                                  View Details
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              </div>
             </div>
           )}
           {activeTab === "Follow Up" && (
@@ -564,12 +391,31 @@ const ViewProfile = () => {
               <div className="bg-white rounded-xl shadow-sm border border-blue-100">
                 <div className="p-4 sm:p-6 border-b border-blue-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <h2 className="text-sm font-semibold text-slate-800">Allergic Rhinitis</h2>
-                  <button
-                                                onClick={() => navigate(`/dashboard/Doctor/patients/FollowUp/AddAllergicRhinitis/${patient._id}`)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-xs w-full sm:w-auto"
-                  >
-                    Add Follow Up
-                  </button>
+                  {(() => {
+                    const canAdd = user ? canDoctorAddFollowUp(patient, user).canAddFollowUp : false;
+                    
+                    if (canAdd) {
+                      return (
+                        <button
+                          onClick={() => navigate(`/dashboard/Doctor/patients/FollowUp/AddAllergicRhinitis/${patient._id}`)}
+                          className="bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-xs w-full sm:w-auto"
+                        >
+                          Add Follow Up
+                        </button>
+                      );
+                    } else {
+                      return (
+                        <button
+                          disabled
+                          className="bg-gray-400 text-gray-600 px-3 sm:px-4 py-2 rounded-lg font-medium cursor-not-allowed text-xs w-full sm:w-auto flex items-center justify-center"
+                          title="Followups can only be added within 24 hours of patient registration"
+                        >
+                          <Lock className="h-4 w-4 mr-2" />
+                          Add Follow Up
+                        </button>
+                      );
+                    }
+                  })()}
                 </div>
                 <div className="p-4 sm:p-6">
                   <div className="overflow-x-auto">
@@ -623,12 +469,31 @@ const ViewProfile = () => {
               <div className="bg-white rounded-xl shadow-sm border border-blue-100">
                 <div className="p-4 sm:p-6 border-b border-blue-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <h2 className="text-sm font-semibold text-slate-800">Atopic Dermatitis</h2>
-                                <button
-                onClick={() => navigate(`/dashboard/Doctor/patients/FollowUp/AtopicDermatitis/${patient._id}`)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-xs w-full sm:w-auto"
-              >
-                Add Follow Up
-              </button>
+                                {(() => {
+                                  const canAdd = user ? canDoctorAddFollowUp(patient, user).canAddFollowUp : false;
+                                  
+                                  if (canAdd) {
+                                    return (
+                                      <button
+                                        onClick={() => navigate(`/dashboard/Doctor/patients/FollowUp/AtopicDermatitis/${patient._id}`)}
+                                        className="bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-xs w-full sm:w-auto"
+                                      >
+                                        Add Follow Up
+                                      </button>
+                                    );
+                                  } else {
+                                    return (
+                                      <button
+                                        disabled
+                                        className="bg-gray-400 text-gray-600 px-3 sm:px-4 py-2 rounded-lg font-medium cursor-not-allowed text-xs w-full sm:w-auto flex items-center justify-center"
+                                        title="Followups can only be added within 24 hours of patient registration"
+                                      >
+                                        <Lock className="h-4 w-4 mr-2" />
+                                        Add Follow Up
+                                      </button>
+                                    );
+                                  }
+                                })()}
                 </div>
                 <div className="p-4 sm:p-6">
                   <div className="overflow-x-auto">
@@ -655,7 +520,10 @@ const ViewProfile = () => {
                               <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{patient.centerCode || 'N/A'}</td>
                               <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{patient.centerName || 'N/A'}</td>
                               <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{patient._id}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{dermatitis.updatedBy || 'N/A'}</td>
+                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">
+                                {typeof dermatitis.updatedBy === 'string' ? dermatitis.updatedBy : 
+                                 typeof dermatitis.updatedBy === 'object' && dermatitis.updatedBy?.name ? dermatitis.updatedBy.name : 'N/A'}
+                              </td>
                               <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">
                                 <button
                                   onClick={() => navigate(`/dashboard/Doctor/patients/FollowUp/ViewAtopicDermatitis/${dermatitis._id}`)}
@@ -684,12 +552,31 @@ const ViewProfile = () => {
               <div className="bg-white rounded-xl shadow-sm border border-blue-100">
                 <div className="p-4 sm:p-6 border-b border-blue-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <h2 className="text-sm font-semibold text-slate-800">Allergic Conjunctivitis</h2>
-                                <button
-                onClick={() => navigate(`/dashboard/Doctor/patients/FollowUp/AddAllergicConjunctivitis/${patient._id}`)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-xs w-full sm:w-auto"
-              >
-                Add Follow Up
-              </button>
+                                {(() => {
+                                  const canAdd = user ? canDoctorAddFollowUp(patient, user).canAddFollowUp : false;
+                                  
+                                  if (canAdd) {
+                                    return (
+                                      <button
+                                        onClick={() => navigate(`/dashboard/Doctor/patients/FollowUp/AddAllergicConjunctivitis/${patient._id}`)}
+                                        className="bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-xs w-full sm:w-auto"
+                                      >
+                                        Add Follow Up
+                                      </button>
+                                    );
+                                  } else {
+                                    return (
+                                      <button
+                                        disabled
+                                        className="bg-gray-400 text-gray-600 px-3 sm:px-4 py-2 rounded-lg font-medium cursor-not-allowed text-xs w-full sm:w-auto flex items-center justify-center"
+                                        title="Followups can only be added within 24 hours of patient registration"
+                                      >
+                                        <Lock className="h-4 w-4 mr-2" />
+                                        Add Follow Up
+                                      </button>
+                                    );
+                                  }
+                                })()}
                 </div>
                 <div className="p-4 sm:p-6">
                   <div className="overflow-x-auto">
@@ -743,12 +630,31 @@ const ViewProfile = () => {
               <div className="bg-white rounded-xl shadow-sm border border-blue-100">
                 <div className="p-4 sm:p-6 border-b border-blue-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <h2 className="text-sm font-semibold text-slate-800">Allergic Bronchitis</h2>
-                            <button
-                onClick={() => navigate(`/dashboard/Doctor/patients/FollowUp/AddAllergicBronchitis/${patient._id}`)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-xs w-full sm:w-auto"
-              >
-                Add Follow Up
-              </button>
+                            {(() => {
+                              const canAdd = user ? canDoctorAddFollowUp(patient, user).canAddFollowUp : false;
+                              
+                              if (canAdd) {
+                                return (
+                                  <button
+                                    onClick={() => navigate(`/dashboard/Doctor/patients/FollowUp/AddAllergicBronchitis/${patient._id}`)}
+                                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-xs w-full sm:w-auto"
+                                  >
+                                    Add Follow Up
+                                  </button>
+                                );
+                              } else {
+                                return (
+                                  <button
+                                    disabled
+                                    className="bg-gray-400 text-gray-600 px-3 sm:px-4 py-2 rounded-lg font-medium cursor-not-allowed text-xs w-full sm:w-auto flex items-center justify-center"
+                                    title="Followups can only be added within 24 hours of patient registration"
+                                  >
+                                    <Lock className="h-4 w-4 mr-2" />
+                                    Add Follow Up
+                                  </button>
+                                );
+                              }
+                            })()}
                 </div>
                 <div className="p-4 sm:p-6">
                   <div className="overflow-x-auto">
@@ -802,12 +708,31 @@ const ViewProfile = () => {
               <div className="bg-white rounded-xl shadow-sm border border-blue-100">
                 <div className="p-4 sm:p-6 border-b border-blue-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <h2 className="text-sm font-semibold text-slate-800">GPE</h2>
-                        <button
-              onClick={() => navigate(`/dashboard/Doctor/patients/FollowUp/AddGPE/${patient._id}`)}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-xs w-full sm:w-auto"
-            >
-              Add Follow Up
-            </button>
+                        {(() => {
+                          const canAdd = user ? canDoctorAddFollowUp(patient, user).canAddFollowUp : false;
+                          
+                          if (canAdd) {
+                            return (
+                              <button
+                                onClick={() => navigate(`/dashboard/Doctor/patients/FollowUp/AddGPE/${patient._id}`)}
+                                className="bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-xs w-full sm:w-auto"
+                              >
+                                Add Follow Up
+                              </button>
+                            );
+                          } else {
+                            return (
+                              <button
+                                disabled
+                                className="bg-gray-400 text-gray-600 px-3 sm:px-4 py-2 rounded-lg font-medium cursor-not-allowed text-xs w-full sm:w-auto flex items-center justify-center"
+                                title="Followups can only be added within 24 hours of patient registration"
+                              >
+                                <Lock className="h-4 w-4 mr-2" />
+                                Add Follow Up
+                              </button>
+                            );
+                          }
+                        })()}
           </div>
                 <div className="p-4 sm:p-6">
                   <div className="overflow-x-auto">
@@ -862,12 +787,31 @@ const ViewProfile = () => {
             <div className="bg-white rounded-xl shadow-sm border border-blue-100">
               <div className="p-4 sm:p-6 border-b border-blue-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <h2 className="text-sm font-semibold text-slate-800">Prescription</h2>
-                        <button
-              onClick={() => navigate(`/dashboard/Doctor/patients/FollowUp/AddPrescription/${patient._id}`)}
-              className="bg-orange-500 hover:bg-orange-600 text-white px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-xs w-full sm:w-auto"
-            >
-              Add Prescription
-            </button>
+                        {(() => {
+                          const canAdd = user ? canDoctorAddFollowUp(patient, user).canAddFollowUp : false;
+                          
+                          if (canAdd) {
+                            return (
+                              <button
+                                onClick={() => navigate(`/dashboard/Doctor/patients/FollowUp/AddPrescription/${patient._id}`)}
+                                className="bg-orange-500 hover:bg-orange-600 text-white px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-xs w-full sm:w-auto"
+                              >
+                                Add Prescription
+                              </button>
+                            );
+                          } else {
+                            return (
+                              <button
+                                disabled
+                                className="bg-gray-400 text-gray-600 px-3 sm:px-4 py-2 rounded-lg font-medium cursor-not-allowed text-xs w-full sm:w-auto flex items-center justify-center"
+                                title="Followups can only be added within 24 hours of patient registration"
+                              >
+                                <Lock className="h-4 w-4 mr-2" />
+                                Add Prescription
+                              </button>
+                            );
+                          }
+                        })()}
           </div>
               <div className="p-4 sm:p-6">
                 <div className="overflow-x-auto">
@@ -1137,29 +1081,39 @@ const ViewProfile = () => {
                 </button>
               </div>
               <div className="p-4 sm:p-6">
+                {testsLoading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                    <p className="text-slate-600 text-xs">Loading laboratory investigations...</p>
+                  </div>
+                ) : testsError ? (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <p className="text-red-600 text-xs">{testsError}</p>
+                  </div>
+                ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full">
-                    <thead>
-                      <tr className="bg-slate-50 border-b border-slate-200">
-                        <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Date</th>
-                        <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">CBC</th>
-                        <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Hb</th>
-                        <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">TC</th>
-                        <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">DC</th>
-                        <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">N</th>
-                        <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">E</th>
-                        <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">L</th>
-                        <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">M</th>
-                        <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Platelets</th>
-                        <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">ESR</th>
-                        <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Serum Creatinine</th>
-                        <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Serum IgE</th>
-                        <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">C3, C4</th>
-                        <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">ANA</th>
-                        <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Urine</th>
-                        <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Allergy Panel</th>
-                      </tr>
-                    </thead>
+                                          <thead>
+                        <tr className="bg-slate-50 border-b border-slate-200">
+                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Date</th>
+                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">CBC</th>
+                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Hb</th>
+                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">TC</th>
+                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">DC</th>
+                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Neutrophils</th>
+                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Eosinophil</th>
+                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Lymphocytes</th>
+                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Monocytes</th>
+                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Platelets</th>
+                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">ESR</th>
+                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Serum Creatinine</th>
+                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Serum IgE Levels</th>
+                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">C3, C4 Levels</th>
+                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">ANA (IF)</th>
+                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Urine Routine</th>
+                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Allergy Panel</th>
+                        </tr>
+                      </thead>
                     <tbody className="divide-y divide-slate-200">
                       {tests && tests.length > 0 ? (
                         tests.map((test, idx) => (
@@ -1194,6 +1148,7 @@ const ViewProfile = () => {
                     </tbody>
                   </table>
                 </div>
+                )}
               </div>
             </div>
           )}
@@ -1253,7 +1208,10 @@ const ViewProfile = () => {
                             <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-600">{med.dose}</td>
                             <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-600">{med.duration}</td>
                             <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-600">{med.frequency || 'N/A'}</td>
-                            <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-600">{med.prescribedBy || 'N/A'}</td>
+                            <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-600">
+                              {typeof med.prescribedBy === 'string' ? med.prescribedBy : 
+                               typeof med.prescribedBy === 'object' && med.prescribedBy?.name ? med.prescribedBy.name : 'N/A'}
+                            </td>
                             <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-600">
                               {med.createdAt ? new Date(med.createdAt).toLocaleDateString() : 'N/A'}
                             </td>

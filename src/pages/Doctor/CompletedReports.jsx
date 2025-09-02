@@ -48,7 +48,6 @@ const CompletedReports = () => {
       setCompletedReports(response.data);
       setLastRefreshTime(new Date());
     } catch (error) {
-      console.error('Error fetching completed reports:', error);
       setError('Failed to load completed reports');
     } finally {
       setLoading(false);
@@ -108,7 +107,7 @@ const CompletedReports = () => {
     switch (status) {
       case 'Completed': return 'bg-green-100 text-green-700';
       case 'Report_Sent': return 'bg-emerald-100 text-emerald-700';
-      case 'feedback_sent': return 'bg-green-100 text-green-700'; // Show as completed for doctors
+
       default: return 'bg-gray-100 text-gray-700';
     }
   };
@@ -117,15 +116,12 @@ const CompletedReports = () => {
     switch (status) {
       case 'Completed': return <CheckCircle className="h-4 w-4" />;
       case 'Report_Sent': return <Mail className="h-4 w-4" />;
-      case 'feedback_sent': return <CheckCircle className="h-4 w-4" />; // Show as completed for doctors
+
       default: return <Clock className="h-4 w-4" />;
     }
   };
 
   const getDisplayStatus = (status) => {
-    if (status === 'feedback_sent') {
-      return 'Completed'; // Hide feedback workflow from doctors
-    }
     return status.replace(/_/g, ' ');
   };
 
@@ -142,9 +138,8 @@ const CompletedReports = () => {
       await downloadPDFReport(reportId);
       
       // Show success message (optional)
-      console.log('Report downloaded successfully');
-    } catch (error) {
-      console.error('Error downloading report:', error);
+      
+          } catch (error) {
       setError(error.message || 'Failed to download report. Please try again.');
     } finally {
       // Remove from downloading set
@@ -166,10 +161,9 @@ const CompletedReports = () => {
       
       if (result.fallback) {
         // If popup was blocked, inform user that file was downloaded instead
-        console.log('Popup blocked, report downloaded instead');
+
       }
-    } catch (error) {
-      console.error('Error viewing report:', error);
+          } catch (error) {
       setError(error.message || 'Failed to view report. Please try again.');
     } finally {
       // Remove from viewing set

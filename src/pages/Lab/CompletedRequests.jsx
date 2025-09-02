@@ -32,7 +32,7 @@ export default function CompletedRequests() {
       
       // Filter for completed requests only
       const completedData = data.filter(request => 
-        ['Testing_Completed', 'Report_Generated', 'Report_Sent', 'Completed', 'feedback_sent'].includes(request.status)
+        ['Testing_Completed', 'Report_Generated', 'Report_Sent', 'Completed'].includes(request.status)
       );
       
       setCompletedRequests(completedData);
@@ -224,15 +224,12 @@ export default function CompletedRequests() {
       case 'Report_Generated': return 'bg-cyan-100 text-cyan-800';
       case 'Report_Sent': return 'bg-emerald-100 text-emerald-800';
       case 'Completed': return 'bg-green-100 text-green-800';
-      case 'feedback_sent': return 'bg-green-100 text-green-800'; // Show as completed for lab staff
+
       default: return 'bg-gray-100 text-gray-800';
     }
   };
 
   const getDisplayStatus = (status) => {
-    if (status === 'feedback_sent') {
-      return 'Completed'; // Hide feedback workflow from lab staff
-    }
     return status.replace(/_/g, ' ');
   };
 
@@ -464,7 +461,7 @@ export default function CompletedRequests() {
                             <FaEye className="inline mr-1" />
                             Details
                           </button>
-                          {(request.status === 'Report_Generated' || request.status === 'Report_Sent' || request.status === 'Completed' || request.status === 'feedback_sent') && request.reportFilePath && (
+                          {(request.status === 'Report_Generated' || request.status === 'Report_Sent' || request.status === 'Completed') && request.reportFilePath && (
                             <>
                               <button
                                 onClick={() => handleViewReport(request._id)}

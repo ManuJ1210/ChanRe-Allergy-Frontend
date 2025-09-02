@@ -52,6 +52,14 @@ export default function ScheduleCollection() {
       const response = await API.get(`/test-requests/${id}`);
       setTestRequest(response.data);
       
+      console.log('📋 Test request details loaded:', {
+        testRequestId: id,
+        status: response.data.status,
+        billingStatus: response.data.billing?.status || 'not_generated',
+        assignedLabStaffId: response.data.assignedLabStaffId,
+        workflowStage: response.data.workflowStage
+      });
+      
       // Pre-fill form with existing data if available
       if (response.data.sampleCollectorId) {
         setFormData(prev => ({
@@ -108,9 +116,42 @@ export default function ScheduleCollection() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!formData.sampleCollectorId || !formData.sampleCollectionScheduledDate || !formData.sampleCollectionScheduledTime) {
-      setError('Please fill in all required fields');
+    // Enhanced form validation
+    const validationErrors = [];
+    
+    if (!formData.sampleCollectorId) {
+      validationErrors.push('Sample collector is required');
+    }
+    
+    if (!formData.sampleCollectionScheduledDate) {
+      validationErrors.push('Collection date is required');
+    }
+    
+    if (!formData.sampleCollectionScheduledTime) {
+      validationErrors.push('Collection time is required');
+    }
+    
+    if (validationErrors.length > 0) {
+      setError(`Please fill in all required fields: ${validationErrors.join(', ')}`);
       return;
+    }
+
+    // Validate date format and allow past dates for rescheduling
+    const selectedDate = new Date(`${formData.sampleCollectionScheduledDate}T${formData.sampleCollectionScheduledTime}`);
+    const now = new Date();
+    
+    // Allow past dates (for rescheduling when collection couldn't happen on scheduled date)
+    // But show a warning if the date is more than 7 days in the past
+    const daysDifference = Math.floor((now - selectedDate) / (1000 * 60 * 60 * 24));
+    
+    if (daysDifference > 7) {
+      setError('Collection date cannot be more than 7 days in the past. Please contact admin if you need to schedule for an earlier date.');
+      return;
+    }
+    
+    if (daysDifference > 0) {
+      // Show warning for past dates but allow submission
+      console.log(`⚠️ Warning: Scheduling collection for ${daysDifference} day(s) in the past`);
     }
 
     try {
@@ -127,6 +168,12 @@ export default function ScheduleCollection() {
         sampleCollectionNotes: formData.sampleCollectionNotes
       };
 
+      console.log('🚀 Submitting schedule collection request:', {
+        testRequestId: id,
+        requestData,
+        scheduledDateTime: scheduledDateTime.toISOString()
+      });
+
       const response = await API.put(`/test-requests/${id}/schedule-collection`, requestData);
       
       setSuccess(true);
@@ -136,7 +183,25 @@ export default function ScheduleCollection() {
       
     } catch (error) {
       console.error('Error scheduling collection:', error);
-      setError(error.response?.data?.message || 'Failed to schedule collection');
+      
+      // Enhanced error logging
+      if (error.response) {
+        console.error('Response status:', error.response.status);
+        console.error('Response data:', error.response.data);
+        console.error('Response headers:', error.response.headers);
+      }
+      
+      // Set user-friendly error message
+      let errorMessage = 'Failed to schedule collection';
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setSaving(false);
     }
@@ -303,6 +368,17 @@ export default function ScheduleCollection() {
         <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
           <h2 className="text-lg font-semibold text-slate-800 mb-6">Schedule Collection Appointment</h2>
           
+          {/* Requirements Notice */}
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+            <h3 className="text-sm font-medium text-yellow-800 mb-2">Requirements for Scheduling Collection</h3>
+            <div className="space-y-1 text-xs text-yellow-700">
+              <p>• Billing must be completed (status: generated, payment_received, or paid)</p>
+              <p>• Lab staff must be assigned to the test request</p>
+              <p>• Test request must be in a valid status for collection scheduling</p>
+              <p>• Past dates are allowed for rescheduling (up to 7 days in the past)</p>
+            </div>
+          </div>
+          
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Sample Collector */}
             <div>
@@ -341,10 +417,12 @@ export default function ScheduleCollection() {
                   name="sampleCollectionScheduledDate"
                   value={formData.sampleCollectionScheduledDate}
                   onChange={handleInputChange}
-                  min={new Date().toISOString().split('T')[0]}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 />
+                <p className="text-xs text-slate-500 mt-1">
+                  You can select past dates for rescheduling if collection couldn't happen on the originally scheduled date
+                </p>
               </div>
               
               <div>

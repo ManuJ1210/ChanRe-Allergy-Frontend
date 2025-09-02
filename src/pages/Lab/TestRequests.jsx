@@ -92,7 +92,7 @@ export default function TestRequests() {
       const pendingCount = testRequests.filter(req => ['Pending', 'pending', 'PENDING'].includes(req.status)).length;
       const assignedCount = testRequests.filter(req => ['Assigned', 'assigned', 'ASSIGNED'].includes(req.status)).length;
       const inProgressCount = testRequests.filter(req => ['Sample_Collection_Scheduled', 'Sample_Collected', 'In_Lab_Testing', 'Testing_Completed', 'sample_collection_scheduled', 'sample_collected', 'in_lab_testing', 'testing_completed', 'In_Progress', 'in_progress'].includes(req.status)).length;
-      const completedCount = testRequests.filter(req => ['Report_Generated', 'Report_Sent', 'Completed', 'feedback_sent', 'report_generated', 'report_sent', 'completed', 'FEEDBACK_SENT', 'Feedback_Sent'].includes(req.status)).length;
+      const completedCount = testRequests.filter(req => ['Report_Generated', 'Report_Sent', 'Completed'].includes(req.status)).length;
       const cancelledCount = testRequests.filter(req => ['Cancelled', 'cancelled', 'CANCELLED'].includes(req.status)).length;
       
       console.log('Category counts:', {
@@ -183,16 +183,7 @@ export default function TestRequests() {
         return 'text-emerald-600 bg-emerald-50 border-emerald-200';
       case 'Completed':
         return 'text-green-600 bg-green-50 border-green-200';
-      case 'feedback_sent':
-        return 'text-green-600 bg-green-50 border-green-200';
-      case 'report_generated':
-        return 'text-cyan-600 bg-cyan-50 border-cyan-200';
-      case 'report_sent':
-        return 'text-emerald-600 bg-emerald-50 border-emerald-200';
-      case 'FEEDBACK_SENT':
-        return 'text-green-600 bg-green-50 border-green-200';
-      case 'Feedback_Sent':
-        return 'text-green-600 bg-green-50 border-green-200';
+
       case 'Cancelled':
         return 'text-red-600 bg-red-50 border-red-200';
       default:
@@ -235,16 +226,7 @@ export default function TestRequests() {
         return <CheckCircle className="h-4 w-4" />;
       case 'Completed':
         return <CheckCircle className="h-4 w-4" />;
-      case 'feedback_sent':
-        return <CheckCircle className="h-4 w-4" />;
-      case 'report_generated':
-        return <Eye className="h-4 w-4" />;
-      case 'report_sent':
-        return <CheckCircle className="h-4 w-4" />;
-      case 'FEEDBACK_SENT':
-        return <CheckCircle className="h-4 w-4" />;
-      case 'Feedback_Sent':
-        return <CheckCircle className="h-4 w-4" />;
+
       case 'Cancelled':
         return <AlertTriangle className="h-4 w-4" />;
       default:
@@ -570,7 +552,7 @@ export default function TestRequests() {
                          <div className="text-center p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
                <div className="text-md font-bold text-emerald-600">
                  {testRequests.filter(req => 
-                   ['Report_Generated', 'Report_Sent', 'Completed', 'feedback_sent', 'report_generated', 'report_sent', 'completed', 'FEEDBACK_SENT', 'Feedback_Sent', 'Report_Generated', 'Report_Sent'].includes(req.status)
+                   ['Report_Generated', 'Report_Sent', 'Completed'].includes(req.status)
                  ).length}
                </div>
                <div className="text-xs text-emerald-700">Completed</div>
@@ -618,11 +600,7 @@ export default function TestRequests() {
                <option value="Report_Generated">Report Generated</option>
                <option value="Report_Sent">Report Sent</option>
                <option value="Completed">Completed</option>
-               <option value="feedback_sent">Feedback Sent</option>
-               <option value="report_generated">Report Generated (Alt)</option>
-               <option value="report_sent">Report Sent (Alt)</option>
-               <option value="FEEDBACK_SENT">Feedback Sent (Alt)</option>
-               <option value="Feedback_Sent">Feedback Sent (Alt2)</option>
+               <option value="Completed">Completed</option>
                <option value="Cancelled">Cancelled</option>
              </select>
 
@@ -741,7 +719,7 @@ export default function TestRequests() {
                         <Edit className="h-4 w-4 mr-1" />
                         Update Status
                       </button>
-                      {(request.status === 'Report_Generated' || request.status === 'Report_Sent' || request.status === 'Completed' || request.status === 'feedback_sent') && request.reportFilePath && (
+                      {(request.status === 'Report_Generated' || request.status === 'Report_Sent' || request.status === 'Completed') && request.reportFilePath && (
                         <>
                           <button
                             onClick={() => handleViewReport(request._id)}

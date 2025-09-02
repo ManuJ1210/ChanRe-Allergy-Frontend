@@ -31,7 +31,6 @@ const DoctorDashboard = () => {
       const response = await API.get('/dashboard/doctor/stats');
       setStats(response.data);
     } catch (error) {
-      console.error('Error fetching doctor stats:', error);
     }
   };
 

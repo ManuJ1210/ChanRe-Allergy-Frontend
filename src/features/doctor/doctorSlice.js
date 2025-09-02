@@ -36,6 +36,8 @@ import {
   fetchDoctorNotifications,
   markNotificationAsRead,
   markAllNotificationsAsRead,
+  deleteNotification,
+  deleteAllNotifications,
   fetchTestRequestFeedback,
   fetchTestRequestsWithFeedback
 } from './doctorThunks';
@@ -83,6 +85,7 @@ const initialState = {
   patientHistoryLoading: false,
   patientMedicationsLoading: false,
   patientFollowUpsLoading: false,
+  testsLoading: false,
   patientsError: null,
   patientDetailsError: null,
   testRequestsError: null,
@@ -90,6 +93,7 @@ const initialState = {
   patientHistoryError: null,
   patientMedicationsError: null,
   patientFollowUpsError: null,
+  testsError: null,
   
   // Notification and Feedback state
   notifications: [],
@@ -226,11 +230,12 @@ const doctorSlice = createSlice({
         
         // Handle structured response from doctor-specific endpoint
         if (action.payload.patient) {
-          // New structure: { patient, history, medications, tests }
+          // New structure: { patient, history, medications }
+          // Note: tests are handled separately by fetchTests action
           state.patientDetails = action.payload.patient;
           state.patientHistory = action.payload.history || [];
           state.patientMedications = action.payload.medications || [];
-          state.tests = action.payload.tests || [];
+          // Don't overwrite tests here - they're managed by fetchTests
         } else {
           // Fallback: treat payload as patient object directly
           state.patientDetails = action.payload;
@@ -366,6 +371,22 @@ const doctorSlice = createSlice({
         state.unreadNotificationsCount = 0;
       })
 
+      // Delete single notification
+      .addCase(deleteNotification.fulfilled, (state, action) => {
+        const { notificationId } = action.payload;
+        const deletedNotification = state.notifications.find(n => n._id === notificationId);
+        if (deletedNotification && !deletedNotification.read) {
+          state.unreadNotificationsCount = Math.max(0, state.unreadNotificationsCount - 1);
+        }
+        state.notifications = state.notifications.filter(n => n._id !== notificationId);
+      })
+
+      // Delete all notifications
+      .addCase(deleteAllNotifications.fulfilled, (state) => {
+        state.notifications = [];
+        state.unreadNotificationsCount = 0;
+      })
+
       // Fetch test request feedback
       .addCase(fetchTestRequestFeedback.pending, (state) => {
         state.feedbackLoading = true;
@@ -443,17 +464,17 @@ const doctorSlice = createSlice({
 
       // Fetch tests
       .addCase(fetchTests.pending, (state) => {
-        state.testRequestsLoading = true;
-        state.testRequestsError = null;
+        state.testsLoading = true;
+        state.testsError = null;
       })
       .addCase(fetchTests.fulfilled, (state, action) => {
-        state.testRequestsLoading = false;
-        state.patientTestRequests = action.payload;
-        state.testRequestsError = null;
+        state.testsLoading = false;
+        state.tests = action.payload;
+        state.testsError = null;
       })
       .addCase(fetchTests.rejected, (state, action) => {
-        state.testRequestsLoading = false;
-        state.testRequestsError = action.payload || 'Failed to fetch tests';
+        state.testsLoading = false;
+        state.testsError = action.payload || 'Failed to fetch tests';
       })
 
       // Fetch allergic rhinitis

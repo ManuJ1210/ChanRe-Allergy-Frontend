@@ -24,9 +24,9 @@ export const downloadPDFReport = async (reportId, fileName = null) => {
     
     // Check if blob is valid
     if (blob.size === 0) {
-      throw new Error('Received empty PDF file');
+      throw new Error('Received empty PDF file from server');
     }
-
+    
     // Create download link
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -50,10 +50,19 @@ export const downloadPDFReport = async (reportId, fileName = null) => {
       try {
         const text = await error.response.data.text();
         const errorData = JSON.parse(text);
+        console.error('Server error details:', errorData);
         throw new Error(errorData.message || 'Failed to download PDF');
       } catch (parseError) {
-        throw new Error('Failed to download PDF');
+        console.error('Error parsing server response:', parseError);
+        throw new Error('Failed to download PDF - server response error');
       }
+    }
+    
+    // Log additional error details
+    if (error.response) {
+      console.error('Response status:', error.response.status);
+      console.error('Response headers:', error.response.headers);
+      console.error('Response data type:', typeof error.response.data);
     }
     
     throw new Error(error.response?.data?.message || error.message || 'Failed to download PDF');
@@ -81,9 +90,9 @@ export const viewPDFReport = async (reportId) => {
     
     // Check if blob is valid
     if (blob.size === 0) {
-      throw new Error('Received empty PDF file');
+      throw new Error('Received empty PDF file from server');
     }
-
+    
     // Create object URL and open in new tab
     const url = window.URL.createObjectURL(blob);
     const newTab = window.open(url, '_blank');
@@ -108,10 +117,19 @@ export const viewPDFReport = async (reportId) => {
       try {
         const text = await error.response.data.text();
         const errorData = JSON.parse(text);
+        console.error('Server error details:', errorData);
         throw new Error(errorData.message || 'Failed to view PDF');
       } catch (parseError) {
-        throw new Error('Failed to view PDF');
+        console.error('Error parsing server response:', parseError);
+        throw new Error('Failed to view PDF - server response error');
       }
+    }
+    
+    // Log additional error details
+    if (error.response) {
+      console.error('Response status:', error.response.status);
+      console.error('Response headers:', error.response.headers);
+      console.error('Response data type:', typeof error.response.data);
     }
     
     throw new Error(error.response?.data?.message || error.message || 'Failed to view PDF');

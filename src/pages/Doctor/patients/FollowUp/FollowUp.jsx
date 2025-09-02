@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { fetchAllFollowUps, fetchPatientDetails } from '../../../../features/centerAdmin/centerAdminThunks';
+import { canDoctorAddFollowUp } from '../../../../utils/patientPermissions';
 import { 
   Calendar, 
   User, 
@@ -11,7 +12,8 @@ import {
   Search,
   Filter,
   Clock,
-  AlertCircle
+  AlertCircle,
+  Lock
 } from 'lucide-react';
 
 const FollowUp = () => {
@@ -22,6 +24,7 @@ const FollowUp = () => {
 
   const { followUps, loading, error } = useSelector(state => state.centerAdmin);
   const { patientDetails } = useSelector(state => state.centerAdmin);
+  const { user } = useSelector(state => state.auth);
 
   useEffect(() => {
     dispatch(fetchAllFollowUps());
@@ -33,7 +36,17 @@ const FollowUp = () => {
   };
 
   const handleAddFollowUp = (patientId) => {
-    navigate(`/dashboard/CenterAdmin/patients/FollowUp/add/${patientId}`);
+    // Check if doctor can add followup to this patient
+    const patient = followUps.find(fu => fu.patientId._id === patientId)?.patientId;
+    if (patient && user) {
+      const permission = canDoctorAddFollowUp(patient, user);
+      if (!permission.canAddFollowUp) {
+        // Show error message or redirect
+        navigate(`/dashboard/Doctor/patients/profile/ViewProfile/${patientId}`);
+        return;
+      }
+    }
+    navigate(`/dashboard/Doctor/patients/FollowUp/add/${patientId}`);
   };
 
   const handleViewFollowUp = (patientId, followUpType) => {
@@ -130,6 +143,16 @@ const FollowUp = () => {
                 Patient Follow-ups
               </h1>
               <p className="text-gray-600 mt-1 text-xs">Manage and track patient follow-up appointments</p>
+            </div>
+            
+            {/* 24-hour restriction notice */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <div className="flex items-center space-x-2">
+                <Clock className="h-4 w-4 text-blue-500" />
+                <p className="text-blue-700 text-xs">
+                  <strong>Note:</strong> Followups can only be added within 24 hours of patient registration
+                </p>
+              </div>
             </div>
             <div className="flex items-center space-x-3">
               <div className="relative">
@@ -254,13 +277,32 @@ const FollowUp = () => {
                           >
                             <Eye className="h-4 w-4" />
                           </button>
-                          <button
-                            onClick={() => handleAddFollowUp(followUp.patientId?._id)}
-                            className="text-green-600 hover:text-green-900 transition-colors"
-                            title="Add Follow-up"
-                          >
-                            <Plus className="h-4 w-4" />
-                          </button>
+                          {(() => {
+                            const patient = followUp.patientId;
+                            const canAdd = user ? canDoctorAddFollowUp(patient, user).canAddFollowUp : false;
+                            
+                            if (canAdd) {
+                              return (
+                                <button
+                                  onClick={() => handleAddFollowUp(followUp.patientId?._id)}
+                                  className="text-green-600 hover:text-green-900 transition-colors"
+                                  title="Add Follow-up"
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </button>
+                              );
+                            } else {
+                              return (
+                                <button
+                                  disabled
+                                  className="text-gray-400 cursor-not-allowed"
+                                  title="Followups can only be added within 24 hours of patient registration"
+                                >
+                                  <Lock className="h-4 w-4" />
+                                </button>
+                              );
+                            }
+                          })()}
                           {followUp.followUpType && (
                             <button
                               onClick={() => handleViewFollowUp(followUp.patientId?._id, followUp.followUpType)}

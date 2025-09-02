@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
+import { toast } from "react-toastify";
 import { fetchReceptionistSinglePatient, updateReceptionistPatient } from "../../features/receptionist/receptionistThunks";
 import { resetReceptionistState } from "../../features/receptionist/receptionistSlice";
+import { fetchAllDoctors } from "../../features/doctor/doctorThunks";
 import ReceptionistLayout from './ReceptionistLayout';
-import { User, Save, ArrowLeft, CheckCircle, AlertCircle, Mail, Phone, MapPin, Calendar, UserCheck, Building2 } from "lucide-react";
+import { User, Save, ArrowLeft, CheckCircle, AlertCircle, Mail, Phone, MapPin, Calendar, UserCheck, Building2, Clock, AlertTriangle } from "lucide-react";
 import API from "../../services/api";
 
 export default function EditPatient() {
@@ -12,6 +14,7 @@ export default function EditPatient() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { singlePatient, patientLoading, patientError, updateSuccess } = useSelector((state) => state.receptionist);
+  const { doctors, loading: doctorLoading, error: doctorError } = useSelector((state) => state.doctor);
   
   const [formData, setFormData] = useState({
     name: "",
@@ -24,16 +27,50 @@ export default function EditPatient() {
     centerCode: "",
     assignedDoctor: "",
   });
-  const [doctors, setDoctors] = useState([]);
-  const [doctorLoading, setDoctorLoading] = useState(true);
-  const [doctorError, setDoctorError] = useState("");
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Function to check if patient can be edited (within 24 hours of creation)
+  const canEditPatient = (patient) => {
+    if (!patient || !patient.createdAt) return false;
+    
+    const createdAt = new Date(patient.createdAt);
+    const timeDifference = currentTime - createdAt;
+    const hoursDifference = timeDifference / (1000 * 60 * 60);
+    
+    return hoursDifference <= 24;
+  };
+
+  // Function to get remaining time for editing
+  const getRemainingEditTime = (patient) => {
+    if (!patient || !patient.createdAt) return null;
+    
+    const createdAt = new Date(patient.createdAt);
+    const timeDifference = currentTime - createdAt;
+    const hoursDifference = timeDifference / (1000 * 60 * 60);
+    
+    if (hoursDifference > 24) return null;
+    
+    const remainingHours = Math.floor(24 - hoursDifference);
+    const remainingMinutes = Math.floor((24 - hoursDifference - remainingHours) * 60);
+    
+    return { hours: remainingHours, minutes: remainingMinutes };
+  };
 
   useEffect(() => {
     if (id) {
       dispatch(fetchReceptionistSinglePatient(id));
     }
-    fetchDoctors();
+    dispatch(fetchAllDoctors());
   }, [dispatch, id]);
+
+  // Update current time every minute for countdown
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // Update every minute
+
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (singlePatient) {
@@ -53,6 +90,7 @@ export default function EditPatient() {
 
   useEffect(() => {
     if (updateSuccess) {
+      toast.success("Patient updated successfully!");
       setTimeout(() => {
         dispatch(resetReceptionistState());
         navigate("/dashboard/receptionist/patients");
@@ -60,22 +98,19 @@ export default function EditPatient() {
     }
   }, [updateSuccess, dispatch, navigate]);
 
-  const fetchDoctors = async () => {
-    setDoctorLoading(true);
-    setDoctorError("");
-    try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`${API}/doctors`, { 
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await response.json();
-      setDoctors(data);
-    } catch (err) {
-      setDoctorError("Failed to load doctors");
-    } finally {
-      setDoctorLoading(false);
+  useEffect(() => {
+    if (patientError) {
+      toast.error(patientError);
     }
-  };
+  }, [patientError]);
+
+  useEffect(() => {
+    if (doctorError) {
+      toast.error("Failed to load doctors: " + doctorError);
+    }
+  }, [doctorError]);
+
+
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -89,7 +124,12 @@ export default function EditPatient() {
       contact: formData.phone || formData.contact,
       phone: formData.phone || formData.contact
     };
-    dispatch(updateReceptionistPatient({ id, patientData: submitData }));
+    
+    try {
+      await dispatch(updateReceptionistPatient({ id, patientData: submitData })).unwrap();
+    } catch (error) {
+      toast.error(error.message || "Failed to update patient");
+    }
   };
 
   if (patientLoading) {
@@ -114,6 +154,39 @@ export default function EditPatient() {
           <div className="max-w-4xl mx-auto">
             <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
               <p className="text-red-600">{patientError}</p>
+              <button
+                onClick={() => navigate('/dashboard/receptionist/patients')}
+                className="mt-4 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+              >
+                Back to Patients
+              </button>
+            </div>
+          </div>
+        </div>
+      </ReceptionistLayout>
+    );
+  }
+
+  // Check if patient can be edited
+  if (singlePatient && !canEditPatient(singlePatient)) {
+    return (
+      <ReceptionistLayout>
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 sm:p-6">
+          <div className="max-w-4xl mx-auto">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
+              <div className="flex items-center justify-center mb-4">
+                <AlertTriangle className="h-8 w-8 text-yellow-600 mr-3" />
+                <h2 className="text-lg font-semibold text-yellow-800">Edit Time Expired</h2>
+              </div>
+              <p className="text-yellow-700 mb-4">
+                This patient can no longer be edited. The 24-hour edit window has expired.
+              </p>
+              <button
+                onClick={() => navigate('/dashboard/receptionist/patients')}
+                className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+              >
+                Back to Patients
+              </button>
             </div>
           </div>
         </div>
@@ -147,6 +220,19 @@ export default function EditPatient() {
             <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4 flex items-center">
               <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
               <span className="text-green-700">Patient updated successfully!</span>
+            </div>
+          )}
+
+          {/* Time Warning */}
+          {singlePatient && canEditPatient(singlePatient) && getRemainingEditTime(singlePatient) && (
+            <div className="mb-6 bg-orange-50 border border-orange-200 rounded-lg p-4 flex items-center">
+              <Clock className="h-5 w-5 text-orange-500 mr-3" />
+              <div>
+                <span className="text-orange-700 font-medium">Edit Time Remaining: </span>
+                <span className="text-orange-600">
+                  {getRemainingEditTime(singlePatient).hours}h {getRemainingEditTime(singlePatient).minutes}m
+                </span>
+              </div>
             </div>
           )}
 
@@ -282,14 +368,19 @@ export default function EditPatient() {
                       <option value="" disabled>Loading doctors...</option>
                     ) : doctorError ? (
                       <option value="" disabled>Error loading doctors</option>
-                    ) : (
+                    ) : doctors && doctors.length > 0 ? (
                       doctors.map((doctor) => (
                         <option key={doctor._id} value={doctor._id}>
                           Dr. {doctor.name} - {doctor.specialization || 'General'}
                         </option>
                       ))
+                    ) : (
+                      <option value="" disabled>No doctors available</option>
                     )}
                   </select>
+                  {doctorError && (
+                    <p className="text-xs text-red-500 mt-1">Failed to load doctors. Please try refreshing the page.</p>
+                  )}
                 </div>
               </div>
 

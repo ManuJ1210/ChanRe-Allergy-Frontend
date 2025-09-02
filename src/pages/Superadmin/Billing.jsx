@@ -36,9 +36,9 @@ const SuperadminBilling = () => {
     try {
       setLoading(true);
       
-      console.log('🚀 Fetching real billing data for superadmin');
+  
       
-      const response = await fetch('/api/test-requests/billing/all', {
+      const response = await fetch('/api/billing/all', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json'
@@ -47,7 +47,7 @@ const SuperadminBilling = () => {
       
       if (response.ok) {
         const data = await response.json();
-        console.log('✅ Real billing data received:', data.billingRequests?.length || 0, 'items');
+
         setBillingData(data.billingRequests || []);
       } else {
         const errorData = await response.json().catch(() => ({}));
@@ -67,7 +67,7 @@ const SuperadminBilling = () => {
   // ✅ REAL DATA: Fetch centers for filtering
   const fetchCenters = async () => {
     try {
-      console.log('🚀 Fetching real centers data');
+  
       
       const response = await fetch('/api/centers', {
         headers: {
@@ -78,7 +78,7 @@ const SuperadminBilling = () => {
       
       if (response.ok) {
         const data = await response.json();
-        console.log('✅ Real centers data received:', data.centers?.length || 0, 'centers');
+
         setCenters(data.centers || []);
       } else {
         console.error('Failed to fetch centers data');

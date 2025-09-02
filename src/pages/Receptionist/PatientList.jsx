@@ -14,7 +14,9 @@ import {
   Phone,
   Calendar,
   UserCheck,
-  MapPin
+  MapPin,
+  Edit,
+  Clock
 } from 'lucide-react';
 import API from '../../services/api';
 
@@ -24,11 +26,48 @@ export default function ReceptionistPatientList() {
   const { patients, loading, error } = useSelector((state) => state.receptionist);
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredPatients, setFilteredPatients] = useState([]);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Function to check if patient can be edited (within 24 hours of creation)
+  const canEditPatient = (patient) => {
+    if (!patient || !patient.createdAt) return false;
+    
+    const createdAt = new Date(patient.createdAt);
+    const timeDifference = currentTime - createdAt;
+    const hoursDifference = timeDifference / (1000 * 60 * 60);
+    
+    return hoursDifference <= 24;
+  };
+
+  // Function to get remaining time for editing
+  const getRemainingEditTime = (patient) => {
+    if (!patient || !patient.createdAt) return null;
+    
+    const createdAt = new Date(patient.createdAt);
+    const timeDifference = currentTime - createdAt;
+    const hoursDifference = timeDifference / (1000 * 60 * 60);
+    
+    if (hoursDifference > 24) return null;
+    
+    const remainingHours = Math.floor(24 - hoursDifference);
+    const remainingMinutes = Math.floor((24 - hoursDifference - remainingHours) * 60);
+    
+    return { hours: remainingHours, minutes: remainingMinutes };
+  };
 
 
   useEffect(() => {
     dispatch(fetchReceptionistPatients());
   }, [dispatch]);
+
+  // Update current time every minute for countdown
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // Update every minute
+
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const filtered = patients.filter(patient =>
@@ -167,8 +206,7 @@ export default function ReceptionistPatientList() {
 
           {/* Patients Table */}
           <div className="bg-white rounded-xl shadow-sm border border-blue-100 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
+            <table className="w-full">
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
                     <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
@@ -187,6 +225,9 @@ export default function ReceptionistPatientList() {
                       Address
                     </th>
                     <th className="px-6 py-4 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
+                      Edit Status
+                    </th>
+                    <th className="px-6 py-4 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
@@ -194,7 +235,7 @@ export default function ReceptionistPatientList() {
                 <tbody className="bg-white divide-y divide-slate-200">
                   {filteredPatients.length === 0 ? (
                     <tr>
-                      <td colSpan="5" className="px-6 py-12 text-center">
+                      <td colSpan="6" className="px-6 py-12 text-center">
                         <Users className="h-12 w-12 text-slate-400 mx-auto mb-4" />
                         <h3 className="text-xs font-medium text-slate-600 mb-2">No Patients Found</h3>
                         <p className="text-slate-500 mb-4">
@@ -262,16 +303,52 @@ export default function ReceptionistPatientList() {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-center text-xs font-medium">
+                          {canEditPatient(patient) ? (
+                            <div className="flex items-center justify-center gap-1 text-green-600">
+                              <Clock className="h-3 w-3" />
+                              <span>Editable</span>
+                              {getRemainingEditTime(patient) && (
+                                <span className="text-xs text-slate-500">
+                                  ({getRemainingEditTime(patient).hours}h {getRemainingEditTime(patient).minutes}m)
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-center gap-1 text-red-600">
+                              <Clock className="h-3 w-3" />
+                              <span>Expired</span>
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-center text-xs font-medium">
                           <div className="flex items-center justify-center gap-2">
                             {patient._id ? (
-                              <button
-                                onClick={() => navigate(`/dashboard/receptionist/profile/${patient._id}`)}
-                                className="bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 px-3 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
-                                title="View patient profile"
-                              >
-                                <Eye className="h-4 w-4" />
-                                View Profile
-                              </button>
+                              <>
+                                <button
+                                  onClick={() => navigate(`/dashboard/receptionist/profile/${patient._id}`)}
+                                  className="bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 px-3 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+                                  title="View patient profile"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                  View Profile
+                                </button>
+                                
+                                {canEditPatient(patient) ? (
+                                  <button
+                                    onClick={() => navigate(`/dashboard/receptionist/edit-patient/${patient._id}`)}
+                                    className="bg-green-50 hover:bg-green-100 text-green-600 hover:text-green-700 px-3 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+                                    title="Edit patient"
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                    Edit
+                                  </button>
+                                ) : (
+                                  <div className="bg-gray-50 text-gray-500 px-3 py-2 rounded-lg font-medium flex items-center gap-2" title="Edit expired">
+                                    <Clock className="h-4 w-4" />
+                                    Edit Expired
+                                  </div>
+                                )}
+                              </>
                             ) : (
                               <span className="text-slate-400 px-3 py-2 rounded-lg bg-slate-50 flex items-center gap-2">
                                 <Eye className="h-4 w-4" />
@@ -283,10 +360,9 @@ export default function ReceptionistPatientList() {
                       </tr>
                     ))
                   )}
-                </tbody>
-              </table>
-            </div>
-          </div>
+                                 </tbody>
+               </table>
+           </div>
         </div>
       </div>
 

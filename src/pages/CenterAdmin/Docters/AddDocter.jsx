@@ -189,15 +189,6 @@ const AddDocter = () => {
       try {
         const response = await API.get(`/centers/by-admin/${user.id}`);
         centerId = response.data._id;
-        
-        // Update localStorage with the centerId
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-          const userObj = JSON.parse(storedUser);
-          userObj.centerId = centerId;
-          userObj.centerCode = response.data.code;
-          localStorage.setItem('user', JSON.stringify(userObj));
-        }
       } catch (error) {
         console.error('Error getting center ID:', error);
         toast.error('Unable to get center information. Please try again.', {

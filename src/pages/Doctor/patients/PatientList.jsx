@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchAssignedPatients } from "../../../features/doctor/doctorThunks";
 import { useNavigate } from "react-router-dom";
 import { canDoctorEditPatient } from "../../../utils/patientPermissions";
+import { toast } from "react-toastify";
 import { 
   Users, 
   Search, 
@@ -20,6 +21,7 @@ import {
   Clock,
   Lock
 } from 'lucide-react';
+import API from '../../../services/api';
 
 export default function PatientList() {
   const dispatch = useDispatch();
@@ -58,6 +60,30 @@ export default function PatientList() {
   };
 
   const genderStats = getGenderStats();
+
+  // Handle assigning doctor to patient
+  const handleAssignDoctor = async (patientId) => {
+    if (!user || !user._id || !patientId) {
+      toast.error('Unable to assign doctor. Please try again.');
+      return;
+    }
+
+    try {
+      const response = await API.put(`/patients/${patientId}`, {
+        assignedDoctor: user._id
+      });
+
+      if (response.status === 200) {
+        toast.success('Successfully assigned as doctor to this patient!');
+        // Refresh patient list
+        dispatch(fetchAssignedPatients());
+      } else {
+        toast.error(response.data?.message || 'Failed to assign doctor');
+      }
+    } catch (error) {
+      toast.error('Failed to assign doctor. Please try again.');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-2 sm:p-3 md:p-6">
@@ -219,7 +245,7 @@ export default function PatientList() {
                     <div className="flex items-center gap-2 bg-white p-2 rounded-lg border border-slate-200">
                       <Users className="h-4 w-4 text-orange-500" />
                       <span className="text-slate-700 text-xs font-medium">
-                        Dr. {patient?.assignedDoctor?.name || user?.name || 'You'}
+                        Dr. {patient?.assignedDoctor?.name || 'Not assigned'}
                       </span>
                     </div>
                     
@@ -346,8 +372,19 @@ export default function PatientList() {
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="text-xs text-slate-600">
-                            Dr. {patient?.assignedDoctor?.name || user?.name || 'You'}
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-slate-600">
+                              {patient?.assignedDoctor?.name || 'Not assigned'}
+                            </span>
+                            {!patient?.assignedDoctor && user && (
+                              <button
+                                onClick={() => handleAssignDoctor(patient._id)}
+                                className="text-xs bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded transition-colors"
+                                title="Assign yourself to this patient"
+                              >
+                                Assign Me
+                              </button>
+                            )}
                           </div>
                         </td>
                         <td className="px-6 py-4">

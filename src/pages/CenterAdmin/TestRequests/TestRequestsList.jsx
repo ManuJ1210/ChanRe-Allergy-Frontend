@@ -36,7 +36,6 @@ const TestRequestsList = () => {
     if (user?.centerId) {
       // Handle both string and object cases for centerId
       const centerId = user.centerId._id || user.centerId;
-      console.log('🔍 Debug - User centerId:', user.centerId, 'Extracted centerId:', centerId);
       setCenterFilter(centerId);
     }
   }, [user]);
@@ -59,18 +58,9 @@ const TestRequestsList = () => {
       
       // Don't proceed if we don't have a valid centerId
       if (!centerId) {
-        console.warn('⚠️ No valid centerId found, skipping API call');
         setLoading(false);
         return;
       }
-      
-      console.log('🔍 Debug - API call params:', {
-        userCenterId: user?.centerId,
-        extractedCenterId: centerId,
-        centerFilter,
-        statusFilter,
-        urgencyFilter
-      });
       
       const params = new URLSearchParams({
         page: currentPage,
@@ -84,19 +74,10 @@ const TestRequestsList = () => {
 
       const response = await API.get(`/test-requests?${params}`);
       
-      console.log('🔍 Debug - API Response:', response.data);
-      console.log('🔍 Debug - Response structure:', {
-        hasData: !!response.data,
-        dataType: typeof response.data,
-        isArray: Array.isArray(response.data),
-        keys: response.data ? Object.keys(response.data) : 'No data'
-      });
-      
       setTestRequests(response.data.testRequests || response.data || []);
       setTotalPages(response.data.pagination?.totalPages || response.data.totalPages || 1);
       
     } catch (error) {
-      console.error('❌ Frontend: Error fetching test requests:', error);
       setError('Failed to load test requests');
     } finally {
       setLoading(false);
@@ -233,15 +214,15 @@ const TestRequestsList = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-purple-100">
+          <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-orange-100">
             <div className="flex items-center">
-              <div className="bg-purple-100 p-3 rounded-full mr-4">
-                <Clock className="h-6 w-6 text-purple-600" />
+              <div className="bg-orange-100 p-3 rounded-full mr-4">
+                <Clock className="h-6 w-6 text-orange-600" />
               </div>
               <div>
-                <p className="text-xs font-medium text-slate-600">Pending Review</p>
+                <p className="text-xs font-medium text-slate-600">Bill Pending</p>
                 <p className="text-sm font-bold text-slate-800">
-                  {testRequests.filter(tr => tr.status === 'Superadmin_Review').length}
+                  {testRequests.filter(tr => tr.status === 'Report_Generated' || tr.status === 'Report_Sent').length}
                 </p>
               </div>
             </div>
@@ -253,9 +234,13 @@ const TestRequestsList = () => {
                 <CheckCircle className="h-6 w-6 text-green-600" />
               </div>
               <div>
-                <p className="text-xs font-medium text-slate-600">Approved</p>
+                <p className="text-xs font-medium text-slate-600">Test Completed</p>
                 <p className="text-sm font-bold text-slate-800">
-                  {testRequests.filter(tr => tr.status === 'Superadmin_Approved').length}
+                  {testRequests.filter(tr => 
+                    tr.status === 'Report_Generated' || 
+                    tr.status === 'Report_Sent' || 
+                    tr.status === 'Completed'
+                  ).length}
                 </p>
               </div>
             </div>

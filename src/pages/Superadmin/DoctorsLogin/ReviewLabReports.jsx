@@ -47,14 +47,11 @@ const ReviewLabReports = () => {
   }, [dispatch]);
 
   const handleReviewReport = (report) => {
-    console.log('Setting selected report:', report);
     setSelectedReport(report);
     setShowFeedbackModal(true);
   };
 
   const handleSendFeedback = async () => {
-    console.log('handleSendFeedback called, selectedReport:', selectedReport);
-    
     if (!selectedReport || !selectedReport._id) {
       console.error('No selected report or missing report ID');
       return;
@@ -91,14 +88,9 @@ const ReviewLabReports = () => {
   // PDF handling functions
   const handleViewPDF = async (report) => {
     try {
-      console.log('🔍 Attempting to view PDF for report:', report);
-      console.log('🔍 Report ID:', report._id);
-      console.log('🔍 Report File:', report.reportFile);
-      
       let pdfUrl;
       
       // Use the API service for consistent configuration
-      console.log('🔍 Using API service for PDF download');
       
       // Use the API service instead of hardcoded fetch
       const response = await API.get(`/test-requests/download-report/${report._id}`, {
@@ -108,9 +100,6 @@ const ReviewLabReports = () => {
         }
       });
       
-      console.log('🔍 Response status:', response.status);
-      console.log('🔍 Response headers:', response.headers);
-      
       if (response.status !== 200) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -119,18 +108,13 @@ const ReviewLabReports = () => {
       
       // Check if response is already a PDF blob
       const contentType = response.headers['content-type'] || response.headers['Content-Type'];
-      console.log('🔍 Response content-type:', contentType);
       
       if (contentType && contentType.includes('application/pdf')) {
         // Response is already a PDF blob
         pdfBlob = response.data;
-        console.log('🔍 Using response as PDF blob');
       } else {
         // Handle text/JSON response that needs conversion
-        console.log('🔍 Converting text response to PDF blob');
         const responseData = response.data;
-        console.log('🔍 Response data type:', typeof responseData);
-        console.log('🔍 Response data length:', responseData.length);
         
         let pdfContent = responseData;
         
@@ -166,20 +150,15 @@ const ReviewLabReports = () => {
         pdfBlob = new Blob([byteArray], { type: 'application/pdf' });
       }
       
-      console.log('🔍 Final PDF blob size:', pdfBlob.size, 'bytes');
-      console.log('🔍 Final PDF blob type:', pdfBlob.type);
-      
       // Create a blob URL for the PDF
       const blobUrl = window.URL.createObjectURL(pdfBlob);
-      console.log('🔍 Created blob URL:', blobUrl);
       
       // Open PDF in new tab
       const newWindow = window.open(blobUrl, '_blank');
       
       if (newWindow) {
-        console.log('🔍 PDF opened in new window successfully');
+        // PDF opened successfully
       } else {
-        console.log('🔍 Failed to open new window (might be blocked by popup blocker)');
         // Fallback: try to open in same window
         window.open(blobUrl, '_self');
       }
@@ -187,7 +166,6 @@ const ReviewLabReports = () => {
       // Clean up the blob URL after a delay to ensure the PDF loads
       setTimeout(() => {
         window.URL.revokeObjectURL(blobUrl);
-        console.log('🔍 Cleaned up blob URL');
       }, 1000);
       
     } catch (error) {
@@ -231,8 +209,8 @@ const ReviewLabReports = () => {
         return 'bg-green-100 text-green-800';
       case 'pending_review':
         return 'bg-yellow-100 text-yellow-800';
-      case 'feedback_sent':
-        return 'bg-blue-100 text-blue-800';
+      case 'completed':
+        return 'bg-green-100 text-green-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -244,8 +222,8 @@ const ReviewLabReports = () => {
         return <CheckCircle className="w-4 h-4" />;
       case 'pending_review':
         return <Clock className="w-4 h-4" />;
-      case 'feedback_sent':
-        return <MessageSquare className="w-4 h-4" />;
+      case 'completed':
+        return <CheckCircle className="w-4 h-4" />;
       default:
         return <AlertCircle className="w-4 h-4" />;
     }

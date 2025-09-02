@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Calendar, FileText, User, CheckCircle, AlertCircle, Download } from "lucide-react";
-import api from "../../services/api";
+import API from "../../services/api";
 
 const ViewHistory = () => {
   const { patientId } = useParams();
@@ -17,8 +17,7 @@ const ViewHistory = () => {
         const response = await api.get(`/history/single/${patientId}`);
         setHistory(response.data);
         setError(null);
-      } catch (err) {
-        console.error('Error fetching history:', err);
+          } catch (err) {
         setError('Failed to load history details');
       } finally {
         setLoading(false);

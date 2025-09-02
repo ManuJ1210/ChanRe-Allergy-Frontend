@@ -101,21 +101,15 @@ const SuperAdminDoctorList = () => {
   };
 
   const renderSpecializations = (specializations, doctorId) => {
-    console.log('🔍 renderSpecializations called:', { specializations, doctorId, type: typeof specializations, isArray: Array.isArray(specializations) });
-    
     if (!specializations) {
-      console.log('🔍 No specializations found');
       return 'N/A';
     }
     
     if (Array.isArray(specializations) && specializations.length > 0) {
-      console.log('🔍 Found array specializations:', specializations);
       return specializations.join(', ');
     } else if (typeof specializations === 'string' && specializations.trim()) {
-      console.log('🔍 Found string specializations:', specializations);
       return specializations;
     } else {
-      console.log('🔍 No valid specializations, showing Add button');
       return (
         <span className="text-slate-400 italic">
           No specializations

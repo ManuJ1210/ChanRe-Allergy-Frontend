@@ -316,7 +316,7 @@ const ViewAllergicRhinitis = () => {
               Back to Follow-ups
             </button>
             <button
-              onClick={() => navigate(`/center-admin/followup/allergic-rhinitis/add/${patientId}`)}
+              onClick={() => navigate(`/dashboard/Doctor/patients/FollowUp/AddAllergicRhinitis/${patientId}`)}
               className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs"
             >
               Add New Record

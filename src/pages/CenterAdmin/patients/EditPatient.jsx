@@ -33,7 +33,7 @@ export default function EditPatient() {
   }, [dispatch, id]);
 
   useEffect(() => {
-    console.log('🔍 EditPatient Debug:', { patientDetails, patient, id });
+  
     
     if (patient) {
       setFormData({
@@ -62,7 +62,6 @@ export default function EditPatient() {
 
     try {
       await dispatch(updatePatient({ patientId: id, patientData: formData })).unwrap();
-      toast.success('Patient updated successfully!');
       navigate('/dashboard/CenterAdmin/patients/PatientList');
     } catch (err) {
       setError(err.message || 'Failed to update patient');

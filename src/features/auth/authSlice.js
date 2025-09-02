@@ -14,8 +14,14 @@ const authSlice = createSlice({
     logout: (state) => {
       state.user = null;
       state.token = null;
+      state.loading = false;
+      state.error = null;
+      // Clear all auth-related data
       localStorage.removeItem('user');
       localStorage.removeItem('token');
+      localStorage.removeItem('centerId');
+      localStorage.removeItem('centerName');
+      sessionStorage.clear();
     },
     setUserFromLocal: (state) => {
       const storedUser = localStorage.getItem('user');
@@ -53,7 +59,6 @@ const authSlice = createSlice({
         let decodedToken = {};
         try {
           decodedToken = jwtDecode(action.payload.token);
-          console.log('🔍 Auth Debug - Decoded JWT token:', decodedToken);
         } catch (error) {
           console.error('Error decoding JWT token:', error);
         }
@@ -63,9 +68,6 @@ const authSlice = createSlice({
           ...action.payload.user,
           ...decodedToken
         };
-        
-        console.log('🔍 Auth Debug - Backend user data:', action.payload.user);
-        console.log('🔍 Auth Debug - Merged user data:', userData);
         
         state.user = userData;
         state.token = action.payload.token;

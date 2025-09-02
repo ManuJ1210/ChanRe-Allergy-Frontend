@@ -32,13 +32,12 @@ const CompleteTesting = () => {
   
   // Form state
   const [formData, setFormData] = useState({
-    testResults: '',
-    labTestingNotes: '',
-    labTestingCompletedDate: '',
-    testParameters: [],
-    conclusion: '',
-    recommendations: ''
+    labTestingNotes: ''
   });
+
+  // File upload state
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [fileError, setFileError] = useState('');
 
   useEffect(() => {
     if (id) {
@@ -78,34 +77,47 @@ const CompleteTesting = () => {
     }));
   };
 
-  const addTestParameter = () => {
-    setFormData(prev => ({
-      ...prev,
-      testParameters: [...prev.testParameters, { name: '', value: '', unit: '', normalRange: '' }]
-    }));
+
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    setFileError('');
+    
+    if (file) {
+      // Validate file type
+      if (file.type !== 'application/pdf') {
+        setFileError('Please select a PDF file only');
+        setSelectedFile(null);
+        return;
+      }
+      
+      // Validate file size (10MB limit)
+      if (file.size > 10 * 1024 * 1024) {
+        setFileError('File size must be less than 10MB');
+        setSelectedFile(null);
+        return;
+      }
+      
+      setSelectedFile(file);
+      console.log('📁 File selected:', {
+        name: file.name,
+        size: file.size,
+        type: file.type
+      });
+    }
   };
 
-  const updateTestParameter = (index, field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      testParameters: prev.testParameters.map((param, i) => 
-        i === index ? { ...param, [field]: value } : param
-      )
-    }));
-  };
-
-  const removeTestParameter = (index) => {
-    setFormData(prev => ({
-      ...prev,
-      testParameters: prev.testParameters.filter((_, i) => i !== index)
-    }));
+  const removeFile = () => {
+    setSelectedFile(null);
+    setFileError('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!formData.testResults.trim()) {
-      setError('Please enter test results');
+    // PDF upload is mandatory
+    if (!selectedFile) {
+      setError('Please upload a PDF lab report. This field is required.');
       return;
     }
 
@@ -113,17 +125,27 @@ const CompleteTesting = () => {
       setSaving(true);
       setError(null);
       
-      const requestData = {
-        testResults: formData.testResults,
-        labTestingNotes: formData.labTestingNotes,
-        labTestingCompletedDate: new Date().toISOString(),
-        testParameters: formData.testParameters,
-        conclusion: formData.conclusion,
-        recommendations: formData.recommendations,
-        status: 'Testing_Completed'
-      };
+      // Create FormData for file upload
+      const formDataToSend = new FormData();
+      
+      // Add notes field
+      formDataToSend.append('labTestingNotes', formData.labTestingNotes);
+      
+      // Add file (mandatory)
+      formDataToSend.append('labReportFile', selectedFile);
+      console.log('📤 Uploading file:', selectedFile.name);
 
-      const response = await API.put(`/test-requests/${id}/complete-testing`, requestData);
+      console.log('🚀 Submitting lab report upload:', {
+        testRequestId: id,
+        fileName: selectedFile.name,
+        hasNotes: !!formData.labTestingNotes.trim()
+      });
+
+      const response = await API.put(`/test-requests/${id}/complete-testing`, formDataToSend, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
       
       setSuccess(true);
       setTimeout(() => {
@@ -252,8 +274,8 @@ const CompleteTesting = () => {
         <div className="bg-white rounded-lg shadow-lg p-8">
           {/* Record Header */}
           <div className="text-center mb-8">
-            <h1 className="text-xl font-bold text-gray-800 mb-2">COMPLETE LABORATORY TESTING</h1>
-            <p className="text-gray-600">Enter Test Results and Complete Testing Process</p>
+                          <h1 className="text-xl font-bold text-gray-800 mb-2">UPLOAD LAB REPORT</h1>
+              <p className="text-gray-600">Upload PDF Lab Report and Complete Testing</p>
           </div>
 
           {/* Success Message */}
@@ -262,7 +284,7 @@ const CompleteTesting = () => {
               <div className="flex items-center">
                 <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
                 <p className="text-green-800">
-                  Testing completed successfully! Redirecting to test request details...
+                  Lab report uploaded and testing completed successfully! Redirecting to test request details...
                 </p>
               </div>
             </div>
@@ -278,6 +300,22 @@ const CompleteTesting = () => {
             </div>
           )}
           
+          {/* PDF Upload Notice */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <div className="flex items-start">
+              <AlertCircle className="h-5 w-5 text-blue-600 mr-2 mt-0.5" />
+              <div>
+                <h3 className="text-sm font-medium text-blue-800 mb-1">
+                  PDF Lab Report Upload Required
+                </h3>
+                <p className="text-sm text-blue-700">
+                  Please upload the completed lab report PDF. This is required to complete the testing process. 
+                  You can also add additional notes if needed.
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Test Request Information */}
           <div className="bg-blue-50 rounded-lg p-6 mb-8">
             <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
@@ -329,123 +367,87 @@ const CompleteTesting = () => {
           {/* Complete Testing Form */}
           <div className="bg-gray-50 rounded-lg p-6">
             <h2 className="text-lg font-semibold text-gray-800 mb-6 flex items-center">
-              <TestTube className="h-5 w-5 mr-2 text-blue-600" />
-              Complete Testing & Enter Results
+              <FileText className="h-5 w-5 mr-2 text-blue-600" />
+              Upload Lab Report & Add Notes
             </h2>
             
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Test Results */}
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-2">
-                  Test Results <span className="text-red-500">*</span>
-                </label>
-                <textarea
-                  name="testResults"
-                  value={formData.testResults}
-                  onChange={handleInputChange}
-                  rows={6}
-                  placeholder="Enter detailed test results, findings, and observations..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
-                />
-              </div>
 
-              {/* Test Parameters */}
+
+
+
+
+
+
+
+              {/* Lab Report PDF Upload */}
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-2">
-                  Test Parameters
+                  Lab Report PDF <span className="text-red-500">*</span>
                 </label>
                 <div className="space-y-3">
-                  {formData.testParameters.map((param, index) => (
-                    <div key={index} className="grid grid-cols-1 md:grid-cols-5 gap-2">
-                      <input
-                        type="text"
-                        placeholder="Parameter Name"
-                        value={param.name}
-                        onChange={(e) => updateTestParameter(index, 'name', e.target.value)}
-                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  {!selectedFile ? (
+                    <div className="flex items-center space-x-2">
+                      <input 
+                        type="file"
+                        accept=".pdf"
+                        onChange={handleFileChange}
+                        className="hidden"
+                        id="lab-report-upload"
                       />
-                      <input
-                        type="text"
-                        placeholder="Value"
-                        value={param.value}
-                        onChange={(e) => updateTestParameter(index, 'value', e.target.value)}
-                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                      <input
-                        type="text"
-                        placeholder="Unit"
-                        value={param.unit}
-                        onChange={(e) => updateTestParameter(index, 'unit', e.target.value)}
-                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                      <input
-                        type="text"
-                        placeholder="Normal Range"
-                        value={param.normalRange}
-                        onChange={(e) => updateTestParameter(index, 'normalRange', e.target.value)}
-                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
+                      <label 
+                        htmlFor="lab-report-upload"
+                        className="flex items-center px-4 py-2 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+                      >
+                        <FileText className="h-4 w-4 mr-2 text-blue-600" />
+                        Choose PDF File
+                      </label>
+                      <span className="text-xs text-gray-500">
+                        Max size: 10MB, PDF only
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex items-center space-x-2">
+                        <FileText className="h-5 w-5 text-blue-600" />
+                        <span className="text-sm font-medium text-blue-800">
+                          {selectedFile.name}
+                        </span>
+                        <span className="text-xs text-blue-600">
+                          ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
+                        </span>
+                      </div>
                       <button
                         type="button"
-                        onClick={() => removeTestParameter(index)}
-                        className="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+                        onClick={removeFile}
+                        className="text-red-600 hover:text-red-800 text-sm font-medium"
                       >
                         Remove
                       </button>
                     </div>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={addTestParameter}
-                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-                  >
-                    Add Test Parameter
-                  </button>
+                  )}
+                  
+                  {fileError && (
+                    <p className="text-xs text-red-600">{fileError}</p>
+                  )}
+                  
+                  <p className="text-xs text-gray-500">
+                    Upload the completed lab report PDF. This will be sent to the doctor along with your notes.
+                  </p>
                 </div>
               </div>
 
-              {/* Conclusion */}
+              {/* Notes */}
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-2">
-                  Conclusion
-                </label>
-                <textarea
-                  name="conclusion"
-                  value={formData.conclusion}
-                  onChange={handleInputChange}
-                  rows={3}
-                  placeholder="Enter test conclusion and interpretation..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-
-              {/* Recommendations */}
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-2">
-                  Recommendations
-                </label>
-                <textarea
-                  name="recommendations"
-                  value={formData.recommendations}
-                  onChange={handleInputChange}
-                  rows={3}
-                  placeholder="Enter any recommendations for follow-up..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-
-              {/* Testing Notes */}
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-2">
-                  Testing Notes
+                  Notes <span className="text-gray-500">(Optional)</span>
                 </label>
                 <textarea
                   name="labTestingNotes"
                   value={formData.labTestingNotes}
                   onChange={handleInputChange}
                   rows={4}
-                  placeholder="Enter any additional notes about the testing process..."
+                  placeholder="Enter any additional notes or comments..."
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
@@ -461,18 +463,18 @@ const CompleteTesting = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={saving || !formData.testResults.trim()}
+                  disabled={saving}
                   className="flex items-center px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {saving ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Completing...
+                      Uploading...
                     </>
                   ) : (
                     <>
-                      <StopCircle className="h-4 w-4 mr-2" />
-                      Complete Testing
+                      <FileText className="h-4 w-4 mr-2" />
+                      Upload Report
                     </>
                   )}
                 </button>

@@ -141,8 +141,9 @@ import ReceptionistViewAllergicBronchitis from '../pages/Receptionist/FollowUp/A
 import ReceptionistViewGPE from '../pages/Receptionist/FollowUp/GPE/ViewGPE';
 import ReceptionistViewPrescription from '../pages/Receptionist/FollowUp/Prescription/ViewPrescription';
 import ReceptionistLayout from '../pages/Receptionist/ReceptionistLayout';
-import ReceptionistBilling from '../pages/Receptionist/Billing.jsx';
+import ReceptionistBilling from '../pages/Receptionist/Billing';
 import AddReceptionistPatient from '../pages/Receptionist/AddPatient';
+import ReceptionistEditPatient from '../pages/Receptionist/EditPatient';
 
 // Doctor Pages
 import DoctorDashboard from '../pages/Doctor/Dashboard';
@@ -206,8 +207,10 @@ export default function AppRoutes() {
       <Route path="/CenterAdmin/patients/profile/ViewProfile/:id" element={<PrivateRoute><DashboardLayout><CenterAdminViewProfile /></DashboardLayout></PrivateRoute>} />
       
       {/* Receptionist Routes at Root Level (for direct navigation) */}
-      <Route path="/receptionist/profile/:id" element={<PrivateRoute><ReceptionistLayout><ReceptionistViewProfile /></ReceptionistLayout></PrivateRoute>} />
-      <Route path="/receptionist/patients" element={<PrivateRoute><ReceptionistLayout><ReceptionistPatientList /></ReceptionistLayout></PrivateRoute>} />
+<Route path="/receptionist/profile/:id" element={<PrivateRoute><ReceptionistLayout><ReceptionistViewProfile /></ReceptionistLayout></PrivateRoute>} />
+<Route path="/receptionist/edit-patient/:id" element={<PrivateRoute><ReceptionistLayout><ReceptionistEditPatient /></ReceptionistLayout></PrivateRoute>} />
+<Route path="/receptionist/patients" element={<PrivateRoute><ReceptionistLayout><ReceptionistPatientList /></ReceptionistLayout></PrivateRoute>} />
+<Route path="/dashboard/receptionist/edit-patient/:id" element={<PrivateRoute><ReceptionistLayout><ReceptionistEditPatient /></ReceptionistLayout></PrivateRoute>} />
       
       {/* CenterAdmin FollowUp Routes at Root Level */}
       <Route path="/CenterAdmin/patients/FollowUp/:id" element={<PrivateRoute><DashboardLayout><FollowUp /></DashboardLayout></PrivateRoute>} />
@@ -436,7 +439,8 @@ export default function AppRoutes() {
         <Route path="receptionist/dashboard" element={<ReceptionistDashboard />} />
         <Route path="receptionist/patients" element={<ReceptionistPatientList />} />
         <Route path="receptionist/add-patient" element={<AddReceptionistPatient />} />
-        <Route path="receptionist/profile/:id" element={<ReceptionistLayout><ReceptionistViewProfile /></ReceptionistLayout>} />
+<Route path="receptionist/edit-patient/:id" element={<ReceptionistLayout><ReceptionistEditPatient /></ReceptionistLayout>} />
+<Route path="receptionist/profile/:id" element={<ReceptionistLayout><ReceptionistViewProfile /></ReceptionistLayout>} />
         <Route path="receptionist/patient-history/:id" element={<ReceptionistLayout><ReceptionistPatientHistory /></ReceptionistLayout>} />
         <Route path="receptionist/view-allergic-rhinitis/:id" element={<ReceptionistLayout><ReceptionistViewAllergicRhinitis /></ReceptionistLayout>} />
         <Route path="receptionist/view-atopic-dermatitis/:id" element={<ReceptionistLayout><ReceptionistViewAtopicDermatitis /></ReceptionistLayout>} />

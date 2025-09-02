@@ -1,6 +1,6 @@
 // src/features/doctor/doctorThunks.js
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import API from '../../services/api.js';
+import API from '../../services/api';
 import { toast } from 'react-toastify';
 
 // ✅ Create doctor (for superadmin)
@@ -166,7 +166,7 @@ export const updatePatient = createAsyncThunk(
     try {
       // Validate ID first
       if (!id || id === 'undefined' || id === undefined) {
-        console.error('❌ updatePatient - Invalid patient ID:', id);
+
         toast.error('Invalid patient ID provided');
         return rejectWithValue('Invalid patient ID provided');
       }
@@ -178,12 +178,12 @@ export const updatePatient = createAsyncThunk(
 
       // Additional validation for the processed ID
       if (!patientId || patientId === 'undefined' || patientId === 'null') {
-        console.error('❌ updatePatient - Invalid processed ID:', patientId);
+
         toast.error('Invalid patient ID after processing');
         return rejectWithValue('Invalid patient ID after processing');
       }
 
-      console.log('🔍 updatePatient - Using patient ID:', patientId);
+
       
       const token = localStorage.getItem('token');
       const response = await API.put(`/patients/${patientId}`, patientData, {
@@ -289,11 +289,11 @@ export const fetchPatientHistory = createAsyncThunk(
   'doctor/fetchPatientHistory',
   async (patientId, { rejectWithValue }) => {
     try {
-      console.log('🔍 fetchPatientHistory thunk called with:', patientId);
+
       
       // Validate patientId first
       if (!patientId || patientId === 'undefined' || patientId === undefined) {
-        console.error('❌ fetchPatientHistory - Invalid patient ID:', patientId);
+
         return rejectWithValue('Invalid patient ID provided');
       }
       
@@ -303,22 +303,20 @@ export const fetchPatientHistory = createAsyncThunk(
       
       // Additional validation for the processed ID
       if (!id || id === 'undefined' || id === 'null') {
-        console.error('❌ fetchPatientHistory - Invalid processed ID:', id);
+
         return rejectWithValue('Invalid patient ID after processing');
       }
       
-      console.log('🔍 fetchPatientHistory - processed ID:', id);
       const token = localStorage.getItem('token');
-      console.log('🔍 fetchPatientHistory - token exists:', !!token);
       
       const response = await API.get(`/patients/${id}/history`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       
-      console.log('✅ fetchPatientHistory - response received:', response.data);
+      
       return response.data;
     } catch (error) {
-      console.error('❌ fetchPatientHistory - error:', error);
+      
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch patient history');
     }
   }
@@ -329,11 +327,11 @@ export const fetchPatientMedications = createAsyncThunk(
   'doctor/fetchPatientMedications',
   async (patientId, { rejectWithValue }) => {
     try {
-      console.log('🔍 fetchPatientMedications thunk called with:', patientId);
+
       
       // Validate patientId first
       if (!patientId || patientId === 'undefined' || patientId === undefined) {
-        console.error('❌ fetchPatientMedications - Invalid patient ID:', patientId);
+
         return rejectWithValue('Invalid patient ID provided');
       }
       
@@ -343,22 +341,20 @@ export const fetchPatientMedications = createAsyncThunk(
       
       // Additional validation for the processed ID
       if (!id || id === 'undefined' || id === 'null') {
-        console.error('❌ fetchPatientMedications - Invalid processed ID:', id);
+
         return rejectWithValue('Invalid patient ID after processing');
       }
       
-      console.log('🔍 fetchPatientMedications - processed ID:', id);
       const token = localStorage.getItem('token');
-      console.log('🔍 fetchPatientMedications - token exists:', !!token);
       
       const response = await API.get(`/patients/${id}/medications`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       
-      console.log('✅ fetchPatientMedications - response received:', response.data);
+      
       return response.data;
     } catch (error) {
-      console.error('❌ fetchPatientMedications - error:', error);
+      
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch patient medications');
     }
   }
@@ -371,7 +367,7 @@ export const fetchPatientFollowUps = createAsyncThunk(
     try {
       // Validate patientId first
       if (!patientId || patientId === 'undefined' || patientId === undefined) {
-        console.error('❌ fetchPatientFollowUps - Invalid patient ID:', patientId);
+
         return rejectWithValue('Invalid patient ID provided');
       }
       
@@ -381,7 +377,7 @@ export const fetchPatientFollowUps = createAsyncThunk(
       
       // Additional validation for the processed ID
       if (!id || id === 'undefined' || id === 'null') {
-        console.error('❌ fetchPatientFollowUps - Invalid processed ID:', id);
+
         return rejectWithValue('Invalid patient ID after processing');
       }
       
@@ -391,7 +387,7 @@ export const fetchPatientFollowUps = createAsyncThunk(
       });
       return response.data;
     } catch (error) {
-      console.error('❌ fetchPatientFollowUps - error:', error);
+      
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch patient follow-ups');
     }
   }
@@ -465,14 +461,14 @@ export const createTestRequest = createAsyncThunk(
         try {
           const userData = JSON.parse(userDataString);
           doctorId = userData._id || userData.id;
-          console.log('🔍 createTestRequest: Current user ID:', doctorId);
+    
         } catch (parseError) {
-          console.error('❌ createTestRequest: Failed to parse user data:', parseError);
+  
         }
       }
       
       if (!doctorId) {
-        console.error('❌ createTestRequest: No doctor ID found in localStorage');
+
         return rejectWithValue('Doctor authentication failed. Please log in again.');
       }
       
@@ -482,7 +478,7 @@ export const createTestRequest = createAsyncThunk(
         doctorId: doctorId
       };
       
-      console.log('📤 createTestRequest: Sending data:', requestDataWithDoctor);
+      
       
       const response = await API.post('/test-requests', requestDataWithDoctor, {
         headers: { Authorization: `Bearer ${token}` },
@@ -490,7 +486,7 @@ export const createTestRequest = createAsyncThunk(
       toast.success('Test request created successfully!');
       return response.data;
     } catch (error) {
-      console.error('❌ createTestRequest: Error:', error);
+      
       return rejectWithValue(error.response?.data?.message || 'Failed to create test request');
     }
   }
@@ -536,9 +532,9 @@ export const fetchTests = createAsyncThunk(
   'doctor/fetchTests',
   async (patientId, { rejectWithValue }) => {
     try {
+      
       // Validate patientId first
       if (!patientId || patientId === 'undefined' || patientId === undefined) {
-        console.error('❌ fetchTests - Invalid patient ID:', patientId);
         return rejectWithValue('Invalid patient ID provided');
       }
       
@@ -548,16 +544,21 @@ export const fetchTests = createAsyncThunk(
       
       // Additional validation for the processed ID
       if (!id || id === 'undefined' || id === 'null') {
-        console.error('❌ fetchTests - Invalid processed ID:', id);
         return rejectWithValue('Invalid patient ID after processing');
       }
+      
+
       
       const token = localStorage.getItem('token');
       const response = await API.get(`/patients/${id}/show-tests`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      
+
+      
       return response.data;
     } catch (error) {
+
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch tests');
     }
   }
@@ -750,7 +751,6 @@ export const fetchPrescriptions = createAsyncThunk(
     try {
       // Validate patient ID
       if (!patientId || patientId === 'undefined' || patientId === 'null') {
-        console.warn('❌ fetchPrescriptions: Invalid patient ID:', patientId);
         return [];
       }
 
@@ -758,28 +758,28 @@ export const fetchPrescriptions = createAsyncThunk(
         ? patientId._id || patientId.id || String(patientId)
         : String(patientId);
       
-      console.log('🔍 fetchPrescriptions: Fetching prescriptions for patient ID:', id);
+
       
       const token = localStorage.getItem('token');
       
       // Try the new RESTful endpoint first, fallback to query parameter
       let response;
       try {
-        console.log('🔍 fetchPrescriptions: Trying RESTful endpoint first');
+
         response = await API.get(`/prescriptions/patient/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
       } catch (restError) {
-        console.log('🔍 fetchPrescriptions: RESTful endpoint failed, trying query parameter');
+
         response = await API.get(`/prescriptions?patientId=${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
       }
       
-      console.log('✅ fetchPrescriptions: Success, found', response.data?.length || 0, 'prescriptions');
+      
       return response.data;
     } catch (error) {
-      console.error('❌ fetchPrescriptions: Error:', error);
+      
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch prescriptions');
     }
   }
@@ -792,11 +792,10 @@ export const fetchSinglePrescription = createAsyncThunk(
     try {
       // Validate prescription ID
       if (!prescriptionId || prescriptionId === 'undefined' || prescriptionId === 'null') {
-        console.warn('❌ fetchSinglePrescription: Invalid prescription ID:', prescriptionId);
         return rejectWithValue('Invalid prescription ID');
       }
 
-      console.log('🔍 fetchSinglePrescription: Fetching prescription with ID:', prescriptionId);
+
       
       const token = localStorage.getItem('token');
       
@@ -809,7 +808,7 @@ export const fetchSinglePrescription = createAsyncThunk(
       } catch (notFoundError) {
         // If we get a 404, it might be because we're getting a patient ID instead of prescription ID
         // Try to fetch prescriptions by patient ID and return the latest one
-        console.log('🔍 fetchSinglePrescription: Prescription not found, trying as patient ID');
+
         try {
           const patientPrescriptions = await API.get(`/prescriptions/patient/${prescriptionId}`, {
             headers: { Authorization: `Bearer ${token}` },
@@ -826,10 +825,10 @@ export const fetchSinglePrescription = createAsyncThunk(
         }
       }
       
-      console.log('✅ fetchSinglePrescription: Success');
+      
       return response.data;
     } catch (error) {
-      console.error('❌ fetchSinglePrescription: Error:', error);
+      
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch prescription');
     }
   }
@@ -921,6 +920,49 @@ export const fetchTestRequestsWithFeedback = createAsyncThunk(
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch test requests with feedback');
+    }
+  }
+);
+
+// ✅ Delete notification thunks
+export const deleteNotification = createAsyncThunk(
+  'doctor/deleteNotification',
+  async (notificationId, { rejectWithValue }) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await API.delete(
+        `/notifications/${notificationId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      toast.success('Notification deleted successfully!');
+      return { notificationId, ...response.data };
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || 'Failed to delete notification';
+      toast.error(errorMsg);
+      return rejectWithValue(errorMsg);
+    }
+  }
+);
+
+export const deleteAllNotifications = createAsyncThunk(
+  'doctor/deleteAllNotifications',
+  async (_, { rejectWithValue }) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await API.delete(
+        '/notifications/all',
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      toast.success('All notifications deleted successfully!');
+      return response.data;
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || 'Failed to delete all notifications';
+      toast.error(errorMsg);
+      return rejectWithValue(errorMsg);
     }
   }
 );

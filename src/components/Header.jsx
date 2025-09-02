@@ -16,12 +16,24 @@ export default function Header({ onHamburgerClick }) {
   const [centerName, setCenterName] = useState('');
   const [isLoadingCenter, setIsLoadingCenter] = useState(false);
 
+  // Only show center name for center-related roles
+  const shouldShowCenterName = ['centeradmin', 'centerAdmin', 'receptionist', 'doctor'].includes(user?.role?.toLowerCase()) && 
+                              !user?.isSuperAdminStaff; // Exclude superadmin doctors
+
   useEffect(() => {
     async function fetchCenterName() {
       if (!user) return;
       
       // Only fetch center data for roles that should show center name
       if (!shouldShowCenterName) {
+        return;
+      }
+
+      // Check if we have a valid token before making API calls
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setCenterName('Center');
+        localStorage.setItem('centerName', 'Center');
         return;
       }
 
@@ -34,18 +46,46 @@ export default function Header({ onHamburgerClick }) {
         if (user.role === 'receptionist' && user.centerId) {
           // Receptionist with centerId
           const centerId = typeof user.centerId === 'object' ? user.centerId._id || user.centerId.id : user.centerId;
-          const res = await API.get(`/centers/${centerId}`);
-          centerData = res.data;
+          try {
+            const res = await API.get(`/centers/${centerId}`);
+            centerData = res.data;
+          } catch (err) {
+            // If API call fails (e.g., 401), use user data
+            if (err.response?.status === 401) {
+              const centerName = user.hospitalName || user.centerName || 'Center';
+              setCenterName(centerName);
+              localStorage.setItem('centerName', centerName);
+              return;
+            }
+            // For other errors, continue to fallback logic
+          }
         } else if (user.role === 'centeradmin' || user.role === 'centerAdmin') {
           // Center admin - try to find center by admin ID
           try {
             const res = await API.get(`/centers/by-admin/${user._id}`);
             centerData = res.data;
           } catch (err) {
+            // If first attempt fails (e.g., 401), try fallback
+            if (err.response?.status === 401) {
+              // Authentication error - use fallback data
+              const centerName = user.hospitalName || user.centerName || 'Center';
+              setCenterName(centerName);
+              localStorage.setItem('centerName', centerName);
+              return;
+            }
+            
             // Fallback: search centers by admin ID
-            const searchRes = await API.get(`/centers?adminId=${user._id}`);
-            if (searchRes.data && searchRes.data.length > 0) {
-              centerData = searchRes.data[0];
+            try {
+              const searchRes = await API.get(`/centers?adminId=${user._id}`);
+              if (searchRes.data && searchRes.data.length > 0) {
+                centerData = searchRes.data[0];
+              }
+            } catch (fallbackErr) {
+              // If fallback also fails, use user data
+              const centerName = user.hospitalName || user.centerName || 'Center';
+              setCenterName(centerName);
+              localStorage.setItem('centerName', centerName);
+              return;
             }
           }
         }
@@ -91,7 +131,7 @@ export default function Header({ onHamburgerClick }) {
     }
 
     fetchCenterName();
-  }, [user]);
+  }, [user, shouldShowCenterName]);
 
   // Load center name from localStorage on component mount
   useEffect(() => {
@@ -101,20 +141,24 @@ export default function Header({ onHamburgerClick }) {
     }
   }, []);
 
-  // Only show center name for center-related roles
-  const shouldShowCenterName = ['centeradmin', 'centerAdmin', 'receptionist', 'doctor'].includes(user?.role?.toLowerCase()) && 
-                              !user?.isSuperAdminStaff; // Exclude superadmin doctors
-
   const handleLogout = () => {
+    // Clear all auth-related data
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    // Only clear center name if it was being used
-    if (shouldShowCenterName) {
-      localStorage.removeItem('centerName');
-      setCenterName('');
-    }
+    localStorage.removeItem('centerId');
+    localStorage.removeItem('centerName');
+    
+    // Clear any other potential auth data
+    sessionStorage.clear();
+    
+    // Reset center name state
+    setCenterName('');
+    
+    // Dispatch logout action
     dispatch(logout());
-    navigate('/login');
+    
+    // Navigate to login page without page refresh
+    navigate('/login', { replace: true });
   };
 
   const refreshCenterName = async () => {
@@ -226,8 +270,8 @@ export default function Header({ onHamburgerClick }) {
             </span>
           )}
         </div>
-        {/* Center: Search bar (responsive) */}
-        <div className="flex items-center gap-2 flex-1 min-w-0 max-w-full order-3 md:order-none md:justify-center">
+        {/* Center: Search bar (responsive) - COMMENTED OUT */}
+        {/* <div className="flex items-center gap-2 flex-1 min-w-0 max-w-full order-3 md:order-none md:justify-center">
           <FaSearch
             className="text-slate-400 cursor-pointer hover:text-blue-400 transition"
             onClick={handleSearch}
@@ -240,7 +284,7 @@ export default function Header({ onHamburgerClick }) {
             onKeyDown={handleKeyDown}
             className="w-full px-2 py-1 bg-slate-50 border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-blue-300 text-xs min-w-0 text-slate-700 placeholder-slate-400 transition"
           />
-        </div>
+        </div> */}
         {/* Right: Profile section */}
         <div className="relative flex-shrink-0 ml-auto order-2 md:order-none">
           <button

@@ -357,6 +357,16 @@ const ViewGPE = () => {
                   {latestRecord.updatedAt ? new Date(latestRecord.updatedAt).toLocaleString() : 'N/A'}
                 </span>
               </div>
+              <div className="flex items-center space-x-2">
+                <User className="h-4 w-4 text-gray-400" />
+                <span className="text-gray-500">Updated By:</span>
+                <span className="text-gray-900">
+                  {latestRecord.updatedBy?.name ? 
+                    `${latestRecord.updatedBy.name} (${latestRecord.updatedBy.role || 'User'})` : 
+                    'N/A'
+                  }
+                </span>
+              </div>
             </div>
           </div>
         </div>

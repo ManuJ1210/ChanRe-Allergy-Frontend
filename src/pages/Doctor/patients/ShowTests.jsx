@@ -11,7 +11,7 @@ const ShowTests = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  console.log('ShowTests component rendered, id:', id);
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 sm:p-6">

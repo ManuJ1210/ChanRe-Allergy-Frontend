@@ -53,14 +53,14 @@ const CenterProfile = () => {
   console.log('🔍 CenterProfile Debug - Center:', center);
   console.log('🔍 CenterProfile Debug - CenterError:', centerError);
 
-  // On mount, if user is not in Redux, try to load from localStorage
-  useEffect(() => {
-    if (!user) {
-      console.log('🔍 No user found, loading from localStorage');
-      dispatch(setUserFromLocal());
-    }
-    // eslint-disable-next-line
-  }, []);
+  // Don't auto-restore user session - let PrivateRoute handle it
+  // useEffect(() => {
+  //   if (!user) {
+  //     console.log('🔍 No user found, loading from localStorage');
+  //     dispatch(setUserFromLocal());
+  //   }
+  //   // eslint-disable-next-line
+  // }, []);
 
   // Alternative approach: if no centerId, try to fetch center by centerAdminId
   useEffect(() => {

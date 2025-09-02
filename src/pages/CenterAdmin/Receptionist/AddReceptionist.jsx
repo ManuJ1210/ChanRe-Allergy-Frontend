@@ -11,9 +11,8 @@ const AddReceptionist = () => {
   const { user } = useSelector((state) => state.auth);
   const { loading, error, success, message } = useSelector((state) => state.centerAdminReceptionists);
   
-  // Try Redux first, then fallback to localStorage
-  const storedUser = localStorage.getItem('user');
-  const centerId = user?.centerId || (storedUser ? JSON.parse(storedUser)?.centerId : null);
+  // Get centerId from Redux only
+  const centerId = user?.centerId;
 
   const [formData, setFormData] = useState({
     name: '',

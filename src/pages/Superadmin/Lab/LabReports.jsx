@@ -541,7 +541,7 @@ const LabReports = () => {
                     </div>
                     
                     {/* Actions */}
-                    {(report.status === 'Report_Generated' || report.status === 'Report_Sent' || report.status === 'Completed' || report.status === 'feedback_sent') && report.reportFilePath && (
+                    {(report.status === 'Report_Generated' || report.status === 'Report_Sent' || report.status === 'Completed') && report.reportFilePath && (
                       <div className="flex flex-col gap-2 pt-3 border-t border-slate-200">
                         <button
                           onClick={() => handleViewReport(report._id)}
@@ -633,7 +633,7 @@ const LabReports = () => {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                        {(report.status === 'Report_Generated' || report.status === 'Report_Sent' || report.status === 'Completed' || report.status === 'feedback_sent') && report.reportFilePath && (
+                        {(report.status === 'Report_Generated' || report.status === 'Report_Sent' || report.status === 'Completed') && report.reportFilePath && (
                             <>
                               <button
                                 onClick={() => handleViewReport(report._id)}

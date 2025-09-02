@@ -13,7 +13,7 @@ const PrescriptionList = ({ patientId: propPatientId }) => {
 
   useEffect(() => {
     if (patientId && patientId !== 'undefined') {
-      console.log('🔍 PrescriptionList: Fetching prescriptions for patient:', patientId);
+    
       dispatch(fetchPrescriptions(patientId));
     }
   }, [dispatch, patientId]);
@@ -21,7 +21,7 @@ const PrescriptionList = ({ patientId: propPatientId }) => {
   const handleDelete = (prescriptionId, patientName) => {
     if (window.confirm(`Are you sure you want to delete the prescription for ${patientName}?`)) {
       // Note: Delete functionality would need to be implemented in doctorThunks
-      console.warn('Delete prescription functionality not yet implemented for doctors');
+  
     }
   };
 

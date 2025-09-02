@@ -31,7 +31,7 @@ export default function PrivateRoute({ children }) {
   const user = authUser || userInfo;
   const token = user?.token || localStorage.getItem('token');
 
-  // If no token, redirect to login
+  // If no token, redirect directly to login
   if (!token) {
     return <Navigate to="/login" replace />;
   }

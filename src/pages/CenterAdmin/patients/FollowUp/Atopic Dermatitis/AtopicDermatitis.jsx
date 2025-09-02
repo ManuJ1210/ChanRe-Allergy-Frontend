@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import API from "../../../../../services/api";
 import { useParams, useNavigate } from "react-router-dom";
+import { toast } from 'react-toastify';
+import { ArrowLeft } from 'lucide-react';
 
 const INTENSITY_OPTIONS = ["None", "Mild", "Moderate", "Severe"];
 const DRYNESS_OPTIONS = ["No", "Slight", "Moderate", "Very Dry"];
@@ -56,16 +58,33 @@ export default function AtopicDermatitisFollowUp() {
           ...form
         }
       );
-      alert("Submitted successfully!");
-      navigate(`/Receptionist/profile/${params.patientId}`);
+      toast.success("Atopic Dermatitis record submitted successfully!");
+      navigate(`/dashboard/CenterAdmin/patients/profile/ViewProfile/${params.patientId}`);
     } catch (err) {
-      alert("Failed to submit. Please try again.");
+      toast.error("Failed to submit. Please try again.");
     }
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto p-6">
+        {/* Header */}
+        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center space-x-4">
+              <button
+                type="button"
+                onClick={() => navigate(-1)}
+                className="flex items-center space-x-2 text-blue-600 hover:text-blue-700 transition-colors text-xs"
+              >
+                <ArrowLeft size={20} />
+                <span>Back</span>
+              </button>
+              <h1 className="text-md font-bold text-gray-800">Add Atopic Dermatitis Record</h1>
+            </div>
+          </div>
+        </div>
+
         <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-lg p-8 space-y-8">
           {/* Main Title */}
           <h1 className="text-md font-bold text-gray-800 text-center mb-8">ATOPIC DERMATITIS</h1>

@@ -35,21 +35,12 @@ const TestRequests = () => {
   const [lastRefreshTime, setLastRefreshTime] = useState(new Date());
 
   useEffect(() => {
-    console.log('🔄 TestRequests: Fetching test requests...');
+
     dispatch(fetchTestRequests());
     setLastRefreshTime(new Date());
   }, [dispatch]);
 
-  // Debug logging
-  useEffect(() => {
-    console.log('📊 TestRequests Debug:', {
-      testRequests: testRequests,
-      testRequestsLength: testRequests ? testRequests.length : 'undefined',
-      testRequestsLoading: testRequestsLoading,
-      testRequestsError: testRequestsError,
-      isArray: Array.isArray(testRequests)
-    });
-  }, [testRequests, testRequestsLoading, testRequestsError]);
+
 
   // Refresh data when component becomes visible
   useEffect(() => {
@@ -154,7 +145,7 @@ const TestRequests = () => {
         ).length;
       case 'Completed':
         return testRequests.filter(test => 
-          ['Testing_Completed', 'Report_Generated', 'Report_Sent', 'Completed', 'feedback_sent'].includes(test.status)
+          ['Testing_Completed', 'Report_Generated', 'Report_Sent', 'Completed'].includes(test.status)
         ).length;
       case 'Cancelled':
         return testRequests.filter(test => test.status === 'Cancelled').length;
@@ -166,8 +157,7 @@ const TestRequests = () => {
   const handleViewReport = async (testRequestId) => {
     try {
       await viewPDFReport(testRequestId);
-    } catch (error) {
-      console.error('Error viewing report:', error);
+          } catch (error) {
       toast.error('Failed to view report. Please try again.');
     }
   };
@@ -175,8 +165,7 @@ const TestRequests = () => {
   const handleDownloadReport = async (testRequestId) => {
     try {
       await downloadPDFReport(testRequestId);
-    } catch (error) {
-      console.error('Error downloading report:', error);
+          } catch (error) {
       toast.error('Failed to download report. Please try again.');
     }
   };
@@ -425,7 +414,7 @@ const TestRequests = () => {
                             <Eye className="h-4 w-4 mr-1" />
                             View Patient
                           </button>
-                          {(test.status === 'Report_Generated' || test.status === 'Report_Sent' || test.status === 'Completed' || test.status === 'feedback_sent') && (
+                          {(test.status === 'Report_Generated' || test.status === 'Report_Sent' || test.status === 'Completed') && (
                             <>
                               <button
                                 onClick={() => handleViewReport(test._id)}

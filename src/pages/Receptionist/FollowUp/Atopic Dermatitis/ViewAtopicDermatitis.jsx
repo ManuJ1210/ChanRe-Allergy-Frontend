@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchReceptionistAtopicDermatitis, fetchPatient, resetReceptionistState } from '../../../../features/receptionist/receptionistThunks.js';
+import { fetchReceptionistAtopicDermatitis, fetchPatient, resetReceptionistState } from '../../../../features/receptionist/receptionistThunks';
 import { 
   ArrowLeft, 
   Activity,

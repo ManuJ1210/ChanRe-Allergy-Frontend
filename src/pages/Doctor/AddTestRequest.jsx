@@ -55,11 +55,11 @@ const AddTestRequest = () => {
   
   // Pre-select patient if patientId is provided in URL
   useEffect(() => {
-    console.log('🔍 Pre-selection effect triggered:', { preSelectedPatientId, assignedPatientsLength: assignedPatients?.length });
+
     
     if (preSelectedPatientId && assignedPatients && assignedPatients.length > 0) {
       const patient = assignedPatients.find(p => p._id === preSelectedPatientId);
-      console.log('🔍 Found patient:', patient);
+      
       
       if (patient) {
         // Check if patient has pending billing
@@ -81,19 +81,13 @@ const AddTestRequest = () => {
           toast.success(`Patient ${patient.name} pre-selected for test request`);
           shownToastForPatientRef.current.add(patient._id);
         }
-        console.log('✅ Patient pre-selected successfully');
+        
       } else {
-        console.log('❌ Patient not found in assigned patients');
+
         toast.error('Patient not found or not assigned to you');
         // Clear the invalid patient ID from the URL
         navigate('/dashboard/doctor/add-test-request', { replace: true });
       }
-    } else {
-      console.log('🔍 Pre-selection conditions not met:', { 
-        hasPatientId: !!preSelectedPatientId, 
-        hasAssignedPatients: !!assignedPatients, 
-        assignedPatientsLength: assignedPatients?.length 
-      });
     }
   }, [preSelectedPatientId, assignedPatients, navigate]);
   
@@ -167,7 +161,6 @@ const AddTestRequest = () => {
       navigate('/dashboard/Doctor/TestRequests');
     } catch (error) {
       // Note: Error toast is already shown by the thunk
-      console.error('Error creating test request:', error);
     }
   };
   

@@ -52,7 +52,7 @@ export const generateReceptionistBill = createAsyncThunk(
   'receptionist/generateBill',
   async ({ requestId, payload }, { rejectWithValue }) => {
     try {
-      const res = await API.put(`/test-requests/${requestId}/billing/generate`, payload);
+      const res = await API.put(`/test-requests/${requestId}/generate-bill`, payload);
       return res.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to generate bill');
@@ -65,7 +65,7 @@ export const markReceptionistBillPaid = createAsyncThunk(
   'receptionist/markBillPaid',
   async ({ requestId, paymentNotes, paymentMethod, transactionId, receiptUpload }, { rejectWithValue }) => {
     try {
-      const res = await API.put(`/test-requests/${requestId}/billing/paid`, { 
+      const res = await API.put(`/test-requests/${requestId}/mark-bill-paid`, { 
         paymentNotes, 
         paymentMethod, 
         transactionId, 
@@ -83,7 +83,7 @@ export const verifyReceptionistPayment = createAsyncThunk(
   'receptionist/verifyPayment',
   async ({ requestId, verificationNotes }, { rejectWithValue }) => {
     try {
-      const res = await API.put(`/test-requests/${requestId}/billing/verify`, { verificationNotes });
+      const res = await API.put(`/billing/test-requests/${requestId}/verify`, { verificationNotes });
       return res.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to verify payment');
@@ -138,14 +138,12 @@ export const createReceptionistPatient = createAsyncThunk(
   async (patientData, { dispatch }) => {
     try {
       dispatch(setLoading(true));
-      console.log('🔍 Creating patient with data:', patientData);
       const res = await API.post('/patients', patientData);
-      console.log('✅ Patient created successfully:', res.data);
       dispatch(addPatient(res.data.patient));
       dispatch(setAddSuccess(true));
       return res.data.patient;
     } catch (error) {
-      console.error('❌ Error creating patient:', error.response?.data || error.message);
+
       const errorMessage = error.response?.data?.message || 'Failed to add patient';
       dispatch(setError(errorMessage));
       throw error;
@@ -192,18 +190,15 @@ export const fetchReceptionistSinglePatient = createAsyncThunk(
   async (id, { dispatch }) => {
     try {
       dispatch(setPatientLoading(true));
-      console.log('🔍 Fetching single patient with ID:', id);
       const res = await API.get(`/patients/${id}`);
-      console.log('✅ Single patient response:', res.data);
       
       // Extract patient from response structure
       const patient = res.data.patient || res.data;
-      console.log('📋 Extracted patient data:', patient);
       
       dispatch(setSinglePatient(patient));
       return patient;
     } catch (error) {
-      console.error('❌ Error fetching single patient:', error);
+
       dispatch(setPatientError(error.response?.data?.message || 'Failed to fetch patient'));
       throw error;
     }
@@ -230,13 +225,11 @@ export const fetchReceptionistPatientHistory = createAsyncThunk(
   'receptionist/fetchPatientHistory',
   async (patientId, { dispatch }) => {
     try {
-      console.log('🔍 Fetching patient history for ID:', patientId);
       const res = await API.get(`/history/${patientId}`);
-      console.log('✅ History response:', res.data);
       dispatch(setHistory(res.data));
       return res.data;
     } catch (error) {
-      console.error('❌ History fetch error:', error.response?.data || error.message);
+
       dispatch(setError(error.response?.data?.message || 'Failed to fetch patient history'));
       throw error;
     }
@@ -274,14 +267,12 @@ export const fetchReceptionistPatientTests = createAsyncThunk(
   'receptionist/fetchPatientTests',
   async (patientId, { dispatch }) => {
     try {
-      console.log('🔍 Fetching patient tests for ID:', patientId);
       const res = await API.get(`/patients/${patientId}/show-tests`);
-      console.log('✅ Tests response:', res.data);
       // The backend returns just the tests array directly
       dispatch(setTests(res.data));
       return res.data;
     } catch (error) {
-      console.error('❌ Tests fetch error:', error.response?.data || error.message);
+
       dispatch(setError(error.response?.data?.message || 'Failed to fetch patient tests'));
       throw error;
     }
@@ -325,17 +316,15 @@ export const fetchReceptionistFollowUps = createAsyncThunk(
   async (patientId, { dispatch }) => {
     try {
       if (!patientId) {
-        console.error('❌ No patient ID provided for follow-ups fetch');
+
         return [];
       }
       
-      console.log('🔍 Fetching follow-ups for patient ID:', patientId);
       const res = await API.get(`/followups?patientId=${patientId}`);
-      console.log('✅ Follow-ups response:', res.data);
       dispatch(setFollowUps(res.data));
       return res.data;
     } catch (error) {
-      console.error('❌ Follow-ups fetch error:', error.response?.data || error.message);
+      
       dispatch(setError(error.response?.data?.message || 'Failed to fetch follow-ups'));
       throw error;
     }
@@ -363,24 +352,15 @@ export const fetchReceptionistPrescriptions = createAsyncThunk(
   async (patientId, { rejectWithValue }) => {
     try {
       if (!patientId) {
-        console.error('❌ No patient ID provided for prescriptions fetch');
+
         return [];
       }
       
-      console.log('🔍 Fetching prescriptions for patient ID:', patientId);
-      console.log('🔍 API URL:', `/prescriptions?patientId=${patientId}`);
-      
       const res = await API.get(`/prescriptions?patientId=${patientId}`);
-      console.log('✅ Prescriptions response status:', res.status);
-      console.log('✅ Prescriptions response data:', res.data);
-      console.log('✅ Prescriptions response data type:', typeof res.data);
-      console.log('✅ Prescriptions response data length:', Array.isArray(res.data) ? res.data.length : 'Not an array');
       
       return res.data;
     } catch (error) {
-      console.error('❌ Prescriptions fetch error:', error);
-      console.error('❌ Error response:', error.response);
-      console.error('❌ Error message:', error.message);
+      
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch prescriptions');
     }
   }
@@ -467,16 +447,14 @@ export const fetchReceptionistAllergicRhinitis = createAsyncThunk(
   async (patientId, { dispatch }) => {
     try {
       if (!patientId) {
-        console.error('❌ No patient ID provided for allergic rhinitis fetch');
+
         return [];
       }
       
-      console.log('🔍 Fetching allergic rhinitis for patient ID:', patientId);
       const res = await API.get(`/allergic-rhinitis?patientId=${patientId}`);
-      console.log('✅ Allergic rhinitis response:', res.data);
       return res.data;
     } catch (error) {
-      console.error('❌ Allergic rhinitis fetch error:', error.response?.data || error.message);
+      
       dispatch(setError(error.response?.data?.message || 'Failed to fetch allergic rhinitis'));
       throw error;
     }
@@ -517,16 +495,14 @@ export const fetchReceptionistAllergicConjunctivitis = createAsyncThunk(
   async (patientId, { dispatch }) => {
     try {
       if (!patientId) {
-        console.error('❌ No patient ID provided for allergic conjunctivitis fetch');
+
         return [];
       }
       
-      console.log('🔍 Fetching allergic conjunctivitis for patient ID:', patientId);
       const res = await API.get(`/allergic-conjunctivitis?patientId=${patientId}`);
-      console.log('✅ Allergic conjunctivitis response:', res.data);
       return res.data;
     } catch (error) {
-      console.error('❌ Allergic conjunctivitis fetch error:', error.response?.data || error.message);
+      
       dispatch(setError(error.response?.data?.message || 'Failed to fetch allergic conjunctivitis'));
       throw error;
     }
@@ -567,16 +543,14 @@ export const fetchReceptionistAllergicBronchitis = createAsyncThunk(
   async (patientId, { dispatch }) => {
     try {
       if (!patientId) {
-        console.error('❌ No patient ID provided for allergic bronchitis fetch');
+
         return [];
       }
       
-      console.log('🔍 Fetching allergic bronchitis for patient ID:', patientId);
       const res = await API.get(`/allergic-bronchitis?patientId=${patientId}`);
-      console.log('✅ Allergic bronchitis response:', res.data);
       return res.data;
     } catch (error) {
-      console.error('❌ Allergic bronchitis fetch error:', error.response?.data || error.message);
+      
       dispatch(setError(error.response?.data?.message || 'Failed to fetch allergic bronchitis'));
       throw error;
     }
@@ -617,16 +591,14 @@ export const fetchReceptionistAtopicDermatitis = createAsyncThunk(
   async (patientId, { dispatch }) => {
     try {
       if (!patientId) {
-        console.error('❌ No patient ID provided for atopic dermatitis fetch');
+
         return [];
       }
       
-      console.log('🔍 Fetching atopic dermatitis for patient ID:', patientId);
       const res = await API.get(`/atopic-dermatitis?patientId=${patientId}`);
-      console.log('✅ Atopic dermatitis response:', res.data);
       return res.data;
     } catch (error) {
-      console.error('❌ Atopic dermatitis fetch error:', error.response?.data || error.message);
+      
       dispatch(setError(error.response?.data?.message || 'Failed to fetch atopic dermatitis'));
       throw error;
     }
@@ -667,16 +639,14 @@ export const fetchReceptionistGPE = createAsyncThunk(
   async (patientId, { dispatch }) => {
     try {
       if (!patientId) {
-        console.error('❌ No patient ID provided for GPE fetch');
+
         return [];
       }
       
-      console.log('🔍 Fetching GPE for patient ID:', patientId);
       const res = await API.get(`/gpe?patientId=${patientId}`);
-      console.log('✅ GPE response:', res.data);
       return res.data;
     } catch (error) {
-      console.error('❌ GPE fetch error:', error.response?.data || error.message);
+      
       dispatch(setError(error.response?.data?.message || 'Failed to fetch GPE'));
       throw error;
     }
@@ -689,14 +659,12 @@ export const fetchReceptionistTestRequests = createAsyncThunk(
   async (patientId, { dispatch }) => {
     try {
       if (!patientId) {
-        console.error('❌ No patient ID provided for test requests fetch');
+
         return [];
       }
       
-      console.log('🔍 Fetching test requests for patient ID:', patientId);
       // Use the correct endpoint for getting test requests by patient
       const res = await API.get(`/test-requests/patient/${patientId}`);
-      console.log('✅ Test requests response:', res.data);
       return res.data;
     } catch (error) {
       console.error('❌ Test requests fetch error:', error.response?.data || error.message);
@@ -745,9 +713,7 @@ export const fetchPatient = createAsyncThunk(
   'receptionist/fetchPatient',
   async (patientId, { rejectWithValue }) => {
     try {
-      console.log('🔍 Fetching patient with ID:', patientId);
       const response = await API.get(`/patients/${patientId}`);
-      console.log('✅ Patient response:', response.data);
       return response.data;
     } catch (error) {
       console.error('❌ Patient fetch error:', error.response?.data || error.message);

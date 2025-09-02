@@ -1,13 +1,10 @@
 // src/redux/slices/userSlice.js
 import { createSlice } from '@reduxjs/toolkit';
 
-const storedUser = localStorage.getItem('user');
-const userInfoFromStorage = storedUser ? JSON.parse(storedUser) : null;
-
 const userSlice = createSlice({
   name: 'user',
   initialState: {
-    userInfo: userInfoFromStorage,
+    userInfo: null,
   },
   reducers: {
     loginSuccess: (state, action) => {

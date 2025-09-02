@@ -211,15 +211,12 @@ export const fetchPatientGeneralFollowUps = createAsyncThunk(
         return rejectWithValue('Invalid patient ID provided');
       }
       
-      console.log('🔍 fetchPatientGeneralFollowUps: Making API call with patientId:', patientId);
       const res = await API.get(`/followups/detailed`);
-      console.log('✅ fetchPatientGeneralFollowUps: API response:', res.data);
       
       // Filter the detailed follow-ups by patientId
       const patientFollowUps = res.data.filter(followUp => 
         followUp.patientId?._id === patientId || followUp.patientId === patientId
       );
-      console.log('🔍 Filtered follow-ups for patient:', patientFollowUps);
       
       return patientFollowUps;
     } catch (error) {
@@ -534,7 +531,7 @@ export const fetchSuperadminBillingData = createAsyncThunk(
   'superadmin/fetchBillingData',
   async (_, { rejectWithValue }) => {
     try {
-      const res = await API.get('/test-requests/billing/all');
+      const res = await API.get('/billing/all');
       return res.data;
     } catch (error) {
       console.error('Billing data fetch error:', error.response?.data || error.message);
@@ -548,7 +545,7 @@ export const fetchCenterBillingData = createAsyncThunk(
   'superadmin/fetchCenterBillingData',
   async (centerId, { rejectWithValue }) => {
     try {
-      const res = await API.get(`/test-requests/billing/center/${centerId}`);
+      const res = await API.get(`/billing/center`);
       return res.data;
     } catch (error) {
       console.error('Center billing data fetch error:', error.response?.data || error.message);
@@ -562,7 +559,7 @@ export const generateBillForTestRequest = createAsyncThunk(
   'superadmin/generateBill',
   async ({ requestId, billData }, { rejectWithValue }) => {
     try {
-      const res = await API.put(`/test-requests/${requestId}/billing/generate`, billData);
+      const res = await API.put(`/billing/test-requests/${requestId}/generate`, billData);
       return res.data;
     } catch (error) {
       console.error('Generate bill error:', error.response?.data || error.message);
@@ -576,7 +573,7 @@ export const markBillAsPaid = createAsyncThunk(
   'superadmin/markBillPaid',
   async ({ requestId, paymentData }, { rejectWithValue }) => {
     try {
-      const res = await API.put(`/test-requests/${requestId}/billing/paid`, paymentData);
+      const res = await API.put(`/billing/test-requests/${requestId}/mark-paid`, paymentData);
       return res.data;
     } catch (error) {
       console.error('Mark bill paid error:', error.response?.data || error.message);
@@ -590,7 +587,7 @@ export const verifyPaymentAndApprove = createAsyncThunk(
   'superadmin/verifyPaymentAndApprove',
   async ({ requestId, verificationNotes }, { rejectWithValue }) => {
     try {
-      const res = await API.put(`/test-requests/${requestId}/billing/verify`, { verificationNotes });
+      const res = await API.put(`/billing/test-requests/${requestId}/verify`, { verificationNotes });
       return res.data;
     } catch (error) {
       console.error('Verify payment error:', error.response?.data || error.message);

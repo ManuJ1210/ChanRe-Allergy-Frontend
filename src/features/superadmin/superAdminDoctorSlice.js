@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { toast } from 'react-toastify';
-import API from '../../services/api.js';
+import API from '../../services/api';
 
 // Management thunks (for superadmin to manage superadmin doctors)
 export const fetchSuperAdminDoctors = createAsyncThunk(
@@ -134,17 +134,12 @@ export const fetchSuperAdminDoctorPatientFollowups = createAsyncThunk(
   'superAdminDoctor/fetchSuperAdminDoctorPatientFollowups',
   async (patientId, { rejectWithValue }) => {
     try {
-      console.log('🔍 Frontend - Fetching followups for patient:', patientId);
-      
       if (!patientId || patientId === 'undefined' || patientId === 'null') {
         console.error('❌ Invalid patientId:', patientId);
         return rejectWithValue('Invalid patient ID');
       }
 
       const response = await API.get(`/superadmin/doctors/working/patient/${patientId}/followups`);
-      console.log('✅ Frontend - Followups API response:', response.data);
-      console.log('✅ Frontend - Response status:', response.status);
-      console.log('✅ Frontend - Response headers:', response.headers);
       
       // Validate response data
       if (!response.data) {
@@ -156,9 +151,6 @@ export const fetchSuperAdminDoctorPatientFollowups = createAsyncThunk(
         console.error('❌ Response data is not an array:', typeof response.data);
         return rejectWithValue('Invalid data format received');
       }
-
-      console.log('✅ Frontend - Followups count:', response.data.length);
-      console.log('✅ Frontend - First followup sample:', response.data[0]);
       
       return response.data;
     } catch (error) {

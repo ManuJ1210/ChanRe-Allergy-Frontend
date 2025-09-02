@@ -99,10 +99,8 @@ const AddPatient = () => {
         // Alternative approach: Try to fetch center by admin ID
         if (user && user.id) {
           try {
-            console.log('🔄 Trying alternative: fetch center by admin ID:', user.id);
             const response = await API.get(`/centers/by-admin/${user.id}`);
             const center = response.data;
-            console.log('✅ Alternative approach worked - Center data:', center);
             
             setCenterInfo({
               name: center.name,
@@ -119,7 +117,7 @@ const AddPatient = () => {
             
             // Final fallback to user fields
             if (user.centerCode) {
-              console.log('🔄 Using direct centerCode from user:', user.centerCode);
+      
               setFormData(prev => ({
                 ...prev,
                 centerCode: user.centerCode
@@ -129,7 +127,7 @@ const AddPatient = () => {
                 name: user.hospitalName || 'Center'
               });
             } else {
-              console.log('❌ No center information available at all');
+      
               setCenterInfo({
                 name: 'Error: No center data',
                 code: 'N/A'
@@ -137,7 +135,7 @@ const AddPatient = () => {
             }
           }
         } else {
-          console.log('❌ No user ID available for alternative approach');
+  
           setCenterInfo({
             name: 'Error: No user data',
             code: 'N/A'

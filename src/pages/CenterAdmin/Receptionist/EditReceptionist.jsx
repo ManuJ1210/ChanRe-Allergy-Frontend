@@ -15,10 +15,13 @@ const EditReceptionist = () => {
   
   const [formData, setFormData] = useState({
     name: '',
-    phone: '',
+    mobile: '', // Changed from phone to mobile to match AddReceptionist
     email: '',
     username: '',
     password: '',
+    address: '',
+    emergencyContact: '',
+    emergencyContactName: '',
     userType: 'receptionist',
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -27,6 +30,8 @@ const EditReceptionist = () => {
   useEffect(() => {
     fetchReceptionist();
   }, [id]);
+
+
 
   useEffect(() => {
     if (updateSuccess) {
@@ -53,7 +58,15 @@ const EditReceptionist = () => {
   const fetchReceptionist = async () => {
     try {
       const response = await API.get(`/receptionists/${id}`);
-      setFormData({ ...response.data, password: '' });
+      
+      // Handle both phone and mobile fields (different models use different field names)
+      const receptionistData = {
+        ...response.data,
+        mobile: response.data.mobile || response.data.phone || '', // Use mobile if available, fallback to phone
+        password: ''
+      };
+      
+      setFormData(receptionistData);
     } catch (err) {
       console.error('Failed to fetch receptionist:', err);
       toast.error('Failed to fetch receptionist details', {
@@ -76,7 +89,14 @@ const EditReceptionist = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    dispatch(updateReceptionistThunk({ id, receptionistData: formData }));
+    
+    // Prepare data for submission - ensure mobile field is sent
+    const submissionData = {
+      ...formData,
+      phone: formData.mobile, // Also send as phone for models that use phone field
+    };
+    
+    dispatch(updateReceptionistThunk({ id, receptionistData: submissionData }));
   };
 
   if (initialLoading) {
@@ -157,16 +177,16 @@ const EditReceptionist = () => {
 
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-2">
-                  Phone Number *
+                  Mobile Number *
                 </label>
                 <input
                   type="tel"
-                  name="phone"
-                  value={formData.phone}
+                  name="mobile"
+                  value={formData.mobile}
                   onChange={handleChange}
                   required
                   className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs"
-                  placeholder="Enter phone number"
+                  placeholder="Enter mobile number"
                 />
               </div>
 
@@ -220,6 +240,54 @@ const EditReceptionist = () => {
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Contact Information */}
+            <div>
+              <h3 className="text-sm font-medium text-slate-800 mb-4">Contact Information</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-medium text-slate-700 mb-2">
+                    Address
+                  </label>
+                  <textarea
+                    name="address"
+                    value={formData.address}
+                    onChange={handleChange}
+                    rows="3"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs"
+                    placeholder="Enter full address"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-2">
+                    Emergency Contact Number
+                  </label>
+                  <input
+                    type="tel"
+                    name="emergencyContact"
+                    value={formData.emergencyContact}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs"
+                    placeholder="Enter emergency contact number"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-2">
+                    Emergency Contact Name
+                  </label>
+                  <input
+                    type="text"
+                    name="emergencyContactName"
+                    value={formData.emergencyContactName}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs"
+                    placeholder="Enter emergency contact name"
+                  />
                 </div>
               </div>
             </div>

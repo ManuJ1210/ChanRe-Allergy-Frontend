@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import API from '../../../../services/api';
+import API from '../../../../../services/api';
 
 const SYMPTOM_OPTIONS = ['Itching', 'Tearing', 'Redness', 'Discomfort', 'Discharge', 'Photophobia'];
 const TYPE_OPTIONS = [

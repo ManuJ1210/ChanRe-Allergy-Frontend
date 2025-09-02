@@ -18,7 +18,7 @@ import {
 import { setTestRequests } from '../../../features/receptionist/receptionistSlice';
 import ReceptionistLayout from '../ReceptionistLayout';
 import {
-  ArrowLeft, User, Phone, Calendar, MapPin, Activity, Pill, FileText, Eye, Plus, AlertCircle, Mail, UserCheck
+  ArrowLeft, User, Phone, Calendar, MapPin, Activity, Pill, FileText, Eye, Plus, AlertCircle, Mail, UserCheck, Edit, Clock
 } from 'lucide-react';
 
 const TABS = ["Overview", "History", "Tests", "Medications", "Lab Reports", "Follow Up", "Prescription"];
@@ -30,6 +30,34 @@ const ViewProfile = () => {
   const dispatch = useDispatch();
   const [activeTab, setActiveTab] = useState("Overview");
   const [dataFetched, setDataFetched] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Function to check if patient can be edited (within 24 hours of creation)
+  const canEditPatient = (patient) => {
+    if (!patient || !patient.createdAt) return false;
+    
+    const createdAt = new Date(patient.createdAt);
+    const timeDifference = currentTime - createdAt;
+    const hoursDifference = timeDifference / (1000 * 60 * 60);
+    
+    return hoursDifference <= 24;
+  };
+
+  // Function to get remaining time for editing
+  const getRemainingEditTime = (patient) => {
+    if (!patient || !patient.createdAt) return null;
+    
+    const createdAt = new Date(patient.createdAt);
+    const timeDifference = currentTime - createdAt;
+    const hoursDifference = timeDifference / (1000 * 60 * 60);
+    
+    if (hoursDifference > 24) return null;
+    
+    const remainingHours = Math.floor(24 - hoursDifference);
+    const remainingMinutes = Math.floor((24 - hoursDifference - remainingHours) * 60);
+    
+    return { hours: remainingHours, minutes: remainingMinutes };
+  };
 
 
 
@@ -141,6 +169,15 @@ const ViewProfile = () => {
       testRequestsIsArray: Array.isArray(testRequests)
     });
   }, [testRequests]);
+
+  // Update current time every minute for countdown
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // Update every minute
+
+    return () => clearInterval(interval);
+  }, []);
 
   if (!id) return (
     <ReceptionistLayout>
@@ -264,9 +301,32 @@ const ViewProfile = () => {
                     </span>
                   )}
                 </div>
-
-
               </div>
+            </div>
+
+            {/* Edit Button */}
+            <div className="flex flex-col items-end gap-2">
+              {canEditPatient(patient) ? (
+                <button
+                  onClick={() => navigate(`/dashboard/receptionist/edit-patient/${patient._id}`)}
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+                >
+                  <Edit className="h-4 w-4" />
+                  Edit Patient
+                </button>
+              ) : (
+                <div className="bg-gray-100 text-gray-600 px-4 py-2 rounded-lg font-medium flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  Edit Expired
+                </div>
+              )}
+              
+              {canEditPatient(patient) && getRemainingEditTime(patient) && (
+                <div className="text-xs text-slate-500 flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  {getRemainingEditTime(patient).hours}h {getRemainingEditTime(patient).minutes}m remaining
+                </div>
+              )}
             </div>
 
           </div>

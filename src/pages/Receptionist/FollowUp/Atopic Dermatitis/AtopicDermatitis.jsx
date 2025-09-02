@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import API from "../../../../services/api";
+import API from "../../../../../services/api";
 import { useParams, useNavigate } from "react-router-dom";
 
 const INTENSITY_OPTIONS = ["None", "Mild", "Moderate", "Severe"];

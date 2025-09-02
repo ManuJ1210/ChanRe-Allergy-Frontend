@@ -85,6 +85,24 @@ const UpdateStatus = () => {
       return;
     }
 
+    // Validate date if provided
+    if (formData.sampleCollectionActualDate) {
+      const selectedDate = new Date(formData.sampleCollectionActualDate);
+      const now = new Date();
+      
+      // Allow past dates but warn if more than 30 days in the past
+      const daysDifference = Math.floor((now - selectedDate) / (1000 * 60 * 60 * 24));
+      
+      if (daysDifference > 30) {
+        setError('Collection date cannot be more than 30 days in the past. Please contact admin if you need to enter an earlier date.');
+        return;
+      }
+      
+      if (daysDifference > 0) {
+        console.log(`⚠️ Warning: Setting collection date to ${daysDifference} day(s) in the past`);
+      }
+    }
+
     try {
       setSaving(true);
       setError(null);
@@ -96,6 +114,13 @@ const UpdateStatus = () => {
         sampleCollectionNotes: formData.sampleCollectionNotes
       };
 
+      console.log('🚀 Submitting collection status update:', {
+        testRequestId: id,
+        requestData,
+        originalDate: formData.sampleCollectionActualDate,
+        convertedDate: requestData.sampleCollectionActualDate
+      });
+
       const response = await API.put(`/test-requests/${id}/collection-status`, requestData);
       
       setSuccess(true);
@@ -105,7 +130,25 @@ const UpdateStatus = () => {
       
     } catch (error) {
       console.error('Error updating collection status:', error);
-      setError(error.response?.data?.message || 'Failed to update collection status');
+      
+      // Enhanced error logging
+      if (error.response) {
+        console.error('Response status:', error.response.status);
+        console.error('Response data:', error.response.data);
+        console.error('Response headers:', error.response.headers);
+      }
+      
+      // Set user-friendly error message
+      let errorMessage = 'Failed to update collection status';
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setSaving(false);
     }
@@ -380,7 +423,7 @@ const UpdateStatus = () => {
 
               {/* Actual Collection Date */}
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-2">
+                <label className="text-xs font-medium text-gray-700 mb-2">
                   Actual Collection Date
                 </label>
                 <input
@@ -388,9 +431,11 @@ const UpdateStatus = () => {
                   name="sampleCollectionActualDate"
                   value={formData.sampleCollectionActualDate}
                   onChange={handleInputChange}
-                  max={new Date().toISOString().split('T')[0]}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  You can select past dates if collection happened on a different date than scheduled
+                </p>
               </div>
 
               {/* Collection Notes */}

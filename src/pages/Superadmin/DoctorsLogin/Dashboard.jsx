@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchSuperAdminDoctorWorkingStats, fetchSuperAdminDoctorAssignedPatients } from '../../../features/superadmin/superAdminDoctorSlice';
-import { User, FileText, MessageSquare, Clock, Eye } from 'lucide-react';
+import { User, FileText, MessageSquare, Clock, Eye, Building, Users, CheckCircle, AlertCircle } from 'lucide-react';
 
 const Dashboard = () => {
   const dispatch = useDispatch();
@@ -13,6 +13,8 @@ const Dashboard = () => {
     dispatch(fetchSuperAdminDoctorWorkingStats());
     dispatch(fetchSuperAdminDoctorAssignedPatients());
   }, [dispatch]);
+
+
 
   if (workingLoading) {
     return (
@@ -34,7 +36,7 @@ const Dashboard = () => {
     <div className="p-6">
       <h1 className="text-md font-bold text-gray-800 mb-8">Superadmin Doctor Dashboard</h1>
       
-      {/* Stats Cards - Focused on Patient Care */}
+      {/* Stats Cards - Superadmin Doctor Focused */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center">
@@ -42,9 +44,9 @@ const Dashboard = () => {
               <User className="w-6 h-6 text-blue-600" />
             </div>
             <div className="ml-4">
-              <p className="text-xs font-medium text-gray-600">Assigned Patients</p>
+              <p className="text-xs font-medium text-gray-600">Total Patients</p>
               <p className="text-xl font-semibold text-gray-900">
-                {workingStats?.assignedPatients || 0}
+                {workingStats?.totalPatients || 0}
               </p>
             </div>
           </div>
@@ -52,13 +54,13 @@ const Dashboard = () => {
 
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center">
-            <div className="p-3 rounded-full bg-purple-100">
-              <FileText className="w-6 h-6 text-purple-600" />
+            <div className="p-3 rounded-full bg-orange-100">
+              <AlertCircle className="w-6 h-6 text-orange-600" />
             </div>
             <div className="ml-4">
-              <p className="text-xs font-medium text-gray-600">Pending Lab Reports</p>
+              <p className="text-xs font-medium text-gray-600">Awaiting Review</p>
               <p className="text-xl font-semibold text-gray-900">
-                {workingStats?.pendingLabReports || 0}
+                {workingStats?.awaitingReview || 0}
               </p>
             </div>
           </div>
@@ -67,12 +69,57 @@ const Dashboard = () => {
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center">
             <div className="p-3 rounded-full bg-green-100">
-              <MessageSquare className="w-6 h-6 text-green-600" />
+              <CheckCircle className="w-6 h-6 text-green-600" />
             </div>
             <div className="ml-4">
-              <p className="text-xs font-medium text-gray-600">Feedback Sent</p>
+              <p className="text-xs font-medium text-gray-600">Reviewed by Me</p>
               <p className="text-xl font-semibold text-gray-900">
-                {workingStats?.feedbackSent || 0}
+                {workingStats?.reviewedByMe || 0}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center">
+            <div className="p-3 rounded-full bg-purple-100">
+              <Building className="w-6 h-6 text-purple-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-xs font-medium text-gray-600">Active Centers</p>
+              <p className="text-xl font-semibold text-gray-900">
+                {workingStats?.totalCenters || 0}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Additional Stats Row */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center">
+            <div className="p-3 rounded-full bg-indigo-100">
+              <FileText className="w-6 h-6 text-indigo-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-xs font-medium text-gray-600">Total Lab Reports</p>
+              <p className="text-xl font-semibold text-gray-900">
+                {workingStats?.totalLabReports || 0}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center">
+            <div className="p-3 rounded-full bg-teal-100">
+              <Users className="w-6 h-6 text-teal-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-xs font-medium text-gray-600">Center Doctors</p>
+              <p className="text-xl font-semibold text-gray-900">
+                {workingStats?.totalDoctors || 0}
               </p>
             </div>
           </div>
@@ -84,29 +131,49 @@ const Dashboard = () => {
               <Clock className="w-6 h-6 text-yellow-600" />
             </div>
             <div className="ml-4">
-              <p className="text-xs font-medium text-gray-600">Recent Followups</p>
+              <p className="text-xs font-medium text-gray-600">Recent Reports</p>
               <p className="text-xl font-semibold text-gray-900">
-                {workingStats?.recentFollowups || 0}
+                {workingStats?.recentReports || 0}
               </p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Main Actions - Patient Focused */}
+      {/* Main Actions - Superadmin Doctor Focused */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-sm font-semibold text-gray-800 mb-2">Patient Details</h3>
+              <h3 className="text-sm font-semibold text-gray-800 mb-2">Review Lab Reports</h3>
               <p className="text-gray-600 mb-4 text-xs">
-                View complete patient information, history, and followups
+                Review completed lab reports and provide expert feedback
+              </p>
+              <button
+                onClick={() => window.location.href = '/dashboard/superadmin/doctor/lab-reports'}
+                className="bg-orange-600 text-white px-4 py-2 rounded-md hover:bg-orange-700 transition-colors text-xs"
+              >
+                Review Reports
+              </button>
+            </div>
+            <div className="p-3 rounded-full bg-orange-100">
+              <FileText className="w-8 h-8 text-orange-600" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-800 mb-2">Patient Management</h3>
+              <p className="text-gray-600 mb-4 text-xs">
+                Access patient profiles, history, and medical records
               </p>
               <button
                 onClick={() => window.location.href = '/dashboard/superadmin/doctor/patients'}
                 className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors text-xs"
               >
-                View Patients
+                Manage Patients
               </button>
             </div>
             <div className="p-3 rounded-full bg-blue-100">
@@ -118,39 +185,19 @@ const Dashboard = () => {
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-sm font-semibold text-gray-800 mb-2">Lab Reports</h3>
+              <h3 className="text-sm font-semibold text-gray-800 mb-2">Center Overview</h3>
               <p className="text-gray-600 mb-4 text-xs">
-                Review lab reports and provide feedback to center admin doctors
-              </p>
-              <button
-                onClick={() => window.location.href = '/dashboard/superadmin/doctor/lab-reports'}
-                className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors text-xs"
-              >
-                Review Reports
-              </button>
-            </div>
-            <div className="p-3 rounded-full bg-purple-100">
-              <FileText className="w-8 h-8 text-purple-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-semibold text-gray-800 mb-2">Patient History</h3>
-              <p className="text-gray-600 mb-4 text-xs">
-                Access complete patient medical history and followup records
+                Monitor centers and their medical activities
               </p>
               <button
                 onClick={() => window.location.href = '/dashboard/superadmin/doctor/patients'}
-                className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors text-xs"
+                className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors text-xs"
               >
-                View History
+                View Centers
               </button>
             </div>
-            <div className="p-3 rounded-full bg-green-100">
-              <Eye className="w-8 h-8 text-green-600" />
+            <div className="p-3 rounded-full bg-purple-100">
+              <Building className="w-8 h-8 text-purple-600" />
             </div>
           </div>
         </div>
@@ -205,11 +252,11 @@ const Dashboard = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          patient.status === 'active' 
+                          patient.isActive !== false 
                             ? 'bg-green-100 text-green-800' 
                             : 'bg-red-100 text-red-800'
                         }`}>
-                          {patient.status}
+                          {patient.isActive !== false ? 'Active' : 'Inactive'}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-xs font-medium">

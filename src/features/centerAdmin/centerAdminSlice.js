@@ -1,5 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { fetchAtopicDermatitis, fetchAllFollowUps, fetchCenterFollowUps, fetchPatientDetails, fetchPatientPrescriptions, fetchPatientHistory, fetchPatientMedications, addPatientHistory, addPatientMedication, createDoctor, updateDoctor, fetchAllergicRhinitis, fetchSingleAllergicRhinitis, fetchAllergicConjunctivitis, addAtopicDermatitis, addAllergicBronchitis, fetchAllergicBronchitis, addGPE, fetchGPE, addPatientPrescription, fetchPrescription, fetchSinglePrescription, deletePrescription, addFollowUp, updatePatient, deletePatient, submitPatientTests, fetchCenterAdminBillingRequests, verifyCenterAdminPayment, rejectCenterAdminPayment, fetchCenterAdminBillingSummary } from './centerAdminThunks';
+import { fetchAtopicDermatitis, fetchAllFollowUps, fetchCenterFollowUps, fetchPatientDetails, fetchPatientPrescriptions, fetchPatientHistory, fetchPatientMedications, addPatientHistory, addPatientMedication, createDoctor, updateDoctor, fetchAllergicRhinitis, fetchSingleAllergicRhinitis, fetchAllergicConjunctivitis, addAtopicDermatitis, addAllergicBronchitis, fetchAllergicBronchitis, addGPE, fetchGPE, addPatientPrescription, fetchPrescription, fetchSinglePrescription, deletePrescription, addFollowUp, updatePatient, deletePatient, submitPatientTests, fetchTests, fetchCenterAdminBillingRequests, verifyCenterAdminPayment, rejectCenterAdminPayment, fetchCenterAdminBillingSummary } from './centerAdminThunks';
 
 const initialState = {
   center: null,
@@ -96,12 +96,18 @@ const centerAdminSlice = createSlice({
       state.medications = action.payload;
     },
     setHistory: (state, action) => {
-      if (!action.payload) {
-        state.history = [];
-      } else if (Array.isArray(action.payload)) {
-        state.history = action.payload;
+      const payload = action.payload;
+      // Do not overwrite existing non-empty history with an empty payload
+      if (payload == null) {
+        return;
+      }
+      if (Array.isArray(payload)) {
+        if (payload.length === 0 && Array.isArray(state.history) && state.history.length > 0) {
+          return;
+        }
+        state.history = payload;
       } else {
-        state.history = [action.payload];
+        state.history = [payload];
       }
     },
     setTests: (state, action) => {
@@ -335,6 +341,20 @@ const centerAdminSlice = createSlice({
         state.addMedicationSuccess = true;
       })
       .addCase(addPatientMedication.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      
+      // Fetch tests
+      .addCase(fetchTests.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchTests.fulfilled, (state, action) => {
+        state.loading = false;
+        state.tests = action.payload;
+      })
+      .addCase(fetchTests.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })

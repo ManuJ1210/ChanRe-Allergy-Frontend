@@ -352,19 +352,16 @@ const receptionistSlice = createSlice({
       
       // Fetch prescriptions
       .addCase(fetchReceptionistPrescriptions.pending, (state) => {
-        console.log('🔄 Fetching prescriptions...');
+  
         state.loading = true;
         state.error = null;
       })
       .addCase(fetchReceptionistPrescriptions.fulfilled, (state, action) => {
-        console.log('✅ Prescriptions fetched successfully:', action.payload);
-        console.log('✅ Prescriptions type:', typeof action.payload);
-        console.log('✅ Prescriptions length:', Array.isArray(action.payload) ? action.payload.length : 'Not an array');
+
         state.loading = false;
         state.prescriptions = action.payload;
       })
       .addCase(fetchReceptionistPrescriptions.rejected, (state, action) => {
-        console.error('❌ Prescriptions fetch failed:', action.payload);
         state.loading = false;
         state.error = action.payload;
       })
@@ -427,17 +424,16 @@ const receptionistSlice = createSlice({
       
       // Fetch single patient
       .addCase(fetchPatient.pending, (state) => {
-        console.log('🔄 Fetching patient...');
+
         state.patientLoading = true;
         state.patientError = null;
       })
       .addCase(fetchPatient.fulfilled, (state, action) => {
-        console.log('✅ Patient fetched successfully:', action.payload);
+
         state.patientLoading = false;
         state.singlePatient = action.payload;
       })
       .addCase(fetchPatient.rejected, (state, action) => {
-        console.error('❌ Patient fetch failed:', action.payload);
         state.patientLoading = false;
         state.patientError = action.payload;
       });

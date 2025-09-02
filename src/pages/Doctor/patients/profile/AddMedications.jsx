@@ -51,7 +51,7 @@ export default function AddMedications() {
           {/* Header */}
           <div className="mb-8">
             <button
-                              onClick={() => navigate(`/dashboard/Doctor/patients/profile/ViewProfile/${patientId}`)}
+                              onClick={() => navigate(`/dashboard/CenterAdmin/patients/profile/ViewProfile/${id}`)}
               className="flex items-center text-slate-600 hover:text-slate-800 mb-4 transition-colors text-xs"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />

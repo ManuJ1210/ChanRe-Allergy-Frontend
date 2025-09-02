@@ -11,13 +11,15 @@ import {
   FileText,
   Calendar,
   User,
-  Building
+  Building,
+  Download
 } from 'lucide-react';
 import { 
   fetchSuperAdminDoctorPatientById,
   fetchSuperAdminDoctorPatientLabReports,
   sendFeedbackToCenterDoctor
 } from '../../../features/superadmin/superAdminDoctorSlice';
+import { downloadPDFReport, viewPDFReport } from '../../../utils/pdfHandler';
 
 const PatientLabReports = () => {
   const dispatch = useDispatch();
@@ -37,29 +39,22 @@ const PatientLabReports = () => {
 
   useEffect(() => {
     if (patientId) {
-      console.log('🔍 PatientLabReports: Fetching data for patientId:', patientId);
-      
       // Check if the patientId is valid by trying to fetch it
       dispatch(fetchSuperAdminDoctorPatientById(patientId))
         .then((result) => {
           if (result.error) {
-            console.log('⚠️ Invalid patient ID, redirecting to patients list');
             navigate('/dashboard/superadmin/doctor/patients');
             return;
           }
           dispatch(fetchSuperAdminDoctorPatientLabReports(patientId));
         })
         .catch((error) => {
-          console.log('⚠️ Error fetching patient, redirecting to patients list');
           navigate('/dashboard/superadmin/doctor/patients');
         });
     }
   }, [dispatch, patientId, navigate]);
 
-  useEffect(() => {
-    console.log('📊 PatientLabReports: patient state:', patient);
-    console.log('📊 PatientLabReports: labReports state:', labReports);
-  }, [patient, labReports]);
+
 
   const handleBack = () => {
     navigate('/dashboard/superadmin/doctor/patients');
@@ -68,6 +63,24 @@ const PatientLabReports = () => {
   const handleSendFeedback = (report) => {
     setSelectedReport(report);
     setFeedbackModal(true);
+  };
+
+  const handleViewPDFReport = async (reportId, filename) => {
+    try {
+      await viewPDFReport(reportId, filename);
+    } catch (error) {
+      console.error('Error viewing PDF:', error);
+      alert('Error viewing PDF report. Please try again.');
+    }
+  };
+
+  const handleDownloadPDFReport = async (reportId, filename) => {
+    try {
+      await downloadPDFReport(reportId, filename);
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      alert('Error downloading PDF report. Please try again.');
+    }
   };
 
   const submitFeedback = async () => {
@@ -393,7 +406,7 @@ const PatientLabReports = () => {
                       )}
                       
                       {/* PDF Information */}
-                      {report.hasPdf && (
+                      {(report.reportFile || report.reportFilePath || report.status === 'Report_Generated' || report.status === 'Report_Sent' || report.status === 'Completed') && (
                         <div className="md:col-span-2 lg:col-span-3 bg-blue-50 p-4 rounded-lg">
                           <div className="flex items-center justify-between">
                             <div>
@@ -402,13 +415,28 @@ const PatientLabReports = () => {
                                 Generated on {report.reportGeneratedDate ? new Date(report.reportGeneratedDate).toLocaleDateString() : 'N/A'}
                               </p>
                             </div>
-                            <button
-                              onClick={() => window.open(`/api/files/${report.pdfFile}`, '_blank')}
-                              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center text-xs"
-                            >
-                              <Eye className="w-4 h-4 mr-1" />
-                              View PDF
-                            </button>
+                            <div className="flex items-center space-x-2">
+                              {report._id ? (
+                                <>
+                                  <button
+                                    onClick={() => handleViewPDFReport(report._id, `${report.testType || 'test'}_report.pdf`)}
+                                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center text-xs"
+                                  >
+                                    <Eye className="w-4 h-4 mr-1" />
+                                    View PDF
+                                  </button>
+                                  <button
+                                    onClick={() => handleDownloadPDFReport(report._id, `${report.testType || 'test'}_report.pdf`)}
+                                    className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center text-xs"
+                                  >
+                                    <Download className="w-4 h-4 mr-1" />
+                                    Download
+                                  </button>
+                                </>
+                              ) : (
+                                <span className="text-xs text-gray-500">PDF not available</span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       )}
