@@ -67,9 +67,13 @@ const Notifications = () => {
     dispatch(fetchDoctorNotifications());
   }, [dispatch]);
 
-  // Debug: Log notifications count
+  // Debug: Log notifications count and data
   useEffect(() => {
-
+    console.log('🔍 Notifications data:', notifications);
+    if (notifications.length > 0) {
+      console.log('🔍 First notification data:', notifications[0].data);
+      console.log('🔍 First notification message:', notifications[0].message);
+    }
   }, [notifications]);
 
   const handleMarkAsRead = async (notificationId) => {
@@ -238,20 +242,17 @@ const Notifications = () => {
                          {notification.data && (
                            <div className="mt-2 text-xs text-gray-500">
                              <p><strong>From:</strong> {notification.sender?.name || 'System'}</p>
-                             {notification.data.patientId && (
+                             {/* Show patient information if available */}
+                             {(notification.data.patientId || notification.data.patientName) && (
                                <div className="mt-2 p-2 bg-blue-50 rounded border-l-2 border-blue-300">
-                                 <p><strong>Patient:</strong> {typeof notification.data.patientId === 'object' ? notification.data.patientId.name : extractPatientNameFromMessage(notification.message) || 'Unknown'}</p>
-                                 {notification.data.testId && (
-                                   <p><strong>Test ID:</strong> {notification.data.testId}</p>
-                                 )}
-                               </div>
-                             )}
-                             {/* Fallback for when patientId is not nested */}
-                             {!notification.data.patientId && (notification.data.patientName || notification.data.testId) && (
-                               <div className="mt-2 p-2 bg-blue-50 rounded border-l-2 border-blue-300">
-                                 <p><strong>Patient:</strong> {notification.data.patientName || extractPatientNameFromMessage(notification.message) || 'Unknown'}</p>
-                                 {notification.data.testId && (
-                                   <p><strong>Test ID:</strong> {notification.data.testId}</p>
+                                 <p><strong>Patient:</strong> {
+                                   notification.data.patientName || 
+                                   (notification.data.patientId && typeof notification.data.patientId === 'object' ? notification.data.patientId.name : null) ||
+                                   extractPatientNameFromMessage(notification.message) || 
+                                   'Unknown'
+                                 }</p>
+                                 {notification.data.testRequestId && (
+                                   <p><strong>Test Request ID:</strong> {notification.data.testRequestId}</p>
                                  )}
                                </div>
                              )}
@@ -345,43 +346,23 @@ const Notifications = () => {
                    <div>
                      <h4 className="font-semibold text-gray-800">Patient Information</h4>
                      <div className="bg-blue-50 p-4 rounded-lg space-y-3 mb-4">
-                       {selectedNotification.data.patientId && (
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                           <div>
-                             <p className="text-xs font-medium text-blue-700">Patient Name</p>
-                             <p className="text-blue-600 font-semibold">
-                               {typeof selectedNotification.data.patientId === 'object' 
-                                 ? selectedNotification.data.patientId.name 
-                                 : extractPatientNameFromMessage(selectedNotification.message) || 'Unknown'}
-                             </p>
-                           </div>
-                           {selectedNotification.data.testId && (
-                             <div>
-                               <p className="text-xs font-medium text-blue-700">Test ID</p>
-                               <p className="text-blue-600 font-mono text-xs">{selectedNotification.data.testId}</p>
-                             </div>
-                           )}
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                         <div>
+                           <p className="text-xs font-medium text-blue-700">Patient Name</p>
+                           <p className="text-blue-600 font-semibold">
+                             {selectedNotification.data.patientName || 
+                              (selectedNotification.data.patientId && typeof selectedNotification.data.patientId === 'object' ? selectedNotification.data.patientId.name : null) ||
+                              extractPatientNameFromMessage(selectedNotification.message) || 
+                              'Unknown'}
+                           </p>
                          </div>
-                       )}
-                       {/* Fallback for when patientId is not nested - try to extract from message */}
-                       {!selectedNotification.data.patientId && (
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                         {selectedNotification.data.testRequestId && (
                            <div>
-                             <p className="text-xs font-medium text-blue-700">Patient Name</p>
-                             <p className="text-blue-600 font-semibold">
-                               {selectedNotification.data.patientName || 
-                                extractPatientNameFromMessage(selectedNotification.message) || 
-                                'Unknown'}
-                             </p>
+                             <p className="text-xs font-medium text-blue-700">Test Request ID</p>
+                             <p className="text-blue-600 font-mono text-xs">{selectedNotification.data.testRequestId}</p>
                            </div>
-                           {selectedNotification.data.testId && (
-                             <div>
-                               <p className="text-xs font-medium text-blue-700">Test ID</p>
-                               <p className="text-blue-600 font-mono text-xs">{selectedNotification.data.testId}</p>
-                             </div>
-                           )}
-                         </div>
-                       )}
+                         )}
+                       </div>
                      </div>
                      
                      <h4 className="font-semibold text-gray-800">Feedback Details</h4>

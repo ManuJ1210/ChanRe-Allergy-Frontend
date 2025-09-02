@@ -114,6 +114,10 @@ export default function ReceptionistBilling() {
         if (status === 'payment_received') {
           return r.status === 'Billing_Generated' && r.billing?.status === 'payment_received';
         }
+        if (status === 'Billing_Paid') {
+          // Include Billing_Paid, Report_Sent, and Completed in Bill Paid & Verified filter
+          return ['Billing_Paid', 'Report_Sent', 'Completed'].includes(r.status);
+        }
         return r.status === status;
       })
       .filter(r => !term || 
@@ -123,7 +127,7 @@ export default function ReceptionistBilling() {
   const subTotal = items.reduce((s, it) => s + (Number(it.quantity || 0) * Number(it.unitPrice || 0)), 0);
   const grandTotal = Math.max(0, subTotal + Number(taxes || 0) - Number(discounts || 0));
 
-  // Calculate workflow statistics
+  // Calculate billing workflow statistics (including completed and Report_Sent)
   const workflowStats = useMemo(() => {
     const stats = {
       total: billingRequests?.length || 0,
@@ -131,9 +135,8 @@ export default function ReceptionistBilling() {
       billingPending: billingRequests?.filter(r => r.status === 'Billing_Pending').length || 0,
       billingGenerated: billingRequests?.filter(r => r.status === 'Billing_Generated').length || 0,
       paymentReceived: billingRequests?.filter(r => r.status === 'Billing_Generated' && r.billing?.status === 'payment_received').length || 0,
-      billingPaid: billingRequests?.filter(r => r.status === 'Billing_Paid').length || 0,
-      inLab: billingRequests?.filter(r => ['Assigned', 'Sample_Collection_Scheduled', 'Sample_Collected', 'In_Lab_Testing', 'Testing_Completed'].includes(r.status)).length || 0,
-      completed: billingRequests?.filter(r => ['Report_Generated', 'Report_Sent', 'Completed'].includes(r.status)).length || 0
+      billingPaid: billingRequests?.filter(r => r.status === 'Billing_Paid' || r.status === 'Report_Sent').length || 0,
+      completed: billingRequests?.filter(r => r.status === 'Completed').length || 0
     };
     return stats;
   }, [billingRequests]);
@@ -370,8 +373,8 @@ export default function ReceptionistBilling() {
                 )}
               </div>
 
-                     {/* Simplified Workflow Statistics */}
-           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                     {/* Billing Workflow Statistics */}
+           <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
              <div className="bg-white rounded-xl p-6 shadow-sm border border-blue-100 hover:shadow-md transition-shadow duration-200">
                <div className="flex items-center justify-between">
                  <div>
@@ -387,7 +390,7 @@ export default function ReceptionistBilling() {
                <div className="flex items-center justify-between">
                  <div>
                    <div className="text-3xl font-bold text-yellow-700">{workflowStats.pending + workflowStats.billingPending}</div>
-                   <div className="text-sm text-slate-600 mt-1">Awaiting Billing</div>
+                   <div className="text-sm text-slate-600 mt-1">Bill Pending</div>
                  </div>
                  <div className="bg-yellow-100 rounded-lg p-2">
                    <Clock className="h-6 w-6 text-yellow-600" />
@@ -398,7 +401,7 @@ export default function ReceptionistBilling() {
                <div className="flex items-center justify-between">
                  <div>
                    <div className="text-3xl font-bold text-blue-700">{workflowStats.billingGenerated}</div>
-                   <div className="text-sm text-slate-600 mt-1">Bills Generated</div>
+                   <div className="text-sm text-slate-600 mt-1">Bill Generated</div>
                  </div>
                  <div className="bg-blue-100 rounded-lg p-2">
                    <Receipt className="h-6 w-6 text-blue-600" />
@@ -409,10 +412,21 @@ export default function ReceptionistBilling() {
                <div className="flex items-center justify-between">
                  <div>
                    <div className="text-3xl font-bold text-green-700">{workflowStats.billingPaid}</div>
-                   <div className="text-sm text-slate-600 mt-1">Paid & Verified</div>
+                   <div className="text-sm text-slate-600 mt-1">Bill Paid & Verified</div>
                  </div>
                  <div className="bg-green-100 rounded-lg p-2">
                    <CheckCircle className="h-6 w-6 text-green-600" />
+                 </div>
+               </div>
+             </div>
+             <div className="bg-white rounded-xl p-6 shadow-sm border border-emerald-100 hover:shadow-md transition-shadow duration-200">
+               <div className="flex items-center justify-between">
+                 <div>
+                   <div className="text-3xl font-bold text-emerald-700">{workflowStats.completed}</div>
+                   <div className="text-sm text-slate-600 mt-1">Completed</div>
+                 </div>
+                 <div className="bg-emerald-100 rounded-lg p-2">
+                   <CheckCircle className="h-6 w-6 text-emerald-600" />
                  </div>
                </div>
              </div>
@@ -436,11 +450,11 @@ export default function ReceptionistBilling() {
                    value={status} 
                    onChange={(e) => setStatus(e.target.value)}
                  >
-                   <option value="all">All Requests</option>
-                   <option value="Pending">Pending</option>
+                   <option value="all">All Billing Requests</option>
+                   <option value="Pending">Bill Pending</option>
                    <option value="Billing_Pending">Billing Pending</option>
-                   <option value="Billing_Generated">Bills Generated</option>
-                   <option value="Billing_Paid">Paid & Verified</option>
+                   <option value="Billing_Generated">Bill Generated</option>
+                   <option value="Billing_Paid">Bill Paid & Verified</option>
                  </select>
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                   <Filter className="h-5 w-5 text-slate-400" />
@@ -521,18 +535,14 @@ export default function ReceptionistBilling() {
                             ultraSafeRender(req.status) === 'Billing_Generated' && ultraSafeRender(req.billing?.status) === 'payment_received' ? 'bg-orange-50 text-orange-700 border-orange-300' :
                             ultraSafeRender(req.status) === 'Billing_Generated' ? 'bg-blue-50 text-blue-700 border-blue-300' :
                             ultraSafeRender(req.status) === 'Billing_Paid' ? 'bg-green-50 text-green-700 border-green-300' :
-                            ultraSafeRender(req.status) === 'Assigned' ? 'bg-purple-50 text-purple-700 border-purple-300' :
-                            ultraSafeRender(req.status) === 'Sample_Collection_Scheduled' ? 'bg-indigo-50 text-indigo-700 border-indigo-300' :
-                            ultraSafeRender(req.status) === 'Sample_Collected' ? 'bg-teal-50 text-teal-700 border-teal-300' :
-                            ultraSafeRender(req.status) === 'In_Lab_Testing' ? 'bg-cyan-50 text-cyan-700 border-cyan-300' :
-                            ultraSafeRender(req.status) === 'Testing_Completed' ? 'bg-emerald-50 text-emerald-700 border-emerald-300' :
-                            ultraSafeRender(req.status) === 'Report_Generated' ? 'bg-lime-50 text-lime-700 border-lime-300' :
-                            ultraSafeRender(req.status) === 'Report_Sent' ? 'bg-amber-50 text-amber-700 border-amber-300' :
-                            ultraSafeRender(req.status) === 'Completed' ? 'bg-green-50 text-green-700 border-green-300' :
+                            ultraSafeRender(req.status) === 'Report_Sent' ? 'bg-green-50 text-green-700 border-green-300' :
+                            ultraSafeRender(req.status) === 'Completed' ? 'bg-emerald-50 text-emerald-700 border-emerald-300' :
                             'bg-slate-50 text-slate-700 border-slate-300'
                           }`}>
                             {ultraSafeRender(req.status) === 'Billing_Generated' && ultraSafeRender(req.billing?.status) === 'payment_received' 
                               ? 'Payment Received' 
+                              : ultraSafeRender(req.status) === 'Report_Sent'
+                              ? 'Bill Paid'
                               : ultraSafeRender(req.status)?.replace(/_/g, ' ') || 'Unknown'}
                           </span>
                         </td>
@@ -587,59 +597,55 @@ export default function ReceptionistBilling() {
                                 <CheckCircle className="h-3 w-3 mr-1" /> Payment Received
                               </span>
                             )}
-                                                         {ultraSafeRender(req.status) === 'Billing_Paid' && (
-                               <>
-                                 <span className="inline-flex items-center text-emerald-700 text-xs bg-emerald-100 px-2 py-1 rounded-md">
-                                   <CheckCircle className="h-3 w-3 mr-1" /> Paid & Verified
-                                 </span>
-                                 <button 
-                                   onClick={() => handleDownloadInvoice(req._id)} 
-                                   className="inline-flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors duration-200 shadow-sm"
-                                 >
-                                   <Download className="h-3 w-3 mr-1" /> Download Invoice
-                                 </button>
-                               </>
-                             )}
-                            {ultraSafeRender(req.status) === 'Assigned' && (
-                              <span className="inline-flex items-center text-purple-700 text-xs bg-purple-100 px-2 py-1 rounded-md">
-                                <FileText className="h-3 w-3 mr-1" /> Lab Assigned
-                              </span>
-                            )}
-                            {ultraSafeRender(req.status) === 'Sample_Collection_Scheduled' && (
-                              <span className="inline-flex items-center text-indigo-700 text-xs bg-indigo-100 px-2 py-1 rounded-md">
-                                <FileText className="h-3 w-3 mr-1" /> Sample Collection Scheduled
-                              </span>
-                            )}
-                            {ultraSafeRender(req.status) === 'Sample_Collected' && (
-                              <span className="inline-flex items-center text-teal-700 text-xs bg-teal-100 px-2 py-1 rounded-md">
-                                <FileText className="h-3 w-3 mr-1" /> Sample Collected
-                              </span>
-                            )}
-                            {ultraSafeRender(req.status) === 'In_Lab_Testing' && (
-                              <span className="inline-flex items-center text-cyan-700 text-xs bg-cyan-100 px-2 py-1 rounded-md">
-                                <FileText className="h-3 w-3 mr-1" /> In Lab Testing
-                              </span>
-                            )}
-                            {ultraSafeRender(req.status) === 'Testing_Completed' && (
-                              <span className="inline-flex items-center text-emerald-700 text-xs bg-emerald-100 px-2 py-1 rounded-md">
-                                <FileText className="h-3 w-3 mr-1" /> Testing Completed
-                              </span>
-                            )}
-                            {ultraSafeRender(req.status) === 'Report_Generated' && (
-                              <span className="inline-flex items-center text-lime-700 text-xs bg-lime-100 px-2 py-1 rounded-md">
-                                <FileText className="h-3 w-3 mr-1" /> Report Generated
-                              </span>
+                                                                                     {ultraSafeRender(req.status) === 'Billing_Paid' && (
+                              <>
+                                <button 
+                                  onClick={() => openBillModal(req)} 
+                                  className="inline-flex items-center px-3 py-2 bg-slate-100 text-slate-700 rounded-lg text-xs font-medium hover:bg-slate-200 transition-colors duration-200"
+                                >
+                                  <FileText className="h-3 w-3 mr-1" /> View Invoice
+                                </button>
+                                <button 
+                                  onClick={() => handleDownloadInvoice(req._id)} 
+                                  className="inline-flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors duration-200 shadow-sm"
+                                >
+                                  <Download className="h-3 w-3 mr-1" /> Download Invoice
+                                </button>
+                              </>
                             )}
                             {ultraSafeRender(req.status) === 'Report_Sent' && (
-                              <span className="inline-flex items-center text-amber-700 text-xs bg-amber-100 px-2 py-1 rounded-md">
-                                <FileText className="h-3 w-3 mr-1" /> Report Sent
-                              </span>
+                              <>
+                                <button 
+                                  onClick={() => openBillModal(req)} 
+                                  className="inline-flex items-center px-3 py-2 bg-slate-100 text-slate-700 rounded-lg text-xs font-medium hover:bg-slate-200 transition-colors duration-200"
+                                >
+                                  <FileText className="h-3 w-3 mr-1" /> View Invoice
+                                </button>
+                                <button 
+                                  onClick={() => handleDownloadInvoice(req._id)} 
+                                  className="inline-flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors duration-200 shadow-sm"
+                                >
+                                  <Download className="h-3 w-3 mr-1" /> Download Invoice
+                                </button>
+                              </>
                             )}
                             {ultraSafeRender(req.status) === 'Completed' && (
-                              <span className="inline-flex items-center text-green-700 text-xs bg-green-100 px-2 py-1 rounded-md">
-                                <CheckCircle className="h-3 w-3 mr-1" /> Completed
-                              </span>
+                              <>
+                                <button 
+                                  onClick={() => openBillModal(req)} 
+                                  className="inline-flex items-center px-3 py-2 bg-slate-100 text-slate-700 rounded-lg text-xs font-medium hover:bg-slate-200 transition-colors duration-200"
+                                >
+                                  <FileText className="h-3 w-3 mr-1" /> View Invoice
+                                </button>
+                                <button 
+                                  onClick={() => handleDownloadInvoice(req._id)} 
+                                  className="inline-flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors duration-200 shadow-sm"
+                                >
+                                  <Download className="h-3 w-3 mr-1" /> Download Invoice
+                                </button>
+                              </>
                             )}
+
                                                      </div>
                          </td>
                        </tr>
@@ -652,28 +658,20 @@ export default function ReceptionistBilling() {
                 <div className="text-slate-400 mb-6">
                   <FileText className="h-16 w-16 mx-auto" />
                 </div>
-                <h3 className="text-lg font-semibold text-slate-700 mb-3">No test requests found</h3>
+                <h3 className="text-lg font-semibold text-slate-700 mb-3">No billing requests found</h3>
                 <p className="text-slate-600 mb-4 max-w-md mx-auto">
-                  Test requests will appear here when doctors create them. As a receptionist, you can view the complete workflow and handle billing for test requests.
+                  Billing requests will appear here when doctors create test requests. As a receptionist, you can handle the billing workflow for test requests.
                 </p>
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-2xl mx-auto">
-                  <h4 className="text-sm font-semibold text-blue-800 mb-2">Complete Workflow:</h4>
+                  <h4 className="text-sm font-semibold text-blue-800 mb-2">Billing Workflow:</h4>
                   <div className="flex flex-wrap justify-center items-center gap-2 text-xs text-blue-700">
                     <span className="bg-blue-100 px-2 py-1 rounded">Pending</span>
                     <span>→</span>
-                    <span className="bg-blue-100 px-2 py-1 rounded">Billing</span>
+                    <span className="bg-blue-100 px-2 py-1 rounded">Bill Pending</span>
                     <span>→</span>
-                    <span className="bg-blue-100 px-2 py-1 rounded">Payment</span>
+                    <span className="bg-blue-100 px-2 py-1 rounded">Bill Generated</span>
                     <span>→</span>
-                    <span className="bg-blue-100 px-2 py-1 rounded">Lab Assignment</span>
-                    <span>→</span>
-                    <span className="bg-blue-100 px-2 py-1 rounded">Sample Collection</span>
-                    <span>→</span>
-                    <span className="bg-blue-100 px-2 py-1 rounded">Testing</span>
-                    <span>→</span>
-                    <span className="bg-blue-100 px-2 py-1 rounded">Report Generation</span>
-                    <span>→</span>
-                    <span className="bg-blue-100 px-2 py-1 rounded">Completed</span>
+                    <span className="bg-blue-100 px-2 py-1 rounded">Bill Paid & Verified</span>
                   </div>
                 </div>
               </div>
