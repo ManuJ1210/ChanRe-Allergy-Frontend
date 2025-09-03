@@ -16,8 +16,10 @@ import {
   Calendar,
   MapPin,
   ArrowLeft,
-  ArrowRight
+  ArrowRight,
+  Clock
 } from 'lucide-react';
+import { formatRemainingTime } from '../../../utils/patientPermissions';
 
 export default function PatientList() {
   const dispatch = useDispatch();
@@ -225,6 +227,17 @@ export default function PatientList() {
                       </span>
                     </div>
                     
+                    <div className="flex items-center gap-2 bg-white p-2 rounded-lg border border-slate-200">
+                      <Clock className="h-4 w-4 text-red-500" />
+                      <span className={`text-xs font-medium ${
+                        formatRemainingTime(patient).includes('Expired') 
+                          ? 'text-red-600' 
+                          : 'text-slate-700'
+                      }`}>
+                        {formatRemainingTime(patient)}
+                      </span>
+                    </div>
+                    
                     <div className="flex gap-2 pt-3 border-t border-slate-200">
                       <button
                         onClick={() => {
@@ -294,6 +307,7 @@ export default function PatientList() {
                       <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                         Assigned Doctor
                       </th>
+
                       <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                         Actions
                       </th>

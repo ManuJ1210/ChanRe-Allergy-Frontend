@@ -113,7 +113,7 @@ const PatientProfile = () => {
         // For now, we'll try to open the file URL directly
         window.open(fileUrl, '_blank');
       } else {
-        window.open(`/api/files/${fileUrl}`, '_blank');
+        window.open(`https://api.chanreallergyclinic.com/api/files/${fileUrl}`, '_blank');
       }
     }
   };

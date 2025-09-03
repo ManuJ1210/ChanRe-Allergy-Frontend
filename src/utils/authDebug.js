@@ -31,10 +31,15 @@ export const debugAuthState = () => {
 };
 
 // Function to clear auth data and redirect to login
-export const clearAuthAndRedirect = () => {
+export const clearAuthAndRedirect = (navigate) => {
   localStorage.removeItem('user');
   localStorage.removeItem('token');
-  window.location.href = '/login';
+  if (navigate) {
+    navigate('/login', { replace: true });
+  } else {
+    // Fallback to window.location if navigate is not available
+    window.location.href = '/login';
+  }
 };
 
 // Make debug functions available globally for console access

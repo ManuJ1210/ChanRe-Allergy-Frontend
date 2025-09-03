@@ -650,7 +650,10 @@ const ViewProfile = () => {
                             <td className="px-4 py-3 text-sm text-slate-600">{med.dose}</td>
                             <td className="px-4 py-3 text-sm text-slate-600">{med.duration}</td>
                             <td className="px-4 py-3 text-sm text-slate-600">{med.frequency || 'N/A'}</td>
-                            <td className="px-4 py-3 text-sm text-slate-600">{med.prescribedBy || 'N/A'}</td>
+                            <td className="px-4 py-3 text-sm text-slate-600">
+                              {typeof med.prescribedBy === 'string' ? med.prescribedBy : 
+                               (typeof med.prescribedBy === 'object' && med.prescribedBy?.name ? med.prescribedBy.name : 'N/A')}
+                            </td>
                             <td className="px-4 py-3 text-sm text-slate-600">{med.adverseEvent || 'N/A'}</td>
                           </tr>
                         ))}
@@ -872,9 +875,12 @@ const ViewProfile = () => {
                             </td>
                             <td className="px-4 py-3 text-sm text-slate-800">{dermatitis.symptoms || 'N/A'}</td>
                             <td className="px-4 py-3 text-sm text-slate-800">{patient.centerCode || 'N/A'}</td>
-                            <td className="px-4 py-3 text-sm text-slate-800">{patient.centerName || 'N/A'}</td>
-                            <td className="px-4 py-3 text-sm text-slate-800">{patient._id}</td>
-                            <td className="px-4 py-3 text-sm text-slate-800">{dermatitis.updatedBy || 'N/A'}</td>
+                            <td className="px-4 py-3 text-sm text-slate-800">{patient.centerId?.name || patient.centerName || 'N/A'}</td>
+                            <td className="px-4 py-3 text-sm text-slate-800">{patient._id?.toString() || 'N/A'}</td>
+                            <td className="px-4 py-3 text-sm text-slate-800">
+                              {typeof dermatitis.updatedBy === 'string' ? dermatitis.updatedBy : 
+                               (typeof dermatitis.updatedBy === 'object' && dermatitis.updatedBy?.name ? dermatitis.updatedBy.name : 'N/A')}
+                            </td>
                             <td className="px-4 py-3 text-sm text-slate-800">
                               <button
                                 onClick={() => navigate(`/dashboard/receptionist/view-atopic-dermatitis/${dermatitis._id}`)}

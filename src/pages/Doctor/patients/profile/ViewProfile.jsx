@@ -74,6 +74,18 @@ const ViewProfile = () => {
   const editPermission = canDoctorEditPatient(patient, user);
   const editRestrictionMessage = getEditRestrictionMessage(patient, user);
 
+  // Debug logging
+  console.log('🔍 Doctor ViewProfile Debug:', {
+    patientId: patient?._id,
+    patient: patient,
+    user: user,
+    editPermission: editPermission,
+    patientRegisteredBy: patient?.registeredBy,
+    patientAssignedDoctor: patient?.assignedDoctor,
+    userRole: user?.role,
+    userId: user?._id
+  });
+
 
 
 
@@ -518,8 +530,8 @@ const ViewProfile = () => {
                               </td>
                               <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{dermatitis.symptoms || 'N/A'}</td>
                               <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{patient.centerCode || 'N/A'}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{patient.centerName || 'N/A'}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{patient._id}</td>
+                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{patient.centerId?.name || patient.centerName || 'N/A'}</td>
+                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{patient._id?.toString() || 'N/A'}</td>
                               <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">
                                 {typeof dermatitis.updatedBy === 'string' ? dermatitis.updatedBy : 
                                  typeof dermatitis.updatedBy === 'object' && dermatitis.updatedBy?.name ? dermatitis.updatedBy.name : 'N/A'}
@@ -833,7 +845,7 @@ const ViewProfile = () => {
                               {prescription.createdAt ? new Date(prescription.createdAt).toLocaleString() : 'N/A'}
                             </td>
                             <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{prescription.visitNumber || idx + 1}</td>
-                            <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{patient._id}</td>
+                            <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{patient._id?.toString() || 'N/A'}</td>
                             <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">
                               {typeof prescription.updatedBy === 'string' ? prescription.updatedBy : 
                                typeof prescription.updatedBy === 'object' && prescription.updatedBy?.name ? prescription.updatedBy.name : 'N/A'}

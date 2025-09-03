@@ -86,7 +86,7 @@ const PatientProfile = () => {
 
   const handleViewFile = (fileUrl, fileName) => {
     if (fileUrl) {
-      window.open(`/api/files/${fileUrl}`, '_blank');
+      window.open(`https://api.chanreallergyclinic.com/api/files/${fileUrl}`, '_blank');
     }
   };
 

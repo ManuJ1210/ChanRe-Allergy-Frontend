@@ -104,12 +104,26 @@ export const downloadInvoice = createAsyncThunk(
   'superadmin/downloadInvoice',
   async (billingId, { rejectWithValue }) => {
     try {
+      console.log('🚀 downloadInvoice thunk called with billingId:', billingId);
+      
       const res = await API.get(`/billing/${billingId}/download-invoice`, {
         responseType: 'blob'
       });
+      
+      console.log('✅ downloadInvoice response received:', {
+        status: res.status,
+        statusText: res.statusText,
+        headers: res.headers,
+        dataType: typeof res.data,
+        dataSize: res.data?.size,
+        isBlob: res.data instanceof Blob
+      });
+      
       return res.data;
     } catch (error) {
-      console.error('Invoice download error:', error.response?.data || error.message);
+      console.error('❌ Invoice download error:', error);
+      console.error('❌ Error response:', error.response);
+      console.error('❌ Error message:', error.message);
       return rejectWithValue(error.response?.data?.message || 'Failed to download invoice');
     }
   }

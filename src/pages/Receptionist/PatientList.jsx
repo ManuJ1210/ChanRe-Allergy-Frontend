@@ -19,6 +19,7 @@ import {
   Clock
 } from 'lucide-react';
 import API from '../../services/api';
+import { formatRemainingTime } from '../../utils/patientPermissions';
 
 export default function ReceptionistPatientList() {
   const dispatch = useDispatch();
@@ -224,9 +225,9 @@ export default function ReceptionistPatientList() {
                     <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                       Address
                     </th>
-                    <th className="px-6 py-4 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
-                      Edit Status
-                    </th>
+                                         <th className="px-6 py-4 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
+                       Edit Time Remaining
+                     </th>
                     <th className="px-6 py-4 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
                       Actions
                     </th>
@@ -303,22 +304,16 @@ export default function ReceptionistPatientList() {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-center text-xs font-medium">
-                          {canEditPatient(patient) ? (
-                            <div className="flex items-center justify-center gap-1 text-green-600">
-                              <Clock className="h-3 w-3" />
-                              <span>Editable</span>
-                              {getRemainingEditTime(patient) && (
-                                <span className="text-xs text-slate-500">
-                                  ({getRemainingEditTime(patient).hours}h {getRemainingEditTime(patient).minutes}m)
-                                </span>
-                              )}
-                            </div>
-                          ) : (
-                            <div className="flex items-center justify-center gap-1 text-red-600">
-                              <Clock className="h-3 w-3" />
-                              <span>Expired</span>
-                            </div>
-                          )}
+                          <div className="flex items-center justify-center gap-1">
+                            <Clock className="h-3 w-3" />
+                                                         <span className={`font-medium ${
+                               formatRemainingTime(patient).includes('Expired') 
+                                 ? 'text-red-600' 
+                                 : 'text-green-600'
+                             }`}>
+                               {formatRemainingTime(patient)}
+                             </span>
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-center text-xs font-medium">
                           <div className="flex items-center justify-center gap-2">

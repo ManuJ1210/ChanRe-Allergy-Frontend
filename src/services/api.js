@@ -7,13 +7,7 @@ const API = axios.create({
   headers: API_CONFIG.DEFAULT_HEADERS,
 });
 
-// Debug: Log the API configuration
-console.log('🔧 API Configuration:', {
-  baseURL: API_CONFIG.BASE_URL,
-  timeout: API_CONFIG.TIMEOUT,
-  isDevelopment: import.meta.env.DEV,
-  hostname: window.location.hostname
-});
+
 
 // Test function to check API connectivity
 export const testAPIConnection = async () => {
@@ -26,14 +20,6 @@ export const testAPIConnection = async () => {
 };
 
 API.interceptors.request.use((config) => {
-  // Debug: Log the request URL
-  console.log('🔧 API Request:', {
-    method: config.method?.toUpperCase(),
-    url: config.url,
-    fullUrl: `${config.baseURL}/${config.url}`,
-    baseURL: config.baseURL
-  });
-  
   try {
     const storedUser = localStorage.getItem('user');
     const storedToken = localStorage.getItem('token');

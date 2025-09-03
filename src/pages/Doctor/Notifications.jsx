@@ -67,14 +67,7 @@ const Notifications = () => {
     dispatch(fetchDoctorNotifications());
   }, [dispatch]);
 
-  // Debug: Log notifications count and data
-  useEffect(() => {
-    console.log('🔍 Notifications data:', notifications);
-    if (notifications.length > 0) {
-      console.log('🔍 First notification data:', notifications[0].data);
-      console.log('🔍 First notification message:', notifications[0].message);
-    }
-  }, [notifications]);
+
 
   const handleMarkAsRead = async (notificationId) => {
     await dispatch(markNotificationAsRead(notificationId));

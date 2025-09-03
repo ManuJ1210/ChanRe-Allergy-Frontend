@@ -158,7 +158,16 @@ const SuperadminBilling = () => {
   // Handle invoice download
   const handleDownloadInvoice = async (billingId) => {
     try {
+      console.log('🚀 Attempting to download invoice for billingId:', billingId);
+      
       const result = await dispatch(downloadInvoice(billingId)).unwrap();
+      
+      console.log('✅ Download result received:', {
+        type: typeof result,
+        isBlob: result instanceof Blob,
+        size: result.size,
+        result: result
+      });
       
       // Create blob and download
       const blob = new Blob([result], { type: 'application/pdf' });
@@ -173,7 +182,13 @@ const SuperadminBilling = () => {
       
       toast.success('Invoice downloaded successfully');
     } catch (error) {
-      toast.error('Failed to download invoice');
+      console.error('❌ Download invoice error:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        response: error.response,
+        status: error.status
+      });
+      toast.error(`Failed to download invoice: ${error.message || 'Unknown error'}`);
     }
   };
 

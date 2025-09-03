@@ -39,6 +39,8 @@ const ReviewLabReports = () => {
     dispatch(fetchSuperAdminDoctorLabReports());
   }, [dispatch]);
 
+
+
   useEffect(() => {
     return () => {
       dispatch(clearError());
@@ -209,6 +211,10 @@ const ReviewLabReports = () => {
         return 'bg-green-100 text-green-800';
       case 'pending_review':
         return 'bg-yellow-100 text-yellow-800';
+      case 'in_progress':
+        return 'bg-blue-100 text-blue-800';
+      case 'approved':
+        return 'bg-purple-100 text-purple-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -220,6 +226,10 @@ const ReviewLabReports = () => {
         return <CheckCircle className="w-4 h-4" />;
       case 'pending_review':
         return <Clock className="w-4 h-4" />;
+      case 'in_progress':
+        return <AlertCircle className="w-4 h-4" />;
+      case 'approved':
+        return <CheckCircle className="w-4 h-4" />;
       default:
         return <AlertCircle className="w-4 h-4" />;
     }
@@ -333,6 +343,8 @@ const ReviewLabReports = () => {
                           <span className="ml-1">
                             {report.status === 'completed' && 'Completed'}
                             {report.status === 'pending_review' && 'Pending Review'}
+                            {report.status === 'in_progress' && 'In Progress'}
+                            {report.status === 'approved' && 'Approved'}
                             {report.status === 'feedback_sent' && 'Feedback Sent'}
                           </span>
                         </span>
@@ -455,6 +467,8 @@ const ReviewLabReports = () => {
                             <span className="ml-1">
                               {report.status === 'completed' && 'Completed'}
                               {report.status === 'pending_review' && 'Pending Review'}
+                              {report.status === 'in_progress' && 'In Progress'}
+                              {report.status === 'approved' && 'Approved'}
                               {report.status === 'feedback_sent' && 'Feedback Sent'}
                             </span>
                           </span>

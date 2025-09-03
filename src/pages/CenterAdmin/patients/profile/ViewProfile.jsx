@@ -461,7 +461,10 @@ const ViewProfile = () => {
                               <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-600">{med.dose}</td>
                               <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-600">{med.duration}</td>
                               <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-600">{med.frequency || 'N/A'}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-600">{med.prescribedBy || 'N/A'}</td>
+                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-600">
+                                {typeof med.prescribedBy === 'string' ? med.prescribedBy : 
+                                 typeof med.prescribedBy === 'object' && med.prescribedBy?.name ? med.prescribedBy.name : 'N/A'}
+                              </td>
                               <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-600">{med.adverseEvent || 'N/A'}</td>
                             </tr>
                           ))}
@@ -642,12 +645,12 @@ const ViewProfile = () => {
                               </td>
                               <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{dermatitis.symptoms || 'N/A'}</td>
                               <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{patient.centerCode || 'N/A'}</td>
-                                                            <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{patient.centerName || 'N/A'}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{patient._id}</td>
+                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{patient.centerId?.name || patient.centerName || 'N/A'}</td>
+                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{patient._id?.toString() || 'N/A'}</td>
                               <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">
                                 {dermatitis.updatedBy?.name ? 
                                   `${dermatitis.updatedBy.name} (${dermatitis.updatedBy.role || 'User'})` : 
-                                  dermatitis.updatedBy || 'N/A'
+                                  (typeof dermatitis.updatedBy === 'string' ? dermatitis.updatedBy : 'N/A')
                                 }
                               </td>
                               <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">
@@ -883,10 +886,10 @@ const ViewProfile = () => {
                               {prescription.createdAt ? new Date(prescription.createdAt).toLocaleString() : 'N/A'}
                             </td>
                             <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{prescription.visitNumber || idx + 1}</td>
-                            <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{patient._id}</td>
+                            <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{patient._id?.toString() || 'N/A'}</td>
                             <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">
                               {typeof prescription.updatedBy === 'string' ? prescription.updatedBy : 
-                               typeof prescription.updatedBy === 'object' && prescription.updatedBy?.name ? prescription.updatedBy.name : 'N/A'}
+                               (typeof prescription.updatedBy === 'object' && prescription.updatedBy?.name ? prescription.updatedBy.name : 'N/A')}
                             </td>
                             <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">
                                         <button

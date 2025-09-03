@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Calendar, FileText, User, CheckCircle, AlertCircle, Download } from "lucide-react";
+import { useDispatch, useSelector } from "react-redux";
+import { toast } from "react-toastify";
+import { fetchPatientHistory } from '../../features/doctor/doctorThunks';
+import { ArrowLeft, FileText, Calendar, User, Activity, Download } from 'lucide-react';
 import API from "../../services/api";
 
 const ViewHistory = () => {
@@ -14,10 +17,10 @@ const ViewHistory = () => {
     const fetchHistory = async () => {
       try {
         setLoading(true);
-        const response = await api.get(`/history/single/${patientId}`);
+        const response = await API.get(`/history/single/${patientId}`);
         setHistory(response.data);
         setError(null);
-          } catch (err) {
+      } catch (err) {
         setError('Failed to load history details');
       } finally {
         setLoading(false);
@@ -809,7 +812,7 @@ const ViewHistory = () => {
                     </div>
                     <button
                       onClick={() => {
-                        const fileUrl = `${api.defaults.baseURL}/uploads/${history.reportFile}`;  
+                        const fileUrl = `${API.defaults.baseURL}/uploads/${history.reportFile}`;  
                         window.open(fileUrl, '_blank');
                       }}
                       className="group flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 text-sm font-semibold shadow-md hover:shadow-lg transform hover:-translate-y-0.5"

@@ -815,7 +815,7 @@ const ViewHistory = () => {
                       <FileText className="h-5 w-5 text-blue-600" />
                       <span className="text-xs font-medium text-blue-800">{historyRecord.reportFile}</span>
                       <button
-                        onClick={() => window.open(`/api/files/${historyRecord.reportFile}`, '_blank')}
+                        onClick={() => window.open(`https://api.chanreallergyclinic.com/api/files/${historyRecord.reportFile}`, '_blank')}
                         className="ml-auto bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700"
                       >
                         View File

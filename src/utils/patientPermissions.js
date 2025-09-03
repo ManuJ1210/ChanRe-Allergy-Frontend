@@ -19,14 +19,16 @@ export const canDoctorEditPatient = (patient, currentUser) => {
     return { canEdit: false, reason: 'Only doctors can edit patients' };
   }
 
-  // If patient was not registered by this doctor, deny access
-  if (patient.registeredBy && patient.registeredBy.toString() !== currentUser._id) {
-    return { canEdit: false, reason: 'You can only edit patients you registered' };
-  }
-
-  // If patient was not assigned to this doctor, deny access
-  if (patient.assignedDoctor && patient.assignedDoctor.toString() !== currentUser._id) {
-    return { canEdit: false, reason: 'You can only edit patients assigned to you' };
+  // Check if doctor is either the registered doctor OR the assigned doctor
+  const isRegisteredDoctor = patient.registeredBy && patient.registeredBy.toString() === currentUser._id;
+  const isAssignedDoctor = patient.assignedDoctor && (
+    typeof patient.assignedDoctor === 'string' 
+      ? patient.assignedDoctor.toString() === currentUser._id
+      : patient.assignedDoctor._id.toString() === currentUser._id
+  );
+  
+  if (!isRegisteredDoctor && !isAssignedDoctor) {
+    return { canEdit: false, reason: 'You can only edit patients you registered or are assigned to' };
   }
 
   // Check time restriction - can only edit within 24 hours of patient creation
@@ -109,14 +111,16 @@ export const canDoctorAddFollowUp = (patient, currentUser) => {
     return { canAddFollowUp: false, reason: 'Only doctors can add followups' };
   }
 
-  // If patient was not registered by this doctor, deny access
-  if (patient.registeredBy && patient.registeredBy.toString() !== currentUser._id) {
-    return { canAddFollowUp: false, reason: 'You can only add followups to patients you registered' };
-  }
-
-  // If patient was not assigned to this doctor, deny access
-  if (patient.assignedDoctor && patient.assignedDoctor.toString() !== currentUser._id) {
-    return { canAddFollowUp: false, reason: 'You can only add followups to patients assigned to you' };
+  // Check if doctor is either the registered doctor OR the assigned doctor
+  const isRegisteredDoctor = patient.registeredBy && patient.registeredBy.toString() === currentUser._id;
+  const isAssignedDoctor = patient.assignedDoctor && (
+    typeof patient.assignedDoctor === 'string' 
+      ? patient.assignedDoctor.toString() === currentUser._id
+      : patient.assignedDoctor._id.toString() === currentUser._id
+  );
+  
+  if (!isRegisteredDoctor && !isAssignedDoctor) {
+    return { canAddFollowUp: false, reason: 'You can only add followups to patients you registered or are assigned to' };
   }
 
   // Check time restriction - can only add followups within 24 hours of patient creation
@@ -165,5 +169,58 @@ export const getFollowUpRestrictionMessage = (patient, currentUser) => {
       return 'Only doctors can add followups.';
     default:
       return 'Followup access denied.';
+  }
+};
+
+/**
+ * Calculate remaining time for patient editing and follow-up addition
+ * @param {Object} patient - The patient object
+ * @returns {Object} - { canEdit: boolean, remainingHours: number, remainingMinutes: number, isExpired: boolean }
+ */
+export const getRemainingTime = (patient) => {
+  if (!patient || !patient.createdAt) {
+    return { canEdit: false, remainingHours: 0, remainingMinutes: 0, isExpired: true };
+  }
+
+  const patientCreatedDate = new Date(patient.createdAt);
+  const currentDate = new Date();
+  
+  // Calculate time difference in milliseconds
+  const timeDifference = currentDate.getTime() - patientCreatedDate.getTime();
+  const hoursDifference = timeDifference / (1000 * 60 * 60); // Convert to hours
+  
+  // Check if it's within 24 hours
+  if (hoursDifference > 24) {
+    return { canEdit: false, remainingHours: 0, remainingMinutes: 0, isExpired: true };
+  }
+  
+  // Calculate remaining time
+  const remainingHours = Math.floor(24 - hoursDifference);
+  const remainingMinutes = Math.floor((24 - hoursDifference - remainingHours) * 60);
+  
+  return { 
+    canEdit: true, 
+    remainingHours, 
+    remainingMinutes, 
+    isExpired: false 
+  };
+};
+
+/**
+ * Format remaining time as a user-friendly string
+ * @param {Object} patient - The patient object
+ * @returns {string} - Formatted time string
+ */
+export const formatRemainingTime = (patient) => {
+  const timeInfo = getRemainingTime(patient);
+  
+  if (timeInfo.isExpired) {
+    return 'Edit Time Expired';
+  }
+  
+  if (timeInfo.remainingHours > 0) {
+    return `Edit: ${timeInfo.remainingHours}h ${timeInfo.remainingMinutes}m left`;
+  } else {
+    return `Edit: ${timeInfo.remainingMinutes}m left`;
   }
 };

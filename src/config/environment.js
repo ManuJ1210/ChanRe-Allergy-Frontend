@@ -7,33 +7,10 @@ export const isDevelopment = import.meta.env.DEV ||
 
 export const isProduction = !isDevelopment;
 
-// Force correct API base URL logic
+// Force correct API base URL logic - Always use production API
 const getApiBaseUrl = () => {
-  // For development, always use localhost
-  if (import.meta.env.DEV) {
-    console.log('🔧 Development mode detected, using localhost API');
-    return import.meta.env.VITE_API_BASE_URL || 'https://api.chanreallergyclinic.com/api';
-  }
-  
-  // Check hostname for localhost
-  const hostname = window.location.hostname;
-  console.log('🔧 Current hostname:', hostname);
-  console.log('🔧 import.meta.env.DEV:', import.meta.env.DEV);
-  
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    console.log('🔧 Localhost detected, using localhost API');
-    return import.meta.env.VITE_API_BASE_URL || 'https://api.chanreallergyclinic.com/api';
-  }
-  
-  // For production, use the production API URL
-  if (hostname === 'chanreallergyclinic.com' || hostname === 'www.chanreallergyclinic.com') {
-    console.log('🔧 Production domain detected, using production API');
-    return 'https://api.chanreallergyclinic.com/api';
-  }
-  
-  // Fallback for other domains
-  console.log('🔧 Other domain detected, using relative API path');
-  return '/api';
+  // Always use production API URL
+  return 'https://api.chanreallergyclinic.com/api';
 };
 
 // API Configuration

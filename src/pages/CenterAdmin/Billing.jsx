@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import API from '../../services/api';
 import { API_CONFIG, SERVER_CONFIG } from '../../config/environment';
@@ -23,6 +24,7 @@ import {
 
 const CenterAdminBilling = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { user } = useSelector(state => state.auth);
   
   const [billingData, setBillingData] = useState([]);
@@ -171,7 +173,7 @@ const CenterAdminBilling = () => {
           // Optionally redirect to login after a delay
           setTimeout(() => {
             if (window.location.pathname !== '/login') {
-              window.location.href = '/login';
+              navigate('/login', { replace: true });
             }
           }, 3000);
         } else if (status === 403) {

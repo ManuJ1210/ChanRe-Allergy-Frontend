@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchAssignedPatients } from "../../../features/doctor/doctorThunks";
 import { useNavigate } from "react-router-dom";
-import { canDoctorEditPatient } from "../../../utils/patientPermissions";
+import { canDoctorEditPatient, formatRemainingTime } from "../../../utils/patientPermissions";
 import { toast } from "react-toastify";
 import { 
   Users, 
@@ -249,6 +249,17 @@ export default function PatientList() {
                       </span>
                     </div>
                     
+                    <div className="flex items-center gap-2 bg-white p-2 rounded-lg border border-slate-200">
+                      <Clock className="h-4 w-4 text-red-500" />
+                      <span className={`text-xs font-medium ${
+                        formatRemainingTime(patient).includes('Expired') 
+                          ? 'text-red-600' 
+                          : 'text-slate-700'
+                      }`}>
+                        {formatRemainingTime(patient)}
+                      </span>
+                    </div>
+                    
                     <div className="flex gap-2 pt-3 border-t border-slate-200">
                       <button
                         onClick={() => {
@@ -324,6 +335,9 @@ export default function PatientList() {
                         Assigned Doctor
                       </th>
                       <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                        Edit Time Remaining
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                         Actions
                       </th>
                     </tr>
@@ -385,6 +399,18 @@ export default function PatientList() {
                                 Assign Me
                               </button>
                             )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <Clock className="h-3 w-3 text-red-500" />
+                            <span className={`text-xs font-medium ${
+                              formatRemainingTime(patient).includes('Expired') 
+                                ? 'text-red-600' 
+                                : 'text-slate-600'
+                            }`}>
+                              {formatRemainingTime(patient)}
+                            </span>
                           </div>
                         </td>
                         <td className="px-6 py-4">
