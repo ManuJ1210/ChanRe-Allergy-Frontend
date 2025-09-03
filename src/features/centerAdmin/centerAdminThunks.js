@@ -993,6 +993,122 @@ export const fetchCenterAdminBillingRequests = createAsyncThunk(
   }
 );
 
+// Fetch all billing data for center
+export const fetchCenterBillingData = createAsyncThunk(
+  'centerAdmin/fetchCenterBillingData',
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await API.get('/billing/center');
+      return res.data;
+    } catch (error) {
+      console.error('Center billing data fetch error:', error.response?.data || error.message);
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch center billing data');
+    }
+  }
+);
+
+// Fetch billing data by status
+export const fetchCenterBillingDataByStatus = createAsyncThunk(
+  'centerAdmin/fetchCenterBillingDataByStatus',
+  async (status, { rejectWithValue }) => {
+    try {
+      const res = await API.get(`/billing/center/status/${status}`);
+      return res.data;
+    } catch (error) {
+      console.error('Center billing data by status fetch error:', error.response?.data || error.message);
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch center billing data by status');
+    }
+  }
+);
+
+// Fetch billing data by date range
+export const fetchCenterBillingDataByDateRange = createAsyncThunk(
+  'centerAdmin/fetchCenterBillingDataByDateRange',
+  async ({ startDate, endDate }, { rejectWithValue }) => {
+    try {
+      const res = await API.get(`/billing/center/date-range?startDate=${startDate}&endDate=${endDate}`);
+      return res.data;
+    } catch (error) {
+      console.error('Center billing data by date range fetch error:', error.response?.data || error.message);
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch center billing data by date range');
+    }
+  }
+);
+
+// Fetch billing statistics for center
+export const fetchCenterBillingStats = createAsyncThunk(
+  'centerAdmin/fetchCenterBillingStats',
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await API.get('/billing/center/stats');
+      return res.data;
+    } catch (error) {
+      console.error('Center billing stats fetch error:', error.response?.data || error.message);
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch center billing statistics');
+    }
+  }
+);
+
+// Update billing status
+export const updateCenterBillingStatus = createAsyncThunk(
+  'centerAdmin/updateCenterBillingStatus',
+  async ({ billingId, status, notes }, { rejectWithValue }) => {
+    try {
+      const res = await API.put(`/billing/${billingId}/status`, { status, notes });
+      return res.data;
+    } catch (error) {
+      console.error('Center billing status update error:', error.response?.data || error.message);
+      return rejectWithValue(error.response?.data?.message || 'Failed to update billing status');
+    }
+  }
+);
+
+// Generate invoice
+export const generateCenterInvoice = createAsyncThunk(
+  'centerAdmin/generateCenterInvoice',
+  async (billingId, { rejectWithValue }) => {
+    try {
+      const res = await API.post(`/billing/${billingId}/generate-invoice`);
+      return res.data;
+    } catch (error) {
+      console.error('Center invoice generation error:', error.response?.data || error.message);
+      return rejectWithValue(error.response?.data?.message || 'Failed to generate invoice');
+    }
+  }
+);
+
+// Download invoice
+export const downloadCenterInvoice = createAsyncThunk(
+  'centerAdmin/downloadCenterInvoice',
+  async (billingId, { rejectWithValue }) => {
+    try {
+      const res = await API.get(`/billing/${billingId}/download-invoice`, {
+        responseType: 'blob'
+      });
+      return res.data;
+    } catch (error) {
+      console.error('Center invoice download error:', error.response?.data || error.message);
+      return rejectWithValue(error.response?.data?.message || 'Failed to download invoice');
+    }
+  }
+);
+
+// Export center billing data
+export const exportCenterBillingData = createAsyncThunk(
+  'centerAdmin/exportCenterBillingData',
+  async ({ format, filters }, { rejectWithValue }) => {
+    try {
+      const res = await API.post('/billing/center/export', { format, filters }, {
+        responseType: 'blob'
+      });
+      return res.data;
+    } catch (error) {
+      console.error('Center billing export error:', error.response?.data || error.message);
+      return rejectWithValue(error.response?.data?.message || 'Failed to export center billing data');
+    }
+  }
+);
+
 // Verify and approve payment (Center Admin verifies what Receptionist marked as paid)
 export const verifyCenterAdminPayment = createAsyncThunk(
   'centerAdmin/verifyPayment',

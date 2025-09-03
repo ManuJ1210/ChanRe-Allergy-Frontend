@@ -1,5 +1,46 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { fetchAtopicDermatitis, fetchAllFollowUps, fetchCenterFollowUps, fetchPatientDetails, fetchPatientPrescriptions, fetchPatientHistory, fetchPatientMedications, addPatientHistory, addPatientMedication, createDoctor, updateDoctor, fetchAllergicRhinitis, fetchSingleAllergicRhinitis, fetchAllergicConjunctivitis, addAtopicDermatitis, addAllergicBronchitis, fetchAllergicBronchitis, addGPE, fetchGPE, addPatientPrescription, fetchPrescription, fetchSinglePrescription, deletePrescription, addFollowUp, updatePatient, deletePatient, submitPatientTests, fetchTests, fetchCenterAdminBillingRequests, verifyCenterAdminPayment, rejectCenterAdminPayment, fetchCenterAdminBillingSummary } from './centerAdminThunks';
+import { 
+  fetchAtopicDermatitis, 
+  fetchAllFollowUps, 
+  fetchCenterFollowUps, 
+  fetchPatientDetails, 
+  fetchPatientPrescriptions, 
+  fetchPatientHistory, 
+  fetchPatientMedications, 
+  addPatientHistory, 
+  addPatientMedication, 
+  createDoctor, 
+  updateDoctor, 
+  fetchAllergicRhinitis, 
+  fetchSingleAllergicRhinitis, 
+  fetchAllergicConjunctivitis, 
+  addAtopicDermatitis, 
+  addAllergicBronchitis, 
+  fetchAllergicBronchitis, 
+  addGPE, 
+  fetchGPE, 
+  addPatientPrescription, 
+  fetchPrescription, 
+  fetchSinglePrescription, 
+  deletePrescription, 
+  addFollowUp, 
+  updatePatient, 
+  deletePatient, 
+  submitPatientTests, 
+  fetchTests, 
+  fetchCenterAdminBillingRequests, 
+  verifyCenterAdminPayment, 
+  rejectCenterAdminPayment, 
+  fetchCenterAdminBillingSummary,
+  fetchCenterBillingData,
+  fetchCenterBillingDataByStatus,
+  fetchCenterBillingDataByDateRange,
+  fetchCenterBillingStats,
+  updateCenterBillingStatus,
+  generateCenterInvoice,
+  downloadCenterInvoice,
+  exportCenterBillingData
+} from './centerAdminThunks';
 
 const initialState = {
   center: null,
@@ -46,6 +87,36 @@ const initialState = {
   billingSummary: null,
   billingVerificationLoading: false,
   billingVerificationError: null,
+  // Center billing state
+  billingData: [],
+  filteredBillingData: [],
+  billingStats: {
+    totalBills: 0,
+    paidBills: 0,
+    pendingBills: 0,
+    totalAmount: 0,
+    paidAmount: 0,
+    pendingAmount: 0
+  },
+  billingLoading: false,
+  billingStatsLoading: false,
+  billingActionLoading: false,
+  billingError: null,
+  billingStatsError: null,
+  billingActionError: null,
+  billingSuccess: false,
+  billingActionSuccess: false,
+  // Billing filters
+  billingFilters: {
+    searchTerm: '',
+    statusFilter: 'all',
+    dateFilter: 'all',
+    startDate: null,
+    endDate: null
+  },
+  // Selected billing for modal
+  selectedBilling: null,
+  showBillingModal: false,
   updateSuccess: false,
   deleteSuccess: false
 };
@@ -182,6 +253,83 @@ const centerAdminSlice = createSlice({
       state.billingVerificationError = null;
       state.error = null;
       state.centerError = null;
+      // Reset center billing state
+      state.billingSuccess = false;
+      state.billingActionSuccess = false;
+      state.billingError = null;
+      state.billingActionError = null;
+    },
+    // Billing reducers
+    updateBillingFilters: (state, action) => {
+      state.billingFilters = { ...state.billingFilters, ...action.payload };
+    },
+    resetBillingFilters: (state) => {
+      state.billingFilters = initialState.billingFilters;
+    },
+    setSelectedBilling: (state, action) => {
+      state.selectedBilling = action.payload;
+    },
+    toggleBillingModal: (state, action) => {
+      state.showBillingModal = action.payload;
+    },
+    clearBillingError: (state) => {
+      state.billingError = null;
+      state.billingStatsError = null;
+      state.billingActionError = null;
+    },
+    // Apply client-side filtering for billing
+    applyBillingFilters: (state) => {
+      let filtered = state.billingData;
+      
+      // Search filter
+      if (state.billingFilters.searchTerm) {
+        const searchTerm = state.billingFilters.searchTerm.toLowerCase();
+        filtered = filtered.filter(item => 
+          item.patientName?.toLowerCase().includes(searchTerm) ||
+          item.doctorName?.toLowerCase().includes(searchTerm) ||
+          item.testType?.toLowerCase().includes(searchTerm) ||
+          item.billing?.invoiceNumber?.toLowerCase().includes(searchTerm)
+        );
+      }
+      
+      // Status filter
+      if (state.billingFilters.statusFilter !== 'all') {
+        filtered = filtered.filter(item => item.billing?.status === state.billingFilters.statusFilter);
+      }
+      
+      // Date filter
+      if (state.billingFilters.dateFilter !== 'all') {
+        const today = new Date();
+        const filterDate = new Date();
+        
+        switch (state.billingFilters.dateFilter) {
+          case 'today':
+            filterDate.setHours(0, 0, 0, 0);
+            filtered = filtered.filter(item => {
+              const itemDate = new Date(item.billing?.generatedAt || item.createdAt);
+              return itemDate >= filterDate;
+            });
+            break;
+          case 'week':
+            filterDate.setDate(today.getDate() - 7);
+            filtered = filtered.filter(item => {
+              const itemDate = new Date(item.billing?.generatedAt || item.createdAt);
+              return itemDate >= filterDate;
+            });
+            break;
+          case 'month':
+            filterDate.setMonth(today.getMonth() - 1);
+            filtered = filtered.filter(item => {
+              const itemDate = new Date(item.billing?.generatedAt || item.createdAt);
+              return itemDate >= filterDate;
+            });
+            break;
+          default:
+            break;
+        }
+      }
+      
+      state.filteredBillingData = filtered;
     },
     addReceptionist: (state, action) => {
       state.receptionists.push(action.payload);
@@ -731,6 +879,12 @@ export const {
   setHistoryLoading,
   setHistoryError,
   resetCenterAdminState,
+  updateBillingFilters,
+  resetBillingFilters,
+  setSelectedBilling,
+  toggleBillingModal,
+  clearBillingError,
+  applyBillingFilters,
   addReceptionist,
   updateReceptionist,
   deleteReceptionist,

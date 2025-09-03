@@ -9,6 +9,7 @@ import receptionistReducer from '../features/receptionist/receptionistSlice';
 import centerAdminReducer from '../features/centerAdmin/centerAdminSlice';
 import superadminReducer from '../features/superadmin/superadminSlice';
 import superAdminDoctorReducer from '../features/superadmin/superAdminDoctorSlice';
+import superadminBillingReducer from '../features/superadmin/superadminBillingSlice';
 
 import centerAdminDoctorReducer from '../features/centerAdmin/centerAdminDoctorSlice';
 import centerAdminReceptionistReducer from '../features/centerAdmin/centerAdminReceptionistSlice';
@@ -25,6 +26,7 @@ export const store = configureStore({
     receptionist: receptionistReducer,
     superadmin: superadminReducer,
     superAdminDoctors: superAdminDoctorReducer,
+    superadminBilling: superadminBillingReducer,
 
     centerAdminDoctors: centerAdminDoctorReducer,
     centerAdminReceptionists: centerAdminReceptionistReducer,

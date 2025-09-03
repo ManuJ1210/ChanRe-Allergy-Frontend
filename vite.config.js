@@ -8,18 +8,10 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: process.env.VITE_BACKEND_URL || 'http://localhost:5000',
+        target: process.env.VITE_BACKEND_URL || 'https://api.chanreallergyclinic.com/api',
         changeOrigin: true,
         secure: false,
       },
     },
-  },
-  define: {
-    // Define environment variables for production
-    'import.meta.env.VITE_API_BASE_URL': JSON.stringify(
-      process.env.NODE_ENV === 'production' 
-        ? 'https://api.chanreallergyclinic.com/api'
-        : 'http://localhost:5000/api'
-    ),
   },
 })

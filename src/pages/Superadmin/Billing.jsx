@@ -16,144 +16,101 @@ import {
   AlertCircle
 } from 'lucide-react';
 
+// Import Redux actions and selectors
+import {
+  fetchAllBillingData,
+  fetchBillingStats,
+  updateBillingStatus,
+  generateInvoice,
+  downloadInvoice,
+  verifyPayment,
+  exportBillingData
+} from '../../features/superadmin/superadminBillingThunks';
+
+import {
+  updateFilters,
+  resetFilters,
+  setSelectedBilling,
+  toggleBillingModal,
+  clearBillingError,
+  resetBillingState
+} from '../../features/superadmin/superadminBillingSlice';
+
+// Import existing superadmin actions for centers
+import { fetchCenters } from '../../features/superadmin/superadminThunks';
+
 const SuperadminBilling = () => {
   const dispatch = useDispatch();
-  const { user } = useSelector(state => state.auth);
   
-  const [billingData, setBillingData] = useState([]);
-  const [loading, setLoading] = useState(false);
+  // Redux selectors
+  const { user } = useSelector(state => state.auth);
+  const {
+    billingData,
+    filteredBillingData,
+    centers,
+    billingStats,
+    loading,
+    statsLoading,
+    centersLoading,
+    actionLoading,
+    error,
+    statsError,
+    centersError,
+    actionError,
+    success,
+    actionSuccess,
+    filters,
+    selectedBilling,
+    showBillingModal,
+    pagination
+  } = useSelector(state => state.superadminBilling);
+
+  // Local state for UI
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [centerFilter, setCenterFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('all');
-  const [filteredData, setFilteredData] = useState([]);
-  const [centers, setCenters] = useState([]);
-  const [selectedBilling, setSelectedBilling] = useState(null);
-  const [showBillingModal, setShowBillingModal] = useState(false);
 
-  // ✅ REAL DATA: Fetch billing data
-  const fetchBillingData = async () => {
-    try {
-      setLoading(true);
-      
-  
-      
-      const response = await fetch('/api/billing/all', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-
-        setBillingData(data.billingRequests || []);
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('API Error:', errorData);
-        toast.error(`Failed to fetch billing data: ${errorData.message || 'Unknown error'}`);
-        setBillingData([]);
-      }
-    } catch (error) {
-      console.error('Error fetching real billing data:', error);
-      toast.error('Error fetching billing data');
-      setBillingData([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // ✅ REAL DATA: Fetch centers for filtering
-  const fetchCenters = async () => {
-    try {
-  
-      
-      const response = await fetch('/api/centers', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-
-        setCenters(data.centers || []);
-      } else {
-        console.error('Failed to fetch centers data');
-        setCenters([]);
-      }
-    } catch (error) {
-      console.error('Error fetching real centers data:', error);
-      setCenters([]);
-    }
-  };
-
+  // Fetch data on component mount
   useEffect(() => {
-    fetchBillingData();
-    fetchCenters();
-  }, []);
+    dispatch(fetchAllBillingData());
+    dispatch(fetchBillingStats());
+    dispatch(fetchCenters());
+  }, [dispatch]);
 
-  // Apply filters
+  // Handle filter changes
   useEffect(() => {
-    let filtered = billingData;
+    dispatch(updateFilters({
+      searchTerm,
+      statusFilter,
+      centerFilter,
+      dateFilter
+    }));
+  }, [dispatch, searchTerm, statusFilter, centerFilter, dateFilter]);
 
-    // Search filter
-    if (searchTerm) {
-      filtered = filtered.filter(item => 
-        item.patientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.doctorName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.centerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.testType?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.billing?.invoiceNumber?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+  // Handle success messages
+  useEffect(() => {
+    if (success) {
+      toast.success('Billing data loaded successfully');
+      dispatch(resetBillingState());
     }
-
-    // Status filter
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(item => item.billing?.status === statusFilter);
+    if (actionSuccess) {
+      toast.success('Action completed successfully');
+      dispatch(resetBillingState());
     }
+  }, [success, actionSuccess, dispatch]);
 
-    // Center filter
-    if (centerFilter !== 'all') {
-      filtered = filtered.filter(item => item.centerId === centerFilter);
+  // Handle error messages
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+      dispatch(clearBillingError());
     }
-
-    // Date filter
-    if (dateFilter !== 'all') {
-      const today = new Date();
-      const filterDate = new Date();
-      
-      switch (dateFilter) {
-        case 'today':
-          filterDate.setHours(0, 0, 0, 0);
-          filtered = filtered.filter(item => {
-            const itemDate = new Date(item.billing?.generatedAt || item.createdAt);
-            return itemDate >= filterDate;
-          });
-          break;
-        case 'week':
-          filterDate.setDate(today.getDate() - 7);
-          filtered = filtered.filter(item => {
-            const itemDate = new Date(item.billing?.generatedAt || item.createdAt);
-            return itemDate >= filterDate;
-          });
-          break;
-        case 'month':
-          filterDate.setMonth(today.getMonth() - 1);
-          filtered = filtered.filter(item => {
-            const itemDate = new Date(item.billing?.generatedAt || item.createdAt);
-            return itemDate >= filterDate;
-          });
-          break;
-        default:
-          break;
-      }
+    if (actionError) {
+      toast.error(actionError);
+      dispatch(clearBillingError());
     }
-
-    setFilteredData(filtered);
-  }, [billingData, searchTerm, statusFilter, centerFilter, dateFilter]);
+  }, [error, actionError, dispatch]);
 
   // Get status badge
   const getStatusBadge = (status) => {
@@ -194,18 +151,87 @@ const SuperadminBilling = () => {
 
   // View billing details
   const viewBillingDetails = (billing) => {
-    setSelectedBilling(billing);
-    setShowBillingModal(true);
+    dispatch(setSelectedBilling(billing));
+    dispatch(toggleBillingModal(true));
   };
 
-  // Download invoice (placeholder)
-  const downloadInvoice = (billingId) => {
-    toast.info('Invoice download functionality will be implemented');
+  // Handle invoice download
+  const handleDownloadInvoice = async (billingId) => {
+    try {
+      const result = await dispatch(downloadInvoice(billingId)).unwrap();
+      
+      // Create blob and download
+      const blob = new Blob([result], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `invoice-${billingId}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      toast.success('Invoice downloaded successfully');
+    } catch (error) {
+      toast.error('Failed to download invoice');
+    }
   };
 
-  // Calculate totals
+  // Handle status update
+  const handleStatusUpdate = async (billingId, newStatus, notes = '') => {
+    try {
+      await dispatch(updateBillingStatus({ billingId, status: newStatus, notes })).unwrap();
+      toast.success('Billing status updated successfully');
+    } catch (error) {
+      toast.error('Failed to update billing status');
+    }
+  };
+
+  // Handle invoice generation
+  const handleGenerateInvoice = async (billingId) => {
+    try {
+      await dispatch(generateInvoice(billingId)).unwrap();
+      toast.success('Invoice generated successfully');
+    } catch (error) {
+      toast.error('Failed to generate invoice');
+    }
+  };
+
+  // Handle payment verification
+  const handleVerifyPayment = async (billingId, verificationData) => {
+    try {
+      await dispatch(verifyPayment({ billingId, verificationData })).unwrap();
+      toast.success('Payment verified successfully');
+    } catch (error) {
+      toast.error('Failed to verify payment');
+    }
+  };
+
+  // Handle data export
+  const handleExportData = async (format = 'csv') => {
+    try {
+      const result = await dispatch(exportBillingData({ format, filters })).unwrap();
+      
+      // Create blob and download
+      const blob = new Blob([result], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `billing-data-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      toast.success('Data exported successfully');
+    } catch (error) {
+      toast.error('Failed to export data');
+    }
+  };
+
+  // Calculate totals from filtered data
   const calculateTotals = () => {
-    const totals = filteredData.reduce((acc, item) => {
+    const totals = filteredBillingData.reduce((acc, item) => {
       const amount = item.billing?.amount || 0;
       acc.totalAmount += amount;
       acc.totalCount += 1;
@@ -341,13 +367,25 @@ const SuperadminBilling = () => {
 
             {/* Refresh Button */}
             <button
-              onClick={fetchBillingData}
+              onClick={() => dispatch(fetchAllBillingData())}
               disabled={loading}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center"
             >
               {loading ? 'Loading...' : 'Refresh'}
             </button>
           </div>
+        </div>
+
+        {/* Export Button */}
+        <div className="mb-6 flex justify-end">
+          <button
+            onClick={() => handleExportData('csv')}
+            disabled={actionLoading}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            {actionLoading ? 'Exporting...' : 'Export Data'}
+          </button>
         </div>
 
         {/* Billing Table */}
@@ -377,14 +415,14 @@ const SuperadminBilling = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredData.length === 0 ? (
+                {filteredBillingData.length === 0 ? (
                   <tr>
                     <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
                       {loading ? 'Loading billing data...' : 'No billing records found'}
                     </td>
                   </tr>
                 ) : (
-                  filteredData.map((item) => (
+                  filteredBillingData.map((item) => (
                     <tr key={item._id} className="hover:bg-gray-50">
                       <td className="px-6 py-4">
                         <div>
@@ -441,11 +479,22 @@ const SuperadminBilling = () => {
                           </button>
                           {item.billing?.invoiceNumber && (
                             <button
-                              onClick={() => downloadInvoice(item._id)}
+                              onClick={() => handleDownloadInvoice(item._id)}
                               className="text-green-600 hover:text-green-900 p-1"
                               title="Download Invoice"
+                              disabled={actionLoading}
                             >
                               <Download className="w-4 h-4" />
+                            </button>
+                          )}
+                          {!item.billing?.invoiceNumber && (
+                            <button
+                              onClick={() => handleGenerateInvoice(item._id)}
+                              className="text-purple-600 hover:text-purple-900 p-1"
+                              title="Generate Invoice"
+                              disabled={actionLoading}
+                            >
+                              <FileText className="w-4 h-4" />
                             </button>
                           )}
                         </div>
@@ -467,7 +516,7 @@ const SuperadminBilling = () => {
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-medium text-gray-900">Billing Details</h3>
                 <button
-                  onClick={() => setShowBillingModal(false)}
+                  onClick={() => dispatch(toggleBillingModal(false))}
                   className="text-gray-400 hover:text-gray-600"
                 >
                   <span className="sr-only">Close</span>
@@ -616,15 +665,16 @@ const SuperadminBilling = () => {
 
               <div className="mt-6 flex justify-end space-x-3">
                 <button
-                  onClick={() => setShowBillingModal(false)}
+                  onClick={() => dispatch(toggleBillingModal(false))}
                   className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
                 >
                   Close
                 </button>
                 {selectedBilling.billing?.invoiceNumber && (
                   <button
-                    onClick={() => downloadInvoice(selectedBilling._id)}
+                    onClick={() => handleDownloadInvoice(selectedBilling._id)}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
+                    disabled={actionLoading}
                   >
                     <Download className="w-4 h-4 mr-2" />
                     Download Invoice
