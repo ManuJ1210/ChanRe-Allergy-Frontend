@@ -209,8 +209,6 @@ const ReviewLabReports = () => {
         return 'bg-green-100 text-green-800';
       case 'pending_review':
         return 'bg-yellow-100 text-yellow-800';
-      case 'completed':
-        return 'bg-green-100 text-green-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -222,8 +220,6 @@ const ReviewLabReports = () => {
         return <CheckCircle className="w-4 h-4" />;
       case 'pending_review':
         return <Clock className="w-4 h-4" />;
-      case 'completed':
-        return <CheckCircle className="w-4 h-4" />;
       default:
         return <AlertCircle className="w-4 h-4" />;
     }

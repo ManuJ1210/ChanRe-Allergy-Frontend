@@ -157,8 +157,8 @@ export default function Header({ onHamburgerClick }) {
     // Dispatch logout action
     dispatch(logout());
     
-    // Navigate to login page without page refresh
-    navigate('/login', { replace: true });
+    // Force a page reload to clear any cached state
+    window.location.href = '/login';
   };
 
   const refreshCenterName = async () => {

@@ -2,6 +2,7 @@ import { Navigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { useEffect } from 'react';
 import { setUserFromLocal } from '../features/auth/authSlice';
+import LoginRedirect from './LoginRedirect';
 
 export default function PrivateRoute({ children }) {
   const dispatch = useDispatch();
@@ -31,9 +32,9 @@ export default function PrivateRoute({ children }) {
   const user = authUser || userInfo;
   const token = user?.token || localStorage.getItem('token');
 
-  // If no token, redirect directly to login
+  // If no token, show login redirect component
   if (!token) {
-    return <Navigate to="/login" replace />;
+    return <LoginRedirect />;
   }
 
   // If user exists, render children

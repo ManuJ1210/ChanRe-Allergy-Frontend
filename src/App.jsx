@@ -2,12 +2,10 @@ import { BrowserRouter } from "react-router-dom";
 import AppRoutes from "./Routes/AppRoutes";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import AuthDebug from "./components/AuthDebug";
 
 function App() {
   return (
     <>
-      <AuthDebug />
       <ToastContainer
         position="top-right"
         autoClose={5000}

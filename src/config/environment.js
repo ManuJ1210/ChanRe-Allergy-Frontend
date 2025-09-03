@@ -9,14 +9,30 @@ export const isProduction = !isDevelopment;
 
 // Force correct API base URL logic
 const getApiBaseUrl = () => {
-  // Check hostname for development first
-  const hostname = window.location.hostname;
-  if (hostname === 'localhost' || hostname === '127.0.0.1' || import.meta.env.DEV) {
+  // For development, always use localhost
+  if (import.meta.env.DEV) {
+    console.log('🔧 Development mode detected, using localhost API');
     return import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
   }
   
-  // For any other domain (production), ALWAYS use relative path
-  // This ignores any environment variables that might be set incorrectly
+  // Check hostname for localhost
+  const hostname = window.location.hostname;
+  console.log('🔧 Current hostname:', hostname);
+  console.log('🔧 import.meta.env.DEV:', import.meta.env.DEV);
+  
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    console.log('🔧 Localhost detected, using localhost API');
+    return import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+  }
+  
+  // For production, use the production API URL
+  if (hostname === 'chanreallergyclinic.com' || hostname === 'www.chanreallergyclinic.com') {
+    console.log('🔧 Production domain detected, using production API');
+    return 'https://api.chanreallergyclinic.com/api';
+  }
+  
+  // Fallback for other domains
+  console.log('🔧 Other domain detected, using relative API path');
   return '/api';
 };
 
@@ -39,12 +55,12 @@ export const SERVER_CONFIG = {
   // Frontend URL
   FRONTEND_URL: import.meta.env.VITE_FRONTEND_URL || (isDevelopment 
     ? import.meta.env.VITE_DEV_FRONTEND_URL || 'http://localhost:5173'
-    : window.location.origin),
+    : 'https://chanreallergyclinic.com'),
     
   // Backend URL  
   BACKEND_URL: import.meta.env.VITE_BACKEND_URL || (isDevelopment
     ? import.meta.env.VITE_DEV_BACKEND_URL || 'http://localhost:5000'
-    : window.location.origin),
+    : 'https://api.chanreallergyclinic.com'),
 };
 
 // Debug Configuration

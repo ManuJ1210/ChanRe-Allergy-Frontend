@@ -14,4 +14,12 @@ export default defineConfig({
       },
     },
   },
+  define: {
+    // Define environment variables for production
+    'import.meta.env.VITE_API_BASE_URL': JSON.stringify(
+      process.env.NODE_ENV === 'production' 
+        ? 'https://api.chanreallergyclinic.com/api'
+        : 'http://localhost:5000/api'
+    ),
+  },
 })
