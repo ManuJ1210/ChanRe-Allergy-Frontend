@@ -12,7 +12,7 @@ const getApiBaseUrl = () => {
   // For development, always use localhost
   if (import.meta.env.DEV) {
     console.log('🔧 Development mode detected, using localhost API');
-    return import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+    return import.meta.env.VITE_API_BASE_URL || 'https://api.chanreallergyclinic.com/api';
   }
   
   // Check hostname for localhost
@@ -22,7 +22,7 @@ const getApiBaseUrl = () => {
   
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
     console.log('🔧 Localhost detected, using localhost API');
-    return import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+    return import.meta.env.VITE_API_BASE_URL || 'https://api.chanreallergyclinic.com/api';
   }
   
   // For production, use the production API URL
