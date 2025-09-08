@@ -12,6 +12,7 @@ import ErrorBoundary from '../components/ErrorBoundary';
 // Superadmin Pages
 import SuperadminDashboard from '../pages/Superadmin/Dashboard';
 import SuperadminBilling from '../pages/Superadmin/Billing';
+import SuperadminBillingReports from '../pages/Superadmin/BillingReports';
 import CentersList from '../pages/Superadmin/Centers/CentersList';
 import AddCenter from '../pages/Superadmin/Centers/AddCenter';
 import EditCenter from '../pages/Superadmin/Centers/EditCenter';
@@ -87,6 +88,7 @@ import LabRouteProtection from '../components/LabRouteProtection';
 // Center Admin Pages
 import CenterAdminDashboard from '../pages/CenterAdmin/Dashboard';
 import CenterAdminBilling from '../pages/CenterAdmin/Billing';
+import CenterAdminBillingReports from '../pages/CenterAdmin/BillingReports';
 import CenterProfile from '../pages/CenterAdmin/CenterProfile';
 import CenterAdminAddPatient from '../pages/CenterAdmin/patients/AddPatient';
 import CenterAdminPatientList from '../pages/CenterAdmin/patients/PatientList';
@@ -337,6 +339,7 @@ export default function AppRoutes() {
         
         {/* Billing Routes */}
         <Route path="superadmin/billing" element={<SuperadminBilling />} />
+        <Route path="superadmin/billing-reports" element={<SuperadminBillingReports />} />
         
         {/* Doctors Routes */}
         <Route path="superadmin/doctors/superadmindoctorlist" element={<SuperAdminDoctorList />} />
@@ -417,6 +420,7 @@ export default function AppRoutes() {
 
         {/* Center Admin Billing Routes */}
         <Route path="centeradmin/billing" element={<ErrorBoundary><CenterAdminBilling /></ErrorBoundary>} />
+        <Route path="centeradmin/billing-reports" element={<ErrorBoundary><CenterAdminBillingReports /></ErrorBoundary>} />
         
         {/* Center Admin Followup Routes (lowercase) */}
         <Route path="centeradmin/patients/followup/:id" element={<FollowUp />} />

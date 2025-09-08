@@ -158,3 +158,25 @@ export const exportBillingData = createAsyncThunk(
     }
   }
 );
+
+// Fetch billing reports (daily, weekly, monthly, yearly)
+export const fetchBillingReports = createAsyncThunk(
+  'superadmin/fetchBillingReports',
+  async ({ period, centerId, startDate, endDate }, { rejectWithValue }) => {
+    try {
+      const params = new URLSearchParams();
+      if (period) params.append('period', period);
+      if (centerId && centerId !== 'all') params.append('centerId', centerId);
+      if (startDate) params.append('startDate', startDate);
+      if (endDate) params.append('endDate', endDate);
+      // Add timestamp to prevent caching
+      params.append('_t', Date.now().toString());
+      
+      const res = await API.get(`/billing/reports?${params.toString()}`);
+      return res.data;
+    } catch (error) {
+      console.error('Billing reports fetch error:', error.response?.data || error.message);
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch billing reports');
+    }
+  }
+);

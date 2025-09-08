@@ -116,11 +116,16 @@ export default function Sidebar(props) {
                 ]}
                 currentPath={location.pathname}
               />
-              <SidebarLink
-                to="/dashboard/superadmin/billing"
-                label="Billing Management"
+              <SidebarGroup
+                label="Billing"
                 icon={<FaMoneyBillWave />}
-                isActive={isActive("/dashboard/superadmin/billing")}
+                open={centerOpen === 'billing'}
+                toggle={() => setCenterOpen(centerOpen === 'billing' ? null : 'billing')}
+                links={[
+                  { to: "/dashboard/superadmin/billing", label: "Billing Management" },
+                  { to: "/dashboard/superadmin/billing-reports", label: "Billing Reports" },
+                ]}
+                currentPath={location.pathname}
               />
               <SidebarGroup
                 label="Follow Ups"
@@ -226,11 +231,16 @@ export default function Sidebar(props) {
                 icon={<FaHospitalAlt />}
                 isActive={isActive("/dashboard/centeradmin/center-profile")}
               />
-              <SidebarLink
-                to="/dashboard/centeradmin/billing"
-                label="Billing Management"
+              <SidebarGroup
+                label="Billing"
                 icon={<FaMoneyBillWave />}
-                isActive={isActive("/dashboard/centeradmin/billing")}
+                open={centerOpen === 'billing'}
+                toggle={() => setCenterOpen(centerOpen === 'billing' ? null : 'billing')}
+                links={[
+                  { to: "/dashboard/centeradmin/billing", label: "Billing Management" },
+                  { to: "/dashboard/centeradmin/billing-reports", label: "Billing Reports" },
+                ]}
+                currentPath={location.pathname}
               />
 
             </>

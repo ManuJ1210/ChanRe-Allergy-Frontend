@@ -9,13 +9,17 @@ import {
   generateInvoice,
   downloadInvoice,
   verifyPayment,
-  exportBillingData
+  exportBillingData,
+  fetchBillingReports
 } from './superadminBillingThunks';
 
 const initialState = {
   // Billing data
   billingData: [],
   filteredBillingData: [],
+  
+  // Reports data
+  reportsData: null,
   
   // Centers for filtering
   centers: [],
@@ -32,12 +36,14 @@ const initialState = {
   
   // Loading states
   loading: false,
+  reportsLoading: false,
   statsLoading: false,
   centersLoading: false,
   actionLoading: false,
   
   // Error states
   error: null,
+  reportsError: null,
   statsError: null,
   centersError: null,
   actionError: null,
@@ -83,9 +89,16 @@ const superadminBillingSlice = createSlice({
     // Clear errors
     clearBillingError: (state) => {
       state.error = null;
+      state.reportsError = null;
       state.statsError = null;
       state.centersError = null;
       state.actionError = null;
+    },
+    
+    // Clear reports data
+    clearReportsData: (state) => {
+      state.reportsData = null;
+      state.reportsError = null;
     },
     
     // Update filters
@@ -346,6 +359,22 @@ const superadminBillingSlice = createSlice({
       .addCase(exportBillingData.rejected, (state, action) => {
         state.actionLoading = false;
         state.actionError = action.payload;
+      })
+      
+      // Fetch billing reports
+      .addCase(fetchBillingReports.pending, (state) => {
+        state.reportsLoading = true;
+        state.reportsError = null;
+        state.reportsData = null; // Clear old data when starting new fetch
+      })
+      .addCase(fetchBillingReports.fulfilled, (state, action) => {
+        state.reportsLoading = false;
+        state.reportsData = action.payload;
+        state.billingStats = action.payload.stats || state.billingStats;
+      })
+      .addCase(fetchBillingReports.rejected, (state, action) => {
+        state.reportsLoading = false;
+        state.reportsError = action.payload;
       });
   }
 });
@@ -353,6 +382,7 @@ const superadminBillingSlice = createSlice({
 export const {
   resetBillingState,
   clearBillingError,
+  clearReportsData,
   updateFilters,
   resetFilters,
   setSelectedBilling,
