@@ -7,11 +7,11 @@ export const isDevelopment = import.meta.env.DEV ||
 
 export const isProduction = !isDevelopment;
 
-// API base URL logic - Use proxy in development, production API in production
+// API base URL logic - Use local API in development, production API in production
 const getApiBaseUrl = () => {
   if (isDevelopment) {
-    // Use Vite proxy in development to avoid CORS issues
-    return '/api';
+    // Use local API in development (production API is currently down with 502 errors)
+    return 'http://localhost:5000/api';
   } else {
     // Use production API in production
     return 'https://api.chanreallergyclinic.com/api';
