@@ -320,7 +320,7 @@ const TestRequestDetails = () => {
           <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
             <div className="text-center">
               <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-              <h2 className="text-sm sm:text-xl font-semibold text-gray-800 mb-2">Error Loading Test Request</h2>
+              <h2 className="text-xs sm:text-md font-semibold text-gray-800 mb-2">Error Loading Test Request</h2>
               <p className="text-gray-600 mb-4 text-xs sm:text-base">{error}</p>
               <button
                 onClick={() => navigate('/dashboard/superadmin/test-requests')}
@@ -342,7 +342,7 @@ const TestRequestDetails = () => {
           <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
             <div className="text-center">
               <Activity className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h2 className="text-sm sm:text-xl font-semibold text-gray-800 mb-2">No Test Request Found</h2>
+              <h2 className="text-xs sm:text-md font-semibold text-gray-800 mb-2">No Test Request Found</h2>
               <p className="text-gray-600 mb-4 text-xs sm:text-base">The requested test request could not be found.</p>
               <button
                 onClick={() => navigate('/dashboard/superadmin/test-requests')}
@@ -371,7 +371,7 @@ const TestRequestDetails = () => {
                 <ArrowLeft size={20} />
                 <span>Back to Test Requests</span>
               </button>
-              <h1 className="text-xl sm:text-xl font-bold text-gray-800">Test Request Details</h1>
+              <h1 className="text-md sm:text-md font-bold text-gray-800">Test Request Details</h1>
             </div>
           </div>
         </div>
@@ -380,7 +380,7 @@ const TestRequestDetails = () => {
         <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 md:p-8">
           {/* Record Header */}
           <div className="text-center mb-6 sm:mb-8">
-            <h1 className="text-xl sm:text-xl font-bold text-gray-800 mb-2">TEST REQUEST DETAILS</h1>
+            <h1 className="text-md sm:text-md font-bold text-gray-800 mb-2">TEST REQUEST DETAILS</h1>
             <p className="text-gray-600 text-xs sm:text-base">Complete Information About This Test Request</p>
           </div>
 
@@ -396,7 +396,7 @@ const TestRequestDetails = () => {
           
           {/* Test Request Information */}
           <div className="bg-blue-50 rounded-lg p-4 sm:p-6 mb-6 sm:mb-8">
-            <h2 className="text-sm sm:text-xl  text-gray-800 mb-4 flex items-center">
+            <h2 className="text-xs sm:text-md  text-gray-800 mb-4 flex items-center">
               <UserCheck className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-blue-600" />
               Test Request Information
             </h2>
@@ -440,7 +440,7 @@ const TestRequestDetails = () => {
           {/* Superadmin Review Information */}
           {testRequest.superadminReview && (
             <div className="bg-yellow-50 rounded-lg p-4 sm:p-6 mb-6 sm:mb-8">
-              <h2 className="text-sm sm:text-xl font-semibold text-gray-800 mb-4 flex items-center">
+              <h2 className="text-xs sm:text-md font-semibold text-gray-800 mb-4 flex items-center">
                 <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-yellow-600" />
                 Superadmin Review Status
               </h2>
@@ -495,7 +495,7 @@ const TestRequestDetails = () => {
 
           {/* Patient Information */}
           <div className="bg-gray-50 rounded-lg p-4 sm:p-6 mb-6 sm:mb-8">
-            <h2 className="text-sm sm:text-xl font-semibold text-gray-800 mb-4 flex items-center">
+            <h2 className="text-xs sm:text-md font-semibold text-gray-800 mb-4 flex items-center">
               <User className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-blue-600" />
               Patient Information
             </h2>
@@ -523,7 +523,7 @@ const TestRequestDetails = () => {
 
           {/* Doctor Information */}
           <div className="bg-gray-50 rounded-lg p-4 sm:p-6 mb-6 sm:mb-8">
-            <h2 className="text-sm sm:text-xl font-semibold text-gray-800 mb-4 flex items-center">
+            <h2 className="text-xs sm:text-md font-semibold text-gray-800 mb-4 flex items-center">
               <Stethoscope className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-blue-600" />
               Doctor Information
             </h2>
@@ -544,7 +544,7 @@ const TestRequestDetails = () => {
 
           {/* Center Information */}
           <div className="bg-gray-50 rounded-lg p-4 sm:p-6 mb-6 sm:mb-8">
-            <h2 className="text-sm sm:text-xl font-semibold text-gray-800 mb-4 flex items-center">
+            <h2 className="text-xs sm:text-md font-semibold text-gray-800 mb-4 flex items-center">
               <Building className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-blue-600" />
               Center Information
             </h2>
@@ -562,7 +562,7 @@ const TestRequestDetails = () => {
 
           {/* Test Information */}
           <div className="bg-gray-50 rounded-lg p-4 sm:p-6 mb-6 sm:mb-8">
-            <h2 className="text-sm sm:text-xl font-semibold text-gray-800 mb-4 flex items-center">
+            <h2 className="text-xs sm:text-md font-semibold text-gray-800 mb-4 flex items-center">
               <TestTube className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-blue-600" />
               Test Information
             </h2>
@@ -592,7 +592,7 @@ const TestRequestDetails = () => {
           {/* Lab Information */}
           {testRequest.assignedLabStaffName && (
             <div className="bg-gray-50 rounded-lg p-4 sm:p-6 mb-6 sm:mb-8">
-              <h2 className="text-sm sm:text-xl font-semibold text-gray-800 mb-4 flex items-center">
+              <h2 className="text-xs sm:text-md font-semibold text-gray-800 mb-4 flex items-center">
                 <Stethoscope className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-blue-600" />
                 Lab Information
               </h2>
@@ -615,7 +615,7 @@ const TestRequestDetails = () => {
           {/* Report Information */}
           {testRequest.reportGeneratedDate && (
             <div className="bg-gray-50 rounded-lg p-4 sm:p-6 mb-6 sm:mb-8">
-              <h2 className="text-sm sm:text-xl font-semibold text-gray-800 mb-4 flex items-center">
+              <h2 className="text-xs sm:text-md font-semibold text-gray-800 mb-4 flex items-center">
                 <FileText className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-blue-600" />
                 Report Information
               </h2>
@@ -695,7 +695,7 @@ const TestRequestDetails = () => {
           {/* Test Results */}
           {testRequest.testResults && testRequest.testResults !== 'Pending' && (
             <div className="bg-gray-50 rounded-lg p-4 sm:p-6 mb-6 sm:mb-8">
-              <h2 className="text-sm sm:text-xl font-semibold text-gray-800 mb-4 flex items-center">
+              <h2 className="text-xs sm:text-md font-semibold text-gray-800 mb-4 flex items-center">
                 <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-blue-600" />
                 Test Results
               </h2>
@@ -723,7 +723,7 @@ const TestRequestDetails = () => {
           {/* PDF Actions - Always visible even when no report is generated */}
           {!testRequest.reportGeneratedDate && (
             <div className="bg-gray-50 rounded-lg p-4 sm:p-6 mb-6 sm:mb-8">
-              <h2 className="text-sm sm:text-xl font-semibold text-gray-800 mb-4 flex items-center">
+              <h2 className="text-xs sm:text-md font-semibold text-gray-800 mb-4 flex items-center">
                 <FileText className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-blue-600" />
                 PDF Actions
               </h2>

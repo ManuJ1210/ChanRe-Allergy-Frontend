@@ -328,7 +328,7 @@ const SuperadminBilling = () => {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Billing Management</h1>
+          <h1 className="text-md font-bold text-gray-900 mb-2">Billing Management</h1>
           <p className="text-gray-600">Monitor and manage billing across all centers</p>
         </div>
 
@@ -340,8 +340,8 @@ const SuperadminBilling = () => {
                 <FileText className="w-6 h-6 text-blue-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Bills</p>
-                <p className="text-2xl font-bold text-gray-900">{totals.totalCount}</p>
+                <p className="text-xs font-medium text-gray-600">Total Bills</p>
+                <p className="text-md font-bold text-gray-900">{totals.totalCount}</p>
               </div>
             </div>
           </div>
@@ -352,8 +352,8 @@ const SuperadminBilling = () => {
                 <CheckCircle className="w-6 h-6 text-green-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Paid Bills</p>
-                <p className="text-2xl font-bold text-gray-900">{totals.paidCount}</p>
+                <p className="text-xs font-medium text-gray-600">Paid Bills</p>
+                <p className="text-md font-bold text-gray-900">{totals.paidCount}</p>
               </div>
             </div>
           </div>
@@ -364,8 +364,8 @@ const SuperadminBilling = () => {
                 <Clock className="w-6 h-6 text-yellow-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Pending Bills</p>
-                <p className="text-2xl font-bold text-gray-900">{totals.pendingCount}</p>
+                <p className="text-xs font-medium text-gray-600">Pending Bills</p>
+                <p className="text-md font-bold text-gray-900">{totals.pendingCount}</p>
               </div>
             </div>
           </div>
@@ -376,8 +376,8 @@ const SuperadminBilling = () => {
                 <DollarSign className="w-6 h-6 text-purple-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Amount</p>
-                <p className="text-2xl font-bold text-gray-900">₹{totals.totalAmount.toLocaleString()}</p>
+                <p className="text-xs font-medium text-gray-600">Total Amount</p>
+                <p className="text-md font-bold text-gray-900">₹{totals.totalAmount.toLocaleString()}</p>
               </div>
             </div>
           </div>
@@ -456,7 +456,7 @@ const SuperadminBilling = () => {
                   dispatch(resetFilters());
                   dispatch(applyFilters());
                 }}
-                className="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 text-sm"
+                className="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 text-xs"
                 title="Reset all filters"
               >
                 Reset
@@ -464,7 +464,7 @@ const SuperadminBilling = () => {
               <button
                 onClick={() => dispatch(fetchAllBillingData())}
                 disabled={loading}
-                className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm"
+                className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-xs"
               >
                 {loading ? 'Loading...' : 'Refresh'}
               </button>
@@ -476,24 +476,24 @@ const SuperadminBilling = () => {
         <div className="mb-6 flex justify-between items-center">
           {/* Filter Status */}
           <div className="flex items-center space-x-4">
-            <div className="text-sm text-gray-600">
+            <div className="text-xs text-gray-600">
               Showing <span className="font-semibold text-blue-600">{filteredBillingData?.length || 0}</span> of{' '}
               <span className="font-semibold text-gray-900">{billingData?.length || 0}</span> records
             </div>
             {centerFilter !== 'all' && (
-              <div className="flex items-center px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+              <div className="flex items-center px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
                 <Building className="w-4 h-4 mr-1" />
                 Center: {centers.find(c => c._id === centerFilter)?.centername || centers.find(c => c._id === centerFilter)?.name || 'Unknown'}
               </div>
             )}
             {statusFilter !== 'all' && (
-              <div className="flex items-center px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
+              <div className="flex items-center px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs">
                 <CheckCircle className="w-4 h-4 mr-1" />
                 Status: {statusFilter}
               </div>
             )}
             {searchTerm && (
-              <div className="flex items-center px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm">
+              <div className="flex items-center px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs">
                 <Search className="w-4 h-4 mr-1" />
                 Search: "{searchTerm}"
               </div>
@@ -549,8 +549,8 @@ const SuperadminBilling = () => {
                     <tr key={item._id} className="hover:bg-gray-50">
                       <td className="px-6 py-4">
                         <div>
-                          <div className="text-sm font-medium text-gray-900">{item.patientName}</div>
-                          <div className="text-sm text-gray-500">{item.testType}</div>
+                          <div className="text-xs font-medium text-gray-900">{item.patientName}</div>
+                          <div className="text-xs text-gray-500">{item.testType}</div>
                           {item.urgency && (
                             <div className="mt-1">
                               {getUrgencyBadge(item.urgency)}
@@ -560,23 +560,23 @@ const SuperadminBilling = () => {
                       </td>
                       <td className="px-6 py-4">
                         <div>
-                          <div className="text-sm font-medium text-gray-900">{item.centerName}</div>
-                          <div className="text-sm text-gray-500">Dr. {item.doctorName}</div>
+                          <div className="text-xs font-medium text-gray-900">{item.centerName}</div>
+                          <div className="text-xs text-gray-500">Dr. {item.doctorName}</div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <div>
                           {item.billing ? (
                             <>
-                              <div className="text-sm font-medium text-gray-900">
+                              <div className="text-xs font-medium text-gray-900">
                                 ₹{item.billing.amount?.toLocaleString()}
                               </div>
-                              <div className="text-sm text-gray-500">
+                              <div className="text-xs text-gray-500">
                                 {item.billing.invoiceNumber}
                               </div>
                             </>
                           ) : (
-                            <div className="text-sm text-gray-500">No bill generated</div>
+                            <div className="text-xs text-gray-500">No bill generated</div>
                           )}
                         </div>
                       </td>
@@ -584,10 +584,10 @@ const SuperadminBilling = () => {
                         {getStatusBadge(item.billing?.status || 'not_generated')}
                       </td>
                       <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900">
+                        <div className="text-xs text-gray-900">
                           {new Date(item.billing?.generatedAt || item.createdAt).toLocaleDateString()}
                         </div>
-                        <div className="text-sm text-gray-500">
+                        <div className="text-xs text-gray-500">
                           {new Date(item.billing?.generatedAt || item.createdAt).toLocaleTimeString()}
                         </div>
                       </td>
@@ -637,7 +637,7 @@ const SuperadminBilling = () => {
           <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
             <div className="mt-3">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-medium text-gray-900">Billing Details</h3>
+                <h3 className="text-xs font-medium text-gray-900">Billing Details</h3>
                 <button
                   onClick={() => dispatch(toggleBillingModal(false))}
                   className="text-gray-400 hover:text-gray-600"
@@ -653,7 +653,7 @@ const SuperadminBilling = () => {
                 {/* Patient & Test Info */}
                 <div className="border-b pb-4">
                   <h4 className="font-medium text-gray-900 mb-2">Patient & Test Information</h4>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="grid grid-cols-2 gap-4 text-xs">
                     <div>
                       <span className="text-gray-500">Patient:</span>
                       <span className="ml-2 font-medium">{selectedBilling.patientName}</span>
@@ -676,7 +676,7 @@ const SuperadminBilling = () => {
                 {/* Center & Doctor Info */}
                 <div className="border-b pb-4">
                   <h4 className="font-medium text-gray-900 mb-2">Center & Doctor Information</h4>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="grid grid-cols-2 gap-4 text-xs">
                     <div>
                       <span className="text-gray-500">Center:</span>
                       <span className="ml-2 font-medium">{selectedBilling.centerName}</span>
@@ -692,7 +692,7 @@ const SuperadminBilling = () => {
                 {selectedBilling.billing && (
                   <div className="border-b pb-4">
                     <h4 className="font-medium text-gray-900 mb-2">Billing Information</h4>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="grid grid-cols-2 gap-4 text-xs">
                       <div>
                         <span className="text-gray-500">Invoice Number:</span>
                         <span className="ml-2 font-medium">{selectedBilling.billing.invoiceNumber}</span>
@@ -729,24 +729,24 @@ const SuperadminBilling = () => {
                         <h5 className="font-medium text-gray-900 mb-2">Billing Items</h5>
                         <div className="bg-gray-50 rounded-lg p-3">
                           {selectedBilling.billing.items.map((item, index) => (
-                            <div key={index} className="flex justify-between text-sm py-1">
+                            <div key={index} className="flex justify-between text-xs py-1">
                               <span>{item.name} (x{item.quantity})</span>
                               <span>₹{item.total}</span>
                             </div>
                           ))}
                           {selectedBilling.billing.taxes > 0 && (
-                            <div className="flex justify-between text-sm py-1 border-t pt-1">
+                            <div className="flex justify-between text-xs py-1 border-t pt-1">
                               <span>Taxes</span>
                               <span>₹{selectedBilling.billing.taxes}</span>
                             </div>
                           )}
                           {selectedBilling.billing.discounts > 0 && (
-                            <div className="flex justify-between text-sm py-1">
+                            <div className="flex justify-between text-xs py-1">
                               <span>Discounts</span>
                               <span>-₹{selectedBilling.billing.discounts}</span>
                             </div>
                           )}
-                          <div className="flex justify-between text-sm py-1 border-t pt-1 font-medium">
+                          <div className="flex justify-between text-xs py-1 border-t pt-1 font-medium">
                             <span>Total</span>
                             <span>₹{selectedBilling.billing.amount}</span>
                           </div>
@@ -759,7 +759,7 @@ const SuperadminBilling = () => {
                 {/* Dates */}
                 <div>
                   <h4 className="font-medium text-gray-900 mb-2">Important Dates</h4>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="grid grid-cols-2 gap-4 text-xs">
                     <div>
                       <span className="text-gray-500">Created:</span>
                       <span className="ml-2">{new Date(selectedBilling.createdAt).toLocaleString()}</span>

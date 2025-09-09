@@ -571,10 +571,10 @@ const CenterAdminBilling = () => {
                 <Clock className="h-5 w-5 text-blue-400" />
               </div>
               <div className="ml-3">
-                <h3 className="text-sm font-medium text-blue-800">
+                <h3 className="text-xs font-medium text-blue-800">
                   Authentication Required
                 </h3>
-                <div className="mt-2 text-sm text-blue-700">
+                <div className="mt-2 text-xs text-blue-700">
                   <p>Please log in to access the billing management system.</p>
                 </div>
               </div>
@@ -596,14 +596,14 @@ const CenterAdminBilling = () => {
                 <AlertCircle className="h-5 w-5 text-red-400" />
               </div>
               <div className="ml-3">
-                <h3 className="text-sm font-medium text-red-800">
+                <h3 className="text-xs font-medium text-red-800">
                   Error Loading User Data
                 </h3>
-                <div className="mt-2 text-sm text-red-700">
+                <div className="mt-2 text-xs text-red-700">
                   <p>There was an error processing your user data. Please refresh the page or contact support.</p>
                   <button 
                     onClick={() => window.location.reload()} 
-                    className="mt-2 px-3 py-1 bg-red-100 text-red-700 rounded text-sm hover:bg-red-200"
+                    className="mt-2 px-3 py-1 bg-red-100 text-red-700 rounded text-xs hover:bg-red-200"
                   >
                     Refresh Page
                   </button>
@@ -622,7 +622,7 @@ const CenterAdminBilling = () => {
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Center Billing Management</h1>
+            <h1 className="text-md font-bold text-gray-900 mb-2">Center Billing Management</h1>
             <p className="text-gray-600">Monitor and manage billing for your center</p>
           </div>
 
@@ -634,10 +634,10 @@ const CenterAdminBilling = () => {
                   <AlertCircle className="h-5 w-5 text-red-400" />
                 </div>
                 <div className="ml-3">
-                  <h3 className="text-sm font-medium text-red-800">
+                  <h3 className="text-xs font-medium text-red-800">
                     Center ID Not Found
                   </h3>
-                  <div className="mt-2 text-sm text-red-700">
+                  <div className="mt-2 text-xs text-red-700">
                     <p>Your user profile is missing the center ID. This is required to access billing data.</p>
                     <p className="mt-1">Please contact your administrator or support team to resolve this issue.</p>
                   </div>
@@ -656,8 +656,8 @@ const CenterAdminBilling = () => {
                   <FileText className="w-6 h-6 text-blue-600" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Total Bills</p>
-                  <p className="text-2xl font-bold text-gray-900">{totals.totalCount}</p>
+                  <p className="text-xs font-medium text-gray-600">Total Bills</p>
+                  <p className="text-md font-bold text-gray-900">{totals.totalCount}</p>
                 </div>
               </div>
             </div>
@@ -668,8 +668,8 @@ const CenterAdminBilling = () => {
                   <CheckCircle className="w-6 h-6 text-green-600" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Paid Bills</p>
-                  <p className="text-2xl font-bold text-gray-900">{totals.paidCount}</p>
+                  <p className="text-xs font-medium text-gray-600">Paid Bills</p>
+                  <p className="text-md font-bold text-gray-900">{totals.paidCount}</p>
                 </div>
               </div>
             </div>
@@ -680,8 +680,8 @@ const CenterAdminBilling = () => {
                   <Clock className="w-6 h-6 text-yellow-600" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Pending Bills</p>
-                  <p className="text-2xl font-bold text-gray-900">{totals.pendingCount}</p>
+                  <p className="text-xs font-medium text-gray-600">Pending Bills</p>
+                  <p className="text-md font-bold text-gray-900">{totals.pendingCount}</p>
                 </div>
               </div>
             </div>
@@ -692,8 +692,8 @@ const CenterAdminBilling = () => {
                   <DollarSign className="w-6 h-6 text-purple-600" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Total Amount</p>
-                  <p className="text-2xl font-bold text-gray-900">₹{totals.totalAmount.toLocaleString()}</p>
+                  <p className="text-xs font-medium text-gray-600">Total Amount</p>
+                  <p className="text-md font-bold text-gray-900">₹{totals.totalAmount.toLocaleString()}</p>
                 </div>
               </div>
             </div>
@@ -707,9 +707,9 @@ const CenterAdminBilling = () => {
                   <TrendingUp className="w-6 h-6 text-yellow-600" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Payment Received (Awaiting Verification)</p>
-                  <p className="text-2xl font-bold text-gray-900">{totals.paymentReceivedCount}</p>
-                  <p className="text-sm text-gray-500">₹{totals.paymentReceivedAmount.toLocaleString()}</p>
+                  <p className="text-xs font-medium text-gray-600">Payment Received (Awaiting Verification)</p>
+                  <p className="text-md font-bold text-gray-900">{totals.paymentReceivedCount}</p>
+                  <p className="text-xs text-gray-500">₹{totals.paymentReceivedAmount.toLocaleString()}</p>
                 </div>
               </div>
             </div>
@@ -720,9 +720,9 @@ const CenterAdminBilling = () => {
                   <Shield className="w-6 h-6 text-green-600" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Ready for Lab</p>
-                  <p className="text-2xl font-bold text-gray-900">{totals.paidCount}</p>
-                  <p className="text-sm text-gray-500">₹{totals.paidAmount.toLocaleString()}</p>
+                  <p className="text-xs font-medium text-gray-600">Ready for Lab</p>
+                  <p className="text-md font-bold text-gray-900">{totals.paidCount}</p>
+                  <p className="text-xs text-gray-500">₹{totals.paidAmount.toLocaleString()}</p>
                 </div>
               </div>
             </div>
@@ -825,10 +825,10 @@ const CenterAdminBilling = () => {
                         <tr key={item._id || Math.random()} className="hover:bg-gray-50">
                           <td className="px-6 py-4">
                             <div>
-                              <div className="text-sm font-medium text-gray-900">
+                              <div className="text-xs font-medium text-gray-900">
                                 {item.patientName || 'Unknown Patient'}
                               </div>
-                              <div className="text-sm text-gray-500">
+                              <div className="text-xs text-gray-500">
                                 {item.testType || 'Unknown Test'}
                               </div>
                               {item.urgency && (
@@ -839,7 +839,7 @@ const CenterAdminBilling = () => {
                             </div>
                           </td>
                           <td className="px-6 py-4">
-                            <div className="text-sm font-medium text-gray-900">
+                            <div className="text-xs font-medium text-gray-900">
                               Dr. {item.doctorName || 'Unknown Doctor'}
                             </div>
                           </td>
@@ -847,15 +847,15 @@ const CenterAdminBilling = () => {
                             <div>
                               {item.billing ? (
                                 <>
-                                  <div className="text-sm font-medium text-gray-900">
+                                  <div className="text-xs font-medium text-gray-900">
                                     ₹{(item.billing.amount || 0).toLocaleString()}
                                   </div>
-                                  <div className="text-sm text-gray-500">
+                                  <div className="text-xs text-gray-500">
                                     {item.billing.invoiceNumber || 'No Invoice'}
                                   </div>
                                 </>
                               ) : (
-                                <div className="text-sm text-gray-500">No bill generated</div>
+                                <div className="text-xs text-gray-500">No bill generated</div>
                               )}
                             </div>
                           </td>
@@ -863,10 +863,10 @@ const CenterAdminBilling = () => {
                             {getStatusBadge(item.billing?.status || 'not_generated')}
                           </td>
                           <td className="px-6 py-4">
-                            <div className="text-sm text-gray-900">
+                            <div className="text-xs text-gray-900">
                               {new Date(item.billing?.generatedAt || item.createdAt || Date.now()).toLocaleDateString()}
                             </div>
-                            <div className="text-sm text-gray-500">
+                            <div className="text-xs text-gray-500">
                               {new Date(item.billing?.generatedAt || item.createdAt || Date.now()).toLocaleTimeString()}
                             </div>
                           </td>
@@ -931,7 +931,7 @@ const CenterAdminBilling = () => {
             <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
               <div className="mt-3">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-medium text-gray-900">Billing Details</h3>
+                  <h3 className="text-sm font-medium text-gray-900">Billing Details</h3>
                   <button
                     onClick={() => setShowBillingModal(false)}
                     className="text-gray-400 hover:text-gray-600"
@@ -947,7 +947,7 @@ const CenterAdminBilling = () => {
                   {/* Patient & Test Info */}
                   <div className="border-b pb-4">
                     <h4 className="font-medium text-gray-900 mb-2">Patient & Test Information</h4>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="grid grid-cols-2 gap-4 text-xs">
                       <div>
                         <span className="text-gray-500">Patient:</span>
                         <span className="ml-2 font-medium">{selectedBilling.patientName}</span>
@@ -970,7 +970,7 @@ const CenterAdminBilling = () => {
                   {/* Doctor Info */}
                   <div className="border-b pb-4">
                     <h4 className="font-medium text-gray-900 mb-2">Doctor Information</h4>
-                    <div className="text-sm">
+                    <div className="text-xs">
                       <span className="text-gray-500">Doctor:</span>
                       <span className="ml-2 font-medium">Dr. {selectedBilling.doctorName}</span>
                     </div>
@@ -980,7 +980,7 @@ const CenterAdminBilling = () => {
                   {selectedBilling.billing && (
                     <div className="border-b pb-4">
                       <h4 className="font-medium text-gray-900 mb-2">Billing Information</h4>
-                      <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="grid grid-cols-2 gap-4 text-xs">
                         <div>
                           <span className="text-gray-500">Invoice Number:</span>
                           <span className="ml-2 font-medium">{selectedBilling.billing.invoiceNumber}</span>
@@ -1017,24 +1017,24 @@ const CenterAdminBilling = () => {
                           <h5 className="font-medium text-gray-900 mb-2">Billing Items</h5>
                           <div className="bg-gray-50 rounded-lg p-3">
                             {selectedBilling.billing.items.map((item, index) => (
-                              <div key={index} className="flex justify-between text-sm py-1">
+                              <div key={index} className="flex justify-between text-xs py-1">
                                 <span>{item.name} (x{item.quantity})</span>
                                 <span>₹{item.total}</span>
                               </div>
                             ))}
                             {selectedBilling.billing.taxes > 0 && (
-                              <div className="flex justify-between text-sm py-1 border-t pt-1">
+                              <div className="flex justify-between text-xs py-1 border-t pt-1">
                                 <span>Taxes</span>
                                 <span>₹{selectedBilling.billing.taxes}</span>
                               </div>
                             )}
                             {selectedBilling.billing.discounts > 0 && (
-                              <div className="flex justify-between text-sm py-1">
+                              <div className="flex justify-between text-xs py-1">
                                 <span>Discounts</span>
                                 <span>-₹{selectedBilling.billing.discounts}</span>
                               </div>
                             )}
-                            <div className="flex justify-between text-sm py-1 border-t pt-1 font-medium">
+                            <div className="flex justify-between text-xs py-1 border-t pt-1 font-medium">
                               <span>Total</span>
                               <span>₹{selectedBilling.billing.amount}</span>
                             </div>
@@ -1047,7 +1047,7 @@ const CenterAdminBilling = () => {
                   {/* Dates */}
                   <div>
                     <h4 className="font-medium text-gray-900 mb-2">Important Dates</h4>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="grid grid-cols-2 gap-4 text-xs">
                       <div>
                         <span className="text-gray-500">Created:</span>
                         <span className="ml-2">{new Date(selectedBilling.createdAt).toLocaleString()}</span>
@@ -1102,7 +1102,7 @@ const CenterAdminBilling = () => {
             <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
               <div className="mt-3">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-medium text-gray-900">Verify Payment</h3>
+                  <h3 className="text-sm font-medium text-gray-900">Verify Payment</h3>
                   <button
                     onClick={() => setShowVerificationModal(false)}
                     className="text-gray-400 hover:text-gray-600"
@@ -1121,10 +1121,10 @@ const CenterAdminBilling = () => {
                         <Shield className="h-5 w-5 text-blue-400" />
                       </div>
                       <div className="ml-3">
-                        <h3 className="text-sm font-medium text-blue-800">
+                        <h3 className="text-xs font-medium text-blue-800">
                           Payment Verification Required
                         </h3>
-                        <div className="mt-2 text-sm text-blue-700">
+                        <div className="mt-2 text-xs text-blue-700">
                           <p>Patient: <strong>{selectedBillingForVerification.patientName}</strong></p>
                           <p>Test Type: <strong>{selectedBillingForVerification.testType}</strong></p>
                           <p>Amount: <strong>₹{selectedBillingForVerification.billing?.amount?.toLocaleString()}</strong></p>
@@ -1144,10 +1144,10 @@ const CenterAdminBilling = () => {
                           <Receipt className="h-5 w-5 text-green-400" />
                         </div>
                         <div className="ml-3">
-                          <h3 className="text-sm font-medium text-green-800">
+                          <h3 className="text-xs font-medium text-green-800">
                             Receipt Uploaded by Receptionist
                           </h3>
-                          <div className="mt-2 text-sm text-green-700">
+                          <div className="mt-2 text-xs text-green-700">
                             <p>Receipt File: <strong>{selectedBillingForVerification.billing.receiptUpload}</strong></p>
                             <div className="mt-2">
                               <button
@@ -1172,10 +1172,10 @@ const CenterAdminBilling = () => {
                           <FileText className="h-5 w-5 text-gray-400" />
                         </div>
                         <div className="ml-3">
-                          <h3 className="text-sm font-medium text-gray-800">
+                          <h3 className="text-xs font-medium text-gray-800">
                             Payment Notes from Receptionist
                           </h3>
-                          <div className="mt-2 text-sm text-gray-700">
+                          <div className="mt-2 text-xs text-gray-700">
                             <p className="whitespace-pre-wrap">{selectedBillingForVerification.billing.notes}</p>
                           </div>
                         </div>
@@ -1184,7 +1184,7 @@ const CenterAdminBilling = () => {
                   )}
 
                   <div>
-                    <label htmlFor="verificationNotes" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="verificationNotes" className="block text-xs font-medium text-gray-700 mb-2">
                       Verification Notes (Optional)
                     </label>
                     <textarea
@@ -1203,10 +1203,10 @@ const CenterAdminBilling = () => {
                         <AlertCircle className="h-5 w-5 text-yellow-400" />
                       </div>
                       <div className="ml-3">
-                        <h3 className="text-sm font-medium text-yellow-800">
+                        <h3 className="text-xs font-medium text-yellow-800">
                           Important
                         </h3>
-                        <div className="mt-2 text-sm text-yellow-700">
+                        <div className="mt-2 text-xs text-yellow-700">
                           <p>By verifying this payment, you confirm that:</p>
                           <ul className="list-disc list-inside mt-1">
                             <li>The payment has been received and verified</li>
@@ -1245,7 +1245,7 @@ const CenterAdminBilling = () => {
             <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
               <div className="mt-3">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-medium text-gray-900">Receipt Details</h3>
+                  <h3 className="text-sm font-medium text-gray-900">Receipt Details</h3>
                   <button
                     onClick={closeReceiptModal}
                     className="text-gray-400 hover:text-gray-600"
@@ -1264,10 +1264,10 @@ const CenterAdminBilling = () => {
                         <Receipt className="h-5 w-5 text-blue-400" />
                       </div>
                       <div className="ml-3">
-                        <h3 className="text-sm font-medium text-blue-800">
+                        <h3 className="text-xs font-medium text-blue-800">
                           Receipt Information
                         </h3>
-                        <div className="mt-2 text-sm text-blue-700">
+                        <div className="mt-2 text-xs text-blue-700">
                           <p>File Name: <strong>{selectedReceipt}</strong></p>
                           <p>Uploaded by: <strong>Receptionist</strong></p>
                           <p>Upload Date: <strong>{selectedBillingForVerification?.billing?.paidAt ? new Date(selectedBillingForVerification.billing.paidAt).toLocaleDateString() : 'Not specified'}</strong></p>
@@ -1279,7 +1279,7 @@ const CenterAdminBilling = () => {
 
                   <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                     <div className="text-center">
-                      <h4 className="text-sm font-medium text-gray-800 mb-4">Receipt Preview</h4>
+                      <h4 className="text-xs font-medium text-gray-800 mb-4">Receipt Preview</h4>
                       
                       {/* Receipt Display */}
                       <div className="mb-4">
@@ -1306,7 +1306,7 @@ const CenterAdminBilling = () => {
                               /* For PDF files, show a PDF icon with download option */
                               <div className="border border-gray-300 rounded-lg p-6 bg-white">
                                 <Receipt className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-                                <p className="text-sm text-gray-600 mb-4">
+                                <p className="text-xs text-gray-600 mb-4">
                                   PDF Receipt: <strong>{selectedReceipt}</strong>
                                 </p>
                                 <button
@@ -1352,10 +1352,10 @@ const CenterAdminBilling = () => {
                         <AlertCircle className="h-5 w-5 text-yellow-400" />
                       </div>
                       <div className="ml-3">
-                        <h3 className="text-sm font-medium text-yellow-800">
+                        <h3 className="text-xs font-medium text-yellow-800">
                           Receipt Verification
                         </h3>
-                        <div className="mt-2 text-sm text-yellow-700">
+                        <div className="mt-2 text-xs text-yellow-700">
                           <p>Please verify that:</p>
                           <ul className="list-disc list-inside mt-1">
                             <li>The receipt matches the payment amount</li>
@@ -1394,15 +1394,15 @@ const CenterAdminBilling = () => {
                 <AlertCircle className="h-5 w-5 text-red-400" />
               </div>
               <div className="ml-3">
-                <h3 className="text-sm font-medium text-red-800">
+                <h3 className="text-xs font-medium text-red-800">
                   Error Rendering Component
                 </h3>
-                <div className="mt-2 text-sm text-red-700">
+                <div className="mt-2 text-xs text-red-700">
                   <p>There was an error rendering the billing component. Please refresh the page or contact support.</p>
                   <p className="mt-1 text-xs">Error: {error.message}</p>
                   <button 
                     onClick={() => window.location.reload()} 
-                    className="mt-2 px-3 py-1 bg-red-100 text-red-700 rounded text-sm hover:bg-red-200"
+                    className="mt-2 px-3 py-1 bg-red-100 text-red-700 rounded text-xs hover:bg-red-200"
                   >
                     Refresh Page
                   </button>

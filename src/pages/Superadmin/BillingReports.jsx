@@ -64,8 +64,21 @@ const SuperadminBillingReports = () => {
   // Fetch data on component mount
   useEffect(() => {
     dispatch(fetchCenters());
-    fetchReports();
+    // Don't fetch reports immediately - wait for centers to load
   }, [dispatch]);
+
+  // Debug centers data
+  useEffect(() => {
+    if (centers && centers.length > 0) {
+      console.log('🏥 Available centers:', centers.map(c => ({
+        id: c._id,
+        name: c.centername || c.name,
+        code: c.centerCode
+      })));
+      console.log('🏥 Currently selected center:', selectedCenter);
+      console.log('🏥 Selected center details:', centers.find(c => c._id === selectedCenter));
+    }
+  }, [centers, selectedCenter]);
 
   // Handle success messages
   useEffect(() => {
@@ -74,6 +87,43 @@ const SuperadminBillingReports = () => {
       dispatch(resetBillingState());
     }
   }, [actionSuccess, dispatch]);
+
+  // Debug reports data
+  useEffect(() => {
+    if (reportsData) {
+      console.log('📊 Reports data received:', {
+        period: selectedPeriod,
+        centerId: selectedCenter,
+        centerName: centers.find(c => c._id === selectedCenter)?.centername || centers.find(c => c._id === selectedCenter)?.name || 'All Centers',
+        totalBills: reportsData.billingData?.length || 0,
+        stats: reportsData.stats,
+        sampleData: reportsData.billingData?.slice(0, 3).map(item => ({
+          id: item._id,
+          centerId: item.centerId,
+          centerName: item.centerName,
+          generatedAt: item.billing?.generatedAt,
+          createdAt: item.createdAt,
+          status: item.billing?.status
+        }))
+      });
+    }
+  }, [reportsData, selectedPeriod, selectedCenter, centers]);
+
+  // Fetch initial reports when centers are loaded
+  useEffect(() => {
+    if (centers && centers.length > 0 && !reportsData) {
+      console.log('🔄 Initial fetch after centers loaded');
+      fetchReports();
+    }
+  }, [centers]);
+
+  // Fetch reports when selectedCenter changes
+  useEffect(() => {
+    if (selectedCenter && centers && centers.length > 0) {
+      console.log('🔄 Center changed, fetching reports for:', selectedCenter);
+      fetchReports();
+    }
+  }, [selectedCenter, centers]);
 
   // Handle error messages
   useEffect(() => {
@@ -84,34 +134,52 @@ const SuperadminBillingReports = () => {
   }, [reportsError, dispatch]);
 
   // Fetch reports based on current filters
-  const fetchReports = () => {
+  const fetchReports = (overridePeriod = null) => {
+    const periodToUse = overridePeriod || selectedPeriod;
     const params = {
-      period: showCustomRange ? null : selectedPeriod,
+      period: showCustomRange ? null : periodToUse,
       centerId: selectedCenter,
       startDate: showCustomRange ? customDateRange.startDate : null,
-      endDate: showCustomRange ? customDateRange.endDate : null
+      endDate: showCustomRange ? customDateRange.endDate : null,
+      // Add timestamp to prevent caching
+      _t: Date.now()
     };
 
     console.log('🔍 Fetching reports with params:', params);
+    console.log('🔍 Period being used:', periodToUse);
+    console.log('🔍 Override period:', overridePeriod);
+    console.log('🔍 Selected period state:', selectedPeriod);
+    console.log('🔍 Selected center ID:', selectedCenter);
+    console.log('🔍 Selected center ID type:', typeof selectedCenter);
+    console.log('🔍 Selected center ID length:', selectedCenter?.length);
+    console.log('🔍 Selected center name:', centers.find(c => c._id === selectedCenter)?.centername || centers.find(c => c._id === selectedCenter)?.name || 'All Centers');
     dispatch(fetchBillingReports(params));
   };
 
   // Handle period change
   const handlePeriodChange = (period) => {
     console.log('🔄 Period changed to:', period);
+    console.log('🔄 Previous period was:', selectedPeriod);
     setSelectedPeriod(period);
     setShowCustomRange(period === 'custom');
     // Clear previous data when changing periods
     dispatch(clearReportsData());
+    // Force refresh immediately with the new period
     if (period !== 'custom') {
-      fetchReports();
+      console.log('🔄 Fetching with new period:', period);
+      fetchReports(period);
     }
   };
 
   // Handle center change
   const handleCenterChange = (centerId) => {
+    console.log('🏥 Center changed to:', centerId);
+    console.log('🏥 Center name:', centers.find(c => c._id === centerId)?.centername || centers.find(c => c._id === centerId)?.name || 'All Centers');
+    console.log('🏥 Center ID type:', typeof centerId);
+    console.log('🏥 Center ID length:', centerId?.length);
     setSelectedCenter(centerId);
-    fetchReports();
+    // Clear previous data when changing centers
+    dispatch(clearReportsData());
   };
 
   // Handle custom date range
@@ -161,167 +229,218 @@ const SuperadminBillingReports = () => {
   };
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      <div className="max-w-7xl mx-auto">
-        {/* Enhanced Header */}
-        <div className="mb-8">
-          <div className="bg-gradient-to-r from-blue-600 to-purple-700 rounded-2xl p-8 text-white shadow-2xl">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <div className="p-4 bg-white bg-opacity-20 rounded-2xl mr-6">
-                  <BarChart3 className="w-8 h-8" />
-                </div>
-                <div>
-                  <h1 className="text-4xl font-bold mb-2">Billing Analytics Dashboard</h1>
-                  <p className="text-blue-100 text-lg">Comprehensive financial insights across all medical centers</p>
-                  <div className="flex items-center mt-3 space-x-6">
-                    <div className="flex items-center">
-                      <Building className="w-5 h-5 mr-2" />
-                      <span className="text-sm font-medium">{centers?.length || 0} Centers</span>
-                    </div>
-                    <div className="flex items-center">
-                      <Activity className="w-5 h-5 mr-2" />
-                      <span className="text-sm font-medium">Real-time Data</span>
-                    </div>
-                    <div className="flex items-center">
-                      <Target className="w-5 h-5 mr-2" />
-                      <span className="text-sm font-medium">Advanced Analytics</span>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      <div className="max-w-8xl mx-auto px-6 py-8">
+        {/* Professional Header */}
+        <div className="mb-10">
+          <div className="relative overflow-hidden bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 rounded-3xl shadow-2xl">
+            {/* Background Pattern */}
+            <div className="absolute inset-0 opacity-20" style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+            }}></div>
+            
+            <div className="relative p-10">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-8">
+                  <div className="p-5 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20">
+                    <BarChart3 className="w-10 h-10 text-white" />
+                  </div>
+                  <div>
+                    <h1 className="text-md md:text-md font-bold text-white mb-3 tracking-tight">
+                      Financial Analytics
+                    </h1>
+                    <p className="text-sm md:text-md text-blue-100 mb-4 font-light">
+                      Advanced billing insights and revenue intelligence
+                    </p>
+                    <div className="flex items-center space-x-8">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                        <span className="text-xs font-medium text-blue-100">
+                          {centers?.length || 0} Medical Centers
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                        <span className="text-xs font-medium text-blue-100">
+                          Real-time Analytics
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
+                        <span className="text-xs font-medium text-blue-100">
+                          AI-Powered Insights
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-              <div className="text-right">
-                <div className="text-3xl font-bold mb-1">
-                  {reportsData ? `₹${reportsData.stats?.totalAmount?.toLocaleString() || '0'}` : '₹0'}
-                </div>
-                <div className="text-blue-100 text-sm">Total Revenue</div>
-                <div className="text-xs text-blue-200 mt-1">
-                  {selectedPeriod === 'custom' 
-                    ? `${customDateRange.startDate} to ${customDateRange.endDate}` 
-                    : selectedPeriod.charAt(0).toUpperCase() + selectedPeriod.slice(1)
-                  }
+                
+                <div className="text-right">
+                  <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+                    <div className="text-md md:text-md font-bold text-white mb-2">
+                      {reportsData ? `₹${reportsData.stats?.totalAmount?.toLocaleString() || '0'}` : '₹0'}
+                    </div>
+                    <div className="text-blue-100 text-xs font-medium mb-2">Total Revenue</div>
+                    <div className="text-xs text-blue-200 bg-white/10 rounded-lg px-3 py-1 inline-block">
+                      {selectedPeriod === 'custom' 
+                        ? `${customDateRange.startDate} to ${customDateRange.endDate}` 
+                        : selectedPeriod.charAt(0).toUpperCase() + selectedPeriod.slice(1)
+                      }
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Enhanced Filters */}
-        <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-8 mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center">
-              <div className="p-3 bg-blue-100 rounded-xl mr-4">
-                <Filter className="w-6 h-6 text-blue-600" />
+        {/* Professional Filters Panel */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8 mb-10">
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center space-x-4">
+              <div className="p-4 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
+                <Filter className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-gray-900">Advanced Report Filters</h3>
-                <p className="text-sm text-gray-600 mt-1">Customize your billing analytics view</p>
+                <h3 className="text-md md:text-md font-bold text-gray-900 mb-2">Analytics Controls</h3>
+                <p className="text-gray-600 font-medium">Configure your financial reporting parameters</p>
                 {/* Current Filter Status */}
-                <div className="flex items-center mt-2 space-x-2">
-                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                    Period: {selectedPeriod === 'custom' ? 'Custom Range' : selectedPeriod.charAt(0).toUpperCase() + selectedPeriod.slice(1)}
-                  </span>
-                  {selectedCenter !== 'all' && (
-                    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
-                      Center: {centers.find(c => c._id === selectedCenter)?.centername || centers.find(c => c._id === selectedCenter)?.name || 'Selected'}
+                <div className="flex items-center mt-3 space-x-3">
+                  <div className="flex items-center space-x-2 bg-blue-50 border border-blue-200 rounded-full px-4 py-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <span className="text-xs font-semibold text-blue-800">
+                      {selectedPeriod === 'custom' ? 'Custom Range' : selectedPeriod.charAt(0).toUpperCase() + selectedPeriod.slice(1)}
                     </span>
+                  </div>
+                  {selectedCenter !== 'all' && (
+                    <div className="flex items-center space-x-2 bg-green-50 border border-green-200 rounded-full px-4 py-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <span className="text-xs font-semibold text-green-800">
+                        {centers.find(c => c._id === selectedCenter)?.centername || centers.find(c => c._id === selectedCenter)?.name || 'Selected'}
+                      </span>
+                    </div>
                   )}
                 </div>
               </div>
             </div>
-            <div className="flex space-x-3">
+            <div className="flex space-x-4">
               <button
                 onClick={fetchReports}
                 disabled={reportsLoading}
-                className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 flex items-center shadow-lg hover:shadow-xl transition-all duration-200"
+                className="group px-6 py-3 bg-gradient-to-r from-slate-700 to-slate-800 text-white rounded-xl hover:from-slate-800 hover:to-slate-900 disabled:opacity-50 flex items-center shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5"
               >
-                <RefreshCw className={`w-5 h-5 mr-2 ${reportsLoading ? 'animate-spin' : ''}`} />
-                {reportsLoading ? 'Loading...' : 'Refresh Data'}
+                <RefreshCw className={`w-5 h-5 mr-2 group-hover:rotate-180 transition-transform duration-500 ${reportsLoading ? 'animate-spin' : ''}`} />
+                <span className="font-semibold">{reportsLoading ? 'Processing...' : 'Refresh Data'}</span>
               </button>
               <button
                 onClick={handleExportReports}
                 disabled={!reportsData || reportsLoading}
-                className="px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 disabled:opacity-50 flex items-center shadow-lg hover:shadow-xl transition-all duration-200"
+                className="group px-6 py-3 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-xl hover:from-emerald-700 hover:to-emerald-800 disabled:opacity-50 flex items-center shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5"
               >
-                <Download className="w-5 h-5 mr-2" />
-                Export CSV
+                <Download className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" />
+                <span className="font-semibold">Export Data</span>
               </button>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Time Period Selection */}
-            <div className="space-y-3">
-              <label className="block text-sm font-semibold text-gray-800 mb-3 flex items-center">
-                <Calendar className="w-4 h-4 mr-2 text-blue-600" />
-                Time Period Analysis
-              </label>
-              <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-4">
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <Calendar className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <h4 className="text-base md:text-sm font-bold text-gray-900">Time Period</h4>
+                  <p className="text-xs text-gray-600">Select analysis timeframe</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => handlePeriodChange('daily')}
-                  className={`px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  className={`group px-4 py-3 rounded-xl text-xs font-semibold transition-all duration-300 transform hover:-translate-y-1 ${
                     selectedPeriod === 'daily'
-                      ? 'bg-blue-600 text-white shadow-lg'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/25'
+                      : 'bg-white border-2 border-gray-200 text-gray-700 hover:border-blue-300 hover:shadow-md'
                   }`}
                 >
-                  Today
+                  <div className="flex items-center justify-center space-x-2">
+                    <Clock className="w-4 h-4" />
+                    <span>Today</span>
+                  </div>
                 </button>
                 <button
                   onClick={() => handlePeriodChange('weekly')}
-                  className={`px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  className={`group px-4 py-3 rounded-xl text-xs font-semibold transition-all duration-300 transform hover:-translate-y-1 ${
                     selectedPeriod === 'weekly'
-                      ? 'bg-blue-600 text-white shadow-lg'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/25'
+                      : 'bg-white border-2 border-gray-200 text-gray-700 hover:border-blue-300 hover:shadow-md'
                   }`}
                 >
-                  Last 7 Days
+                  <div className="flex items-center justify-center space-x-2">
+                    <Calendar className="w-4 h-4" />
+                    <span>7 Days</span>
+                  </div>
                 </button>
                 <button
                   onClick={() => handlePeriodChange('monthly')}
-                  className={`px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  className={`group px-4 py-3 rounded-xl text-xs font-semibold transition-all duration-300 transform hover:-translate-y-1 ${
                     selectedPeriod === 'monthly'
-                      ? 'bg-blue-600 text-white shadow-lg'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/25'
+                      : 'bg-white border-2 border-gray-200 text-gray-700 hover:border-blue-300 hover:shadow-md'
                   }`}
                 >
-                  Last 30 Days
+                  <div className="flex items-center justify-center space-x-2">
+                    <BarChart3 className="w-4 h-4" />
+                    <span>30 Days</span>
+                  </div>
                 </button>
                 <button
                   onClick={() => handlePeriodChange('yearly')}
-                  className={`px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  className={`group px-4 py-3 rounded-xl text-xs font-semibold transition-all duration-300 transform hover:-translate-y-1 ${
                     selectedPeriod === 'yearly'
-                      ? 'bg-blue-600 text-white shadow-lg'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/25'
+                      : 'bg-white border-2 border-gray-200 text-gray-700 hover:border-blue-300 hover:shadow-md'
                   }`}
                 >
-                  Last Year
+                  <div className="flex items-center justify-center space-x-2">
+                    <TrendingUp className="w-4 h-4" />
+                    <span>1 Year</span>
+                  </div>
                 </button>
               </div>
               <button
                 onClick={() => handlePeriodChange('custom')}
-                className={`w-full px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                className={`w-full px-4 py-3 rounded-xl text-xs font-semibold transition-all duration-300 transform hover:-translate-y-1 ${
                   selectedPeriod === 'custom'
-                    ? 'bg-purple-600 text-white shadow-lg'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    ? 'bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-lg shadow-purple-500/25'
+                    : 'bg-white border-2 border-gray-200 text-gray-700 hover:border-purple-300 hover:shadow-md'
                 }`}
               >
-                Custom Range
+                <div className="flex items-center justify-center space-x-2">
+                  <Calendar className="w-4 h-4" />
+                  <span>Custom Range</span>
+                </div>
               </button>
             </div>
 
             {/* Center Selection */}
-            <div className="space-y-3">
-              <label className="block text-sm font-semibold text-gray-800 mb-3 flex items-center">
-                <Building className="w-4 h-4 mr-2 text-green-600" />
-                Center Performance
-              </label>
+            <div className="space-y-4">
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="p-2 bg-emerald-100 rounded-lg">
+                  <Building className="w-5 h-5 text-emerald-600" />
+                </div>
+                <div>
+                  <h4 className="text-base md:text-sm font-bold text-gray-900">Center Filter</h4>
+                  <p className="text-xs text-gray-600">Select specific center or all</p>
+                </div>
+              </div>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <select
                   value={selectedCenter}
                   onChange={(e) => handleCenterChange(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white shadow-sm"
+                  className="w-full pl-12 pr-4 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white shadow-sm text-gray-900 font-medium transition-all duration-200 hover:border-gray-300"
                 >
                   <option value="all">🏥 All Centers ({centers?.length || 0})</option>
                   {centers?.map(center => (
@@ -332,46 +451,56 @@ const SuperadminBillingReports = () => {
                 </select>
               </div>
               {selectedCenter !== 'all' && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                  <div className="flex items-center">
-                    <Building className="w-4 h-4 text-green-600 mr-2" />
-                    <span className="text-sm font-medium text-green-800">
-                      Filtering by: {centers.find(c => c._id === selectedCenter)?.centername || centers.find(c => c._id === selectedCenter)?.name || 'Selected Center'}
-                    </span>
+                <div className="bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-200 rounded-xl p-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-emerald-100 rounded-lg">
+                      <Building className="w-4 h-4 text-emerald-600" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-semibold text-emerald-800">
+                        Active Filter: {centers.find(c => c._id === selectedCenter)?.centername || centers.find(c => c._id === selectedCenter)?.name || 'Selected Center'}
+                      </span>
+                      <div className="text-xs text-emerald-600 mt-1">Showing data for this center only</div>
+                    </div>
                   </div>
                 </div>
               )}
             </div>
 
             {/* Custom Date Range */}
-            <div className="space-y-3">
-              <label className="block text-sm font-semibold text-gray-800 mb-3 flex items-center">
-                <Calendar className="w-4 h-4 mr-2 text-purple-600" />
-                Custom Date Range
-              </label>
+            <div className="space-y-4">
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="p-2 bg-purple-100 rounded-lg">
+                  <Calendar className="w-5 h-5 text-purple-600" />
+                </div>
+                <div>
+                  <h4 className="text-base md:text-sm font-bold text-gray-900">Custom Range</h4>
+                  <p className="text-xs text-gray-600">Set specific date boundaries</p>
+                </div>
+              </div>
               {showCustomRange ? (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Start Date</label>
+                    <label className="block text-xs font-semibold text-gray-700 mb-2">Start Date</label>
                     <input
                       type="date"
                       value={customDateRange.startDate}
                       onChange={(e) => setCustomDateRange(prev => ({ ...prev, startDate: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-gray-900 font-medium transition-all duration-200 hover:border-gray-300"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">End Date</label>
-                    <div className="flex space-x-2">
+                    <label className="block text-xs font-semibold text-gray-700 mb-2">End Date</label>
+                    <div className="flex space-x-3">
                       <input
                         type="date"
                         value={customDateRange.endDate}
                         onChange={(e) => setCustomDateRange(prev => ({ ...prev, endDate: e.target.value }))}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                        className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-gray-900 font-medium transition-all duration-200 hover:border-gray-300"
                       />
                       <button
                         onClick={handleCustomDateRange}
-                        className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm font-medium"
+                        className="px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl hover:from-purple-700 hover:to-purple-800 text-xs font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5"
                       >
                         Apply
                       </button>
@@ -379,28 +508,41 @@ const SuperadminBillingReports = () => {
                   </div>
                 </div>
               ) : (
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
-                  <Calendar className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                  <p className="text-sm text-gray-600">Select "Custom Range" to set specific dates</p>
+                <div className="bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-dashed border-gray-300 rounded-xl p-8 text-center">
+                  <div className="p-4 bg-purple-100 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                    <Calendar className="w-8 h-8 text-purple-600" />
+                  </div>
+                  <p className="text-gray-600 font-medium mb-2">Custom Date Range</p>
+                  <p className="text-xs text-gray-500">Select "Custom Range" to set specific dates</p>
                 </div>
               )}
             </div>
           </div>
         </div>
 
-        {/* Enhanced Loading State */}
+        {/* Professional Loading State */}
         {reportsLoading && (
-          <div className="bg-white rounded-xl shadow-lg p-12 text-center">
+          <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl border border-white/20 p-16 text-center">
             <div className="flex flex-col items-center">
-              <div className="relative">
-                <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-200"></div>
-                <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-600 border-t-transparent absolute top-0"></div>
+              <div className="relative mb-8">
+                <div className="animate-spin rounded-full h-20 w-20 border-4 border-blue-100"></div>
+                <div className="animate-spin rounded-full h-20 w-20 border-4 border-blue-600 border-t-transparent absolute top-0"></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <BarChart3 className="w-8 h-8 text-blue-600 animate-pulse" />
+                </div>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-2">Loading Analytics Data</h3>
-              <p className="text-gray-600 mb-4">Fetching billing reports and generating insights...</p>
-              <div className="flex items-center space-x-2 text-sm text-blue-600">
-                <Activity className="w-4 h-4 animate-pulse" />
-                <span>Processing center-wise data</span>
+              <h3 className="text-md md:text-md font-bold text-gray-900 mb-3">Processing Analytics</h3>
+              <p className="text-gray-600 mb-6 text-base md:text-sm">Generating comprehensive financial insights...</p>
+              <div className="flex items-center space-x-4 text-blue-600">
+                <div className="flex items-center space-x-2">
+                  <Activity className="w-5 h-5 animate-pulse" />
+                  <span className="font-semibold">Analyzing Data</span>
+                </div>
+                <div className="w-1 h-1 bg-blue-300 rounded-full animate-pulse"></div>
+                <div className="flex items-center space-x-2">
+                  <TrendingUp className="w-5 h-5 animate-pulse" />
+                  <span className="font-semibold">Calculating Metrics</span>
+                </div>
               </div>
             </div>
           </div>
@@ -409,17 +551,17 @@ const SuperadminBillingReports = () => {
         {/* Reports Content */}
         {!reportsLoading && reportsData && (
           <>
-            {/* Data Summary */}
-            <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 mb-6">
+            {/* Professional Data Summary */}
+            <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8 mb-10">
               <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div className="p-2 bg-green-100 rounded-lg mr-3">
-                    <Activity className="w-5 h-5 text-green-600" />
+                <div className="flex items-center space-x-6">
+                  <div className="p-4 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl shadow-lg">
+                    <Activity className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900">Data Summary</h3>
-                    <p className="text-sm text-gray-600">
-                      Showing {reportsData.billingData?.length || 0} billing records
+                    <h3 className="text-md md:text-md font-bold text-gray-900 mb-2">Data Overview</h3>
+                    <p className="text-gray-600 font-medium text-base md:text-sm">
+                      Analyzing <span className="font-bold text-emerald-600">{reportsData.billingData?.length || 0}</span> billing records
                       {selectedPeriod !== 'custom' && ` for the last ${selectedPeriod === 'daily' ? '24 hours' : selectedPeriod === 'weekly' ? '7 days' : selectedPeriod === 'monthly' ? '30 days' : '365 days'}`}
                       {selectedPeriod === 'custom' && ` from ${customDateRange.startDate} to ${customDateRange.endDate}`}
                       {selectedCenter !== 'all' && ` • Center: ${centers.find(c => c._id === selectedCenter)?.centername || centers.find(c => c._id === selectedCenter)?.name || 'Selected'}`}
@@ -427,8 +569,11 @@ const SuperadminBillingReports = () => {
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-2xl font-bold text-green-600">₹{reportsData.stats?.totalAmount?.toLocaleString() || '0'}</div>
-                  <div className="text-sm text-gray-500">Total Revenue</div>
+                  <div className="bg-gradient-to-r from-emerald-50 to-green-50 rounded-2xl p-6 border border-emerald-200">
+                    <div className="text-md md:text-md font-bold text-emerald-600 mb-1">₹{reportsData.stats?.totalAmount?.toLocaleString() || '0'}</div>
+                    <div className="text-xs font-semibold text-emerald-700">Total Revenue</div>
+                    <div className="text-xs text-emerald-600 mt-1">All Centers Combined</div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -455,30 +600,30 @@ const SuperadminBillingReports = () => {
               <PaymentStatusChart stats={reportsData.stats} />
             </div>
 
-            {/* Detailed Billing Data Table */}
-            <div className="bg-white rounded-xl shadow-lg border border-gray-100 mb-8">
-              <div className="p-6 border-b border-gray-200">
+            {/* Professional Billing Data Table */}
+            <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 mb-10 overflow-hidden">
+              <div className="p-8 border-b border-gray-200 bg-gradient-to-r from-slate-50 to-gray-50">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div className="p-2 bg-blue-100 rounded-lg mr-3">
-                      <FileText className="w-5 h-5 text-blue-600" />
+                  <div className="flex items-center space-x-4">
+                    <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
+                      <FileText className="w-6 h-6 text-white" />
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold text-gray-900">Detailed Billing Records</h3>
-                      <p className="text-sm text-gray-600">Complete transaction history with center-wise breakdown</p>
+                      <h3 className="text-md md:text-md font-bold text-gray-900 mb-2">Transaction Records</h3>
+                      <p className="text-gray-600 font-medium">Complete billing history with detailed analytics</p>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-4">
-                    <div className="text-right">
-                      <div className="text-sm text-gray-500">Total Records</div>
-                      <div className="text-2xl font-bold text-blue-600">{reportsData.billingData?.length || 0}</div>
+                  <div className="flex items-center space-x-6">
+                    <div className="text-center">
+                      <div className="text-md md:text-md font-bold text-blue-600 mb-1">{reportsData.billingData?.length || 0}</div>
+                      <div className="text-xs font-semibold text-gray-600">Total Records</div>
                     </div>
                     <button
                       onClick={handleExportReports}
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center text-sm"
+                      className="group px-6 py-3 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-xl hover:from-emerald-700 hover:to-emerald-800 flex items-center shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5"
                     >
-                      <Download className="w-4 h-4 mr-2" />
-                      Export All
+                      <Download className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" />
+                      <span className="font-semibold">Export Data</span>
                     </button>
                   </div>
                 </div>
@@ -486,86 +631,115 @@ const SuperadminBillingReports = () => {
               
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-gray-50">
+                  <thead className="bg-gradient-to-r from-slate-100 to-gray-100">
                     <tr>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Invoice</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Patient</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Center</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Doctor</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Test Type</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Amount</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Generated</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Paid</th>
+                      <th className="px-8 py-6 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Invoice Details</th>
+                      <th className="px-8 py-6 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Patient Information</th>
+                      <th className="px-8 py-6 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Medical Center</th>
+                      <th className="px-8 py-6 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Doctor</th>
+                      <th className="px-8 py-6 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Test Type</th>
+                      <th className="px-8 py-6 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Amount</th>
+                      <th className="px-8 py-6 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Payment Status</th>
+                      <th className="px-8 py-6 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Generated Date</th>
+                      <th className="px-8 py-6 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Payment Date</th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="bg-white divide-y divide-gray-100">
                     {reportsData.billingData?.slice(0, 10).map((item, index) => (
-                      <tr key={item._id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="p-2 bg-blue-100 rounded-lg mr-3">
-                              <FileText className="w-4 h-4 text-blue-600" />
+                      <tr key={item._id} className="hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-300 group">
+                        <td className="px-8 py-6 whitespace-nowrap">
+                          <div className="flex items-center space-x-4">
+                            <div className="p-3 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl group-hover:from-blue-200 group-hover:to-blue-300 transition-all duration-300">
+                              <FileText className="w-5 h-5 text-blue-600" />
                             </div>
                             <div>
-                              <div className="text-sm font-medium text-gray-900">
+                              <div className="text-xs font-bold text-gray-900">
                                 {item.billing?.invoiceNumber || 'N/A'}
                               </div>
-                              <div className="text-xs text-gray-500">#{index + 1}</div>
+                              <div className="text-xs text-gray-500 font-medium">#{index + 1}</div>
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">{item.patientName || 'N/A'}</div>
-                          <div className="text-xs text-gray-500">{item.patient?.phone || ''}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <Building className="w-4 h-4 text-green-600 mr-2" />
+                        <td className="px-8 py-6 whitespace-nowrap">
+                          <div className="flex items-center space-x-3">
+                            <div className="p-2 bg-gradient-to-br from-emerald-100 to-emerald-200 rounded-lg">
+                              <Users className="w-4 h-4 text-emerald-600" />
+                            </div>
                             <div>
-                              <div className="text-sm font-medium text-gray-900">{item.centerName || 'N/A'}</div>
-                              <div className="text-xs text-gray-500">{item.centerCode || ''}</div>
+                              <div className="text-xs font-bold text-gray-900">{item.patientName || 'N/A'}</div>
+                              <div className="text-xs text-gray-500 font-medium">{item.patient?.phone || ''}</div>
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">{item.doctorName || 'N/A'}</div>
-                          <div className="text-xs text-gray-500">{item.doctor?.email || ''}</div>
+                        <td className="px-8 py-6 whitespace-nowrap">
+                          <div className="flex items-center space-x-3">
+                            <div className="p-2 bg-gradient-to-br from-green-100 to-green-200 rounded-lg">
+                              <Building className="w-4 h-4 text-green-600" />
+                            </div>
+                            <div>
+                              <div className="text-xs font-bold text-gray-900">{item.centerName || 'N/A'}</div>
+                              <div className="text-xs text-gray-500 font-medium">{item.centerCode || ''}</div>
+                            </div>
+                          </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="px-3 py-1 text-xs font-medium bg-purple-100 text-purple-800 rounded-full">
+                        <td className="px-8 py-6 whitespace-nowrap">
+                          <div className="flex items-center space-x-3">
+                            <div className="p-2 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg">
+                              <Users className="w-4 h-4 text-blue-600" />
+                            </div>
+                            <div>
+                              <div className="text-xs font-bold text-gray-900">{item.doctorName || 'N/A'}</div>
+                              <div className="text-xs text-gray-500 font-medium">{item.doctor?.email || ''}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-8 py-6 whitespace-nowrap">
+                          <span className="px-4 py-2 text-xs font-bold bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 rounded-full border border-purple-300">
                             {item.testType || 'N/A'}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-bold text-gray-900">₹{item.billing?.amount?.toLocaleString() || '0'}</div>
+                        <td className="px-8 py-6 whitespace-nowrap">
+                          <div className="text-right">
+                            <div className="text-base md:text-sm font-bold text-gray-900">₹{item.billing?.amount?.toLocaleString() || '0'}</div>
+                            <div className="text-xs text-gray-500 font-medium">Amount</div>
+                          </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-3 py-1 text-xs font-medium rounded-full ${
+                        <td className="px-8 py-6 whitespace-nowrap">
+                          <span className={`inline-flex items-center px-4 py-2 text-xs font-bold rounded-full border ${
                             item.billing?.status === 'paid' || item.billing?.status === 'verified'
-                              ? 'bg-green-100 text-green-800'
+                              ? 'bg-gradient-to-r from-green-100 to-green-200 text-green-800 border-green-300'
                               : item.billing?.status === 'generated'
-                              ? 'bg-yellow-100 text-yellow-800'
+                              ? 'bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-800 border-yellow-300'
                               : item.billing?.status === 'cancelled'
-                              ? 'bg-red-100 text-red-800'
-                              : 'bg-gray-100 text-gray-800'
+                              ? 'bg-gradient-to-r from-red-100 to-red-200 text-red-800 border-red-300'
+                              : 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 border-gray-300'
                           }`}>
                             {item.billing?.status === 'paid' || item.billing?.status === 'verified' ? (
-                              <><CheckCircle className="w-3 h-3 inline mr-1" />Paid</>
+                              <><CheckCircle className="w-4 h-4 mr-2" />Paid</>
                             ) : item.billing?.status === 'generated' ? (
-                              <><Clock className="w-3 h-3 inline mr-1" />Pending</>
+                              <><Clock className="w-4 h-4 mr-2" />Pending</>
                             ) : item.billing?.status === 'cancelled' ? (
-                              <><AlertCircle className="w-3 h-3 inline mr-1" />Cancelled</>
+                              <><AlertCircle className="w-4 h-4 mr-2" />Cancelled</>
                             ) : (
                               'Generated'
                             )}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {item.billing?.generatedAt ? new Date(item.billing.generatedAt).toLocaleDateString() : 'N/A'}
+                        <td className="px-8 py-6 whitespace-nowrap">
+                          <div className="text-xs font-semibold text-gray-900">
+                            {item.billing?.generatedAt ? new Date(item.billing.generatedAt).toLocaleDateString() : 'N/A'}
+                          </div>
+                          <div className="text-xs text-gray-500 font-medium">
+                            {item.billing?.generatedAt ? new Date(item.billing.generatedAt).toLocaleTimeString() : ''}
+                          </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {item.billing?.paidAt ? new Date(item.billing.paidAt).toLocaleDateString() : 'N/A'}
+                        <td className="px-8 py-6 whitespace-nowrap">
+                          <div className="text-xs font-semibold text-gray-900">
+                            {item.billing?.paidAt ? new Date(item.billing.paidAt).toLocaleDateString() : 'N/A'}
+                          </div>
+                          <div className="text-xs text-gray-500 font-medium">
+                            {item.billing?.paidAt ? new Date(item.billing.paidAt).toLocaleTimeString() : ''}
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -574,69 +748,72 @@ const SuperadminBillingReports = () => {
               </div>
               
               {reportsData.billingData?.length > 10 && (
-                <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 text-center">
-                  <p className="text-sm text-gray-600">
-                    Showing 10 of {reportsData.billingData.length} records. 
+                <div className="px-8 py-6 bg-gradient-to-r from-slate-50 to-gray-50 border-t border-gray-200 text-center">
+                  <div className="flex items-center justify-center space-x-4">
+                    <p className="text-xs font-semibold text-gray-600">
+                      Showing 10 of <span className="font-bold text-blue-600">{reportsData.billingData.length}</span> records
+                    </p>
+                    <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
                     <button 
                       onClick={handleExportReports}
-                      className="text-blue-600 hover:text-blue-800 font-medium ml-1"
+                      className="text-blue-600 hover:text-blue-800 font-bold text-xs transition-colors duration-200 hover:underline"
                     >
-                      Export all data
+                      Export All Data
                     </button>
-                  </p>
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* Enhanced Report Summary */}
-            <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-8">
-              <div className="flex items-center mb-6">
-                <div className="p-3 bg-purple-100 rounded-xl mr-4">
-                  <Award className="w-6 h-6 text-purple-600" />
+            {/* Professional Report Summary */}
+            <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-10">
+              <div className="flex items-center mb-8">
+                <div className="p-4 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg mr-6">
+                  <Award className="w-8 h-8 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900">Financial Performance Summary</h3>
-                  <p className="text-sm text-gray-600 mt-1">Key metrics and insights for the selected period</p>
+                  <h3 className="text-md md:text-md font-bold text-gray-900 mb-2">Financial Performance Summary</h3>
+                  <p className="text-base md:text-sm text-gray-600 font-medium">Comprehensive analytics and key performance indicators</p>
                 </div>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                <div className="text-center p-6 bg-blue-50 rounded-xl border border-blue-200">
-                  <div className="p-3 bg-blue-100 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                    <FileText className="w-8 h-8 text-blue-600" />
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-10">
+                <div className="text-center p-8 bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl border-2 border-blue-200 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                  <div className="p-4 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl w-20 h-20 mx-auto mb-6 flex items-center justify-center shadow-lg">
+                    <FileText className="w-10 h-10 text-white" />
                   </div>
-                  <div className="text-3xl font-bold text-blue-600 mb-2">{reportsData.stats.totalBills}</div>
-                  <div className="text-sm font-medium text-blue-800">Total Bills</div>
-                  <div className="text-xs text-blue-600 mt-1">Generated</div>
+                  <div className="text-md md:text-md font-bold text-blue-600 mb-3">{reportsData.stats.totalBills}</div>
+                  <div className="text-base md:text-sm font-bold text-blue-800 mb-2">Total Bills</div>
+                  <div className="text-xs text-blue-600 font-semibold">Generated</div>
                 </div>
-                <div className="text-center p-6 bg-green-50 rounded-xl border border-green-200">
-                  <div className="p-3 bg-green-100 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                    <CheckCircle className="w-8 h-8 text-green-600" />
+                <div className="text-center p-8 bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-2xl border-2 border-emerald-200 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                  <div className="p-4 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl w-20 h-20 mx-auto mb-6 flex items-center justify-center shadow-lg">
+                    <CheckCircle className="w-10 h-10 text-white" />
                   </div>
-                  <div className="text-3xl font-bold text-green-600 mb-2">{reportsData.stats.paidBills}</div>
-                  <div className="text-sm font-medium text-green-800">Paid Bills</div>
-                  <div className="text-xs text-green-600 mt-1">
+                  <div className="text-md md:text-md font-bold text-emerald-600 mb-3">{reportsData.stats.paidBills}</div>
+                  <div className="text-base md:text-sm font-bold text-emerald-800 mb-2">Paid Bills</div>
+                  <div className="text-xs text-emerald-600 font-semibold">
                     {reportsData.stats.totalBills > 0 ? 
                       `${Math.round((reportsData.stats.paidBills / reportsData.stats.totalBills) * 100)}%` : 
                       '0%'
                     } Success Rate
                   </div>
                 </div>
-                <div className="text-center p-6 bg-yellow-50 rounded-xl border border-yellow-200">
-                  <div className="p-3 bg-yellow-100 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                    <Clock className="w-8 h-8 text-yellow-600" />
+                <div className="text-center p-8 bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-2xl border-2 border-yellow-200 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                  <div className="p-4 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-2xl w-20 h-20 mx-auto mb-6 flex items-center justify-center shadow-lg">
+                    <Clock className="w-10 h-10 text-white" />
                   </div>
-                  <div className="text-3xl font-bold text-yellow-600 mb-2">{reportsData.stats.pendingBills}</div>
-                  <div className="text-sm font-medium text-yellow-800">Pending Bills</div>
-                  <div className="text-xs text-yellow-600 mt-1">Awaiting Payment</div>
+                  <div className="text-md md:text-md font-bold text-yellow-600 mb-3">{reportsData.stats.pendingBills}</div>
+                  <div className="text-base md:text-sm font-bold text-yellow-800 mb-2">Pending Bills</div>
+                  <div className="text-xs text-yellow-600 font-semibold">Awaiting Payment</div>
                 </div>
-                <div className="text-center p-6 bg-purple-50 rounded-xl border border-purple-200">
-                  <div className="p-3 bg-purple-100 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                    <DollarSign className="w-8 h-8 text-purple-600" />
+                <div className="text-center p-8 bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl border-2 border-purple-200 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                  <div className="p-4 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl w-20 h-20 mx-auto mb-6 flex items-center justify-center shadow-lg">
+                    <DollarSign className="w-10 h-10 text-white" />
                   </div>
-                  <div className="text-3xl font-bold text-purple-600 mb-2">₹{reportsData.stats.totalAmount.toLocaleString()}</div>
-                  <div className="text-sm font-medium text-purple-800">Total Revenue</div>
-                  <div className="text-xs text-purple-600 mt-1">All Centers</div>
+                  <div className="text-md md:text-md font-bold text-purple-600 mb-3">₹{reportsData.stats.totalAmount.toLocaleString()}</div>
+                  <div className="text-base md:text-sm font-bold text-purple-800 mb-2">Total Revenue</div>
+                  <div className="text-xs text-purple-600 font-semibold">All Centers</div>
                 </div>
               </div>
               
@@ -644,9 +821,9 @@ const SuperadminBillingReports = () => {
                 <div className="text-center">
                   <div className="flex items-center justify-center mb-4">
                     <Target className="w-6 h-6 text-gray-600 mr-2" />
-                    <span className="text-lg font-semibold text-gray-800">Report Period</span>
+                    <span className="text-base md:text-sm font-semibold text-gray-800">Report Period</span>
                   </div>
-                  <div className="text-2xl font-bold text-gray-900 mb-2">
+                  <div className="text-md md:text-md font-bold text-gray-900 mb-2">
                     {selectedPeriod === 'custom' 
                       ? `${customDateRange.startDate} to ${customDateRange.endDate}` 
                       : selectedPeriod.charAt(0).toUpperCase() + selectedPeriod.slice(1)
@@ -655,7 +832,7 @@ const SuperadminBillingReports = () => {
                   {selectedCenter !== 'all' && (
                     <div className="flex items-center justify-center mt-3">
                       <Building className="w-4 h-4 text-gray-600 mr-2" />
-                      <span className="text-sm text-gray-700">
+                      <span className="text-xs text-gray-700">
                         Filtered by: <strong>{centers.find(c => c._id === selectedCenter)?.centername || centers.find(c => c._id === selectedCenter)?.name || 'Selected Center'}</strong>
                       </span>
                     </div>
@@ -666,25 +843,25 @@ const SuperadminBillingReports = () => {
           </>
         )}
 
-        {/* Enhanced No Data State */}
+        {/* Professional No Data State */}
         {!reportsLoading && !reportsData && (
-          <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-12 text-center">
+          <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl border border-white/20 p-16 text-center">
             <div className="flex flex-col items-center">
-              <div className="p-6 bg-gray-100 rounded-full mb-6">
-                <Calendar className="w-16 h-16 text-gray-400" />
+              <div className="p-8 bg-gradient-to-br from-gray-100 to-gray-200 rounded-3xl mb-8 shadow-lg">
+                <Calendar className="w-20 h-20 text-gray-500" />
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-3">No Billing Data Available</h3>
-              <p className="text-gray-600 mb-6 max-w-md">
+              <h3 className="text-md md:text-md font-bold text-gray-900 mb-4">No Data Available</h3>
+              <p className="text-gray-600 mb-8 max-w-lg text-base md:text-sm font-medium">
                 No billing records found for the selected time period and center filters. 
                 Try adjusting your filters or check back later for new data.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex flex-col sm:flex-row gap-6 mb-8">
                 <button
                   onClick={fetchReports}
-                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 flex items-center shadow-lg hover:shadow-xl transition-all duration-200"
+                  className="group px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 flex items-center shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
                 >
-                  <RefreshCw className="w-5 h-5 mr-2" />
-                  Refresh Data
+                  <RefreshCw className="w-6 h-6 mr-3 group-hover:rotate-180 transition-transform duration-500" />
+                  <span className="font-bold text-base md:text-sm">Refresh Data</span>
                 </button>
                 <button
                   onClick={() => {
@@ -693,20 +870,20 @@ const SuperadminBillingReports = () => {
                     setShowCustomRange(false);
                     fetchReports();
                   }}
-                  className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 flex items-center transition-all duration-200"
+                  className="group px-8 py-4 bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 rounded-xl hover:from-gray-200 hover:to-gray-300 flex items-center shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
                 >
-                  <Filter className="w-5 h-5 mr-2" />
-                  Reset Filters
+                  <Filter className="w-6 h-6 mr-3 group-hover:scale-110 transition-transform duration-300" />
+                  <span className="font-bold text-base md:text-sm">Reset Filters</span>
                 </button>
               </div>
-              <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <div className="flex items-center justify-center mb-2">
-                  <Activity className="w-5 h-5 text-blue-600 mr-2" />
-                  <span className="text-sm font-medium text-blue-800">Current Filter Settings</span>
+              <div className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-2xl">
+                <div className="flex items-center justify-center mb-4">
+                  <Activity className="w-6 h-6 text-blue-600 mr-3" />
+                  <span className="text-sm font-bold text-blue-800">Current Filter Settings</span>
                 </div>
-                <div className="text-sm text-blue-700">
-                  <div>Period: <strong>{selectedPeriod.charAt(0).toUpperCase() + selectedPeriod.slice(1)}</strong></div>
-                  <div>Center: <strong>{selectedCenter === 'all' ? 'All Centers' : centers.find(c => c._id === selectedCenter)?.centername || centers.find(c => c._id === selectedCenter)?.name || 'Selected Center'}</strong></div>
+                <div className="text-blue-700 font-medium">
+                  <div className="mb-2">Period: <strong className="text-blue-900">{selectedPeriod.charAt(0).toUpperCase() + selectedPeriod.slice(1)}</strong></div>
+                  <div>Center: <strong className="text-blue-900">{selectedCenter === 'all' ? 'All Centers' : centers.find(c => c._id === selectedCenter)?.centername || centers.find(c => c._id === selectedCenter)?.name || 'Selected Center'}</strong></div>
                 </div>
               </div>
             </div>
