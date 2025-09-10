@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -32,15 +32,69 @@ const CenterAdminBilling = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('all');
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState('all');
   const [filteredData, setFilteredData] = useState([]);
-  const [selectedBilling, setSelectedBilling] = useState(null);
-  const [showBillingModal, setShowBillingModal] = useState(false);
   const [showVerificationModal, setShowVerificationModal] = useState(false);
   const [verificationNotes, setVerificationNotes] = useState('');
   const [selectedBillingForVerification, setSelectedBillingForVerification] = useState(null);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState(null);
   const [localUser, setLocalUser] = useState(null);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
+  
+  // Refs to track toast messages
+  const successToastShown = useRef(false);
+  const errorToastShown = useRef(false);
+  const actionSuccessToastShown = useRef(false);
+  const actionErrorToastShown = useRef(false);
+  
+  // Function to reset toast tracking
+  const resetToastTracking = () => {
+    successToastShown.current = false;
+    errorToastShown.current = false;
+    actionSuccessToastShown.current = false;
+    actionErrorToastShown.current = false;
+  };
+
+  // Enhanced function to get partial payment data from localStorage
+  const getPartialPaymentData = (requestId) => {
+    const paymentKey = `partial_payment_${requestId}`;
+    const payments = JSON.parse(localStorage.getItem(paymentKey) || '[]');
+    const totalPaid = payments.reduce((sum, payment) => sum + payment.amount, 0);
+    
+    // Sort payments by timestamp (newest first)
+    const sortedPayments = payments.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    
+    return { 
+      payments: sortedPayments, 
+      totalPaid,
+      paymentCount: payments.length,
+      lastPayment: payments.length > 0 ? payments[payments.length - 1] : null
+    };
+  };
+
+  // Function to get all partial payments across all bills
+  const getAllPartialPayments = () => {
+    const allPayments = [];
+    const keys = Object.keys(localStorage).filter(key => key.startsWith('partial_payment_'));
+    
+    keys.forEach(key => {
+      const requestId = key.replace('partial_payment_', '');
+      const payments = JSON.parse(localStorage.getItem(key) || '[]');
+      payments.forEach(payment => {
+        allPayments.push({
+          ...payment,
+          requestId,
+          billKey: key
+        });
+      });
+    });
+    
+    return allPayments.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  };
 
   // Helper function to safely get user information for debugging
   const getSafeUserInfo = (user) => {
@@ -142,11 +196,9 @@ const CenterAdminBilling = () => {
         // If the response is directly an array
         setBillingData(response.data);
       } else {
-        console.warn('Unexpected billing data format:', response.data);
         setBillingData([]);
       }
     } catch (error) {
-      console.error('Error fetching real billing data:', error);
       
       // Handle different types of errors
       if (error.response) {
@@ -198,7 +250,7 @@ const CenterAdminBilling = () => {
   };
 
   useEffect(() => {
-    console.log('User effect triggered:', user);
+    resetToastTracking(); // Reset toast tracking on component mount/user change
     
     // Clear local user state when user is null (logout)
     if (!user) {
@@ -220,23 +272,18 @@ const CenterAdminBilling = () => {
       
       // If centerId is an object, extract the _id property
       if (centerId && typeof centerId === 'object' && centerId._id) {
-        console.log('CenterId is an object, extracting _id:', centerId);
         centerId = centerId._id;
       }
       
       if (centerId) {
-        console.log('Found center ID:', centerId);
         fetchBillingData();
       } else {
-        console.log('User or centerId not available:', localUser);
-        console.log('Available user properties:', Object.keys(localUser || {}));
         
         // If user exists but no centerId, show helpful message
         if (localUser && Object.keys(localUser).length > 0) {
           // Try to get centerId from user's role or other properties
           if (localUser.role === 'centeradmin') {
             // For center admin, we might need to fetch center info separately
-            console.log('User is center admin but no centerId found. Attempting to fetch center info...');
             fetchCenterInfo();
           } else {
             toast.warning('Center ID not found in user profile. Please contact support.');
@@ -244,14 +291,12 @@ const CenterAdminBilling = () => {
         }
       }
     } catch (error) {
-      console.error('Error in user effect:', error);
       toast.error('Error processing user data');
     }
 
     // Cleanup function to handle component unmounting
     return () => {
       // This will run when the component unmounts or when dependencies change
-      console.log('Cleaning up user effect');
     };
   }, [user, localUser, localUser?.centerId, localUser?.center?.id]);
 
@@ -308,6 +353,22 @@ const CenterAdminBilling = () => {
       console.warn('billingData is not an array:', filtered);
       filtered = [];
     }
+
+    // Enhance billing data with partial payment information
+    filtered = filtered.map(item => {
+      const partialData = getPartialPaymentData(item._id);
+      if (item.billing && partialData.totalPaid > 0) {
+        return {
+          ...item,
+          billing: {
+            ...item.billing,
+            paidAmount: item.billing.paidAmount || partialData.totalPaid,
+            partialPayments: partialData.payments
+          }
+        };
+      }
+      return item;
+    });
 
     // Search filter
     if (searchTerm) {
@@ -389,11 +450,34 @@ const CenterAdminBilling = () => {
       }
     }
 
-    setFilteredData(filtered);
-  }, [billingData, searchTerm, statusFilter, dateFilter]);
+    // Payment status filter
+    if (paymentStatusFilter !== 'all') {
+      filtered = filtered.filter(item => {
+        // Safety check: ensure item is valid
+        if (!item || typeof item !== 'object') return false;
+        
+        const totalAmount = item.billing?.amount || 0;
+        const paidAmount = item.billing?.paidAmount || 0;
+        
+        if (paymentStatusFilter === 'unpaid') {
+          return totalAmount > 0 && paidAmount === 0;
+        }
+        if (paymentStatusFilter === 'partial') {
+          return totalAmount > 0 && paidAmount > 0 && paidAmount < totalAmount;
+        }
+        if (paymentStatusFilter === 'full') {
+          return totalAmount > 0 && paidAmount >= totalAmount;
+        }
+        
+        return true;
+      });
+    }
 
-  // Get status badge
-  const getStatusBadge = (status) => {
+    setFilteredData(filtered);
+  }, [billingData, searchTerm, statusFilter, dateFilter, paymentStatusFilter]);
+
+  // Get status badge with partial payment support
+  const getStatusBadge = (status, billing) => {
     const statusConfig = {
       'not_generated': { color: 'bg-gray-100 text-gray-800', icon: Clock, label: 'Not Generated' },
       'generated': { color: 'bg-blue-100 text-blue-800', icon: FileText, label: 'Generated' },
@@ -401,6 +485,16 @@ const CenterAdminBilling = () => {
       'paid': { color: 'bg-green-100 text-green-800', icon: CheckCircle, label: 'Paid' },
       'verified': { color: 'bg-purple-100 text-purple-800', icon: Shield, label: 'Verified' }
     };
+
+    // Check for partial payment
+    if (billing && billing.paidAmount && billing.paidAmount > 0 && billing.paidAmount < billing.amount) {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+          <DollarSign className="w-3 h-3 mr-1" />
+          Partially Paid
+        </span>
+      );
+    }
 
     const config = statusConfig[status] || statusConfig['not_generated'];
     const Icon = config.icon;
@@ -431,8 +525,7 @@ const CenterAdminBilling = () => {
 
   // View billing details
   const viewBillingDetails = (billing) => {
-    setSelectedBilling(billing);
-    setShowBillingModal(true);
+    navigate(`/dashboard/centeradmin/billing/${billing._id}`);
   };
 
   // Open verification modal
@@ -450,6 +543,7 @@ const CenterAdminBilling = () => {
 
   // ✅ NEW: Download invoice PDF
   const handleDownloadInvoice = async (testRequestId) => {
+    resetToastTracking(); // Reset toast tracking for new action
     try {
       const response = await fetch(`${API_CONFIG.BASE_URL}/billing/test-requests/${testRequestId}/invoice`, {
         method: 'GET',
@@ -479,10 +573,16 @@ const CenterAdminBilling = () => {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
       
-      toast.success('Invoice downloaded successfully!');
+      if (!successToastShown.current) {
+        toast.success('Invoice downloaded successfully!');
+        successToastShown.current = true;
+      }
     } catch (error) {
       console.error('Error downloading invoice:', error);
-      toast.error('Failed to download invoice');
+      if (!errorToastShown.current) {
+        toast.error('Failed to download invoice');
+        errorToastShown.current = true;
+      }
     }
   };
 
@@ -496,21 +596,28 @@ const CenterAdminBilling = () => {
   const verifyPayment = async () => {
     if (!selectedBillingForVerification) return;
 
+    resetToastTracking(); // Reset toast tracking for new action
     try {
               const response = await API.put(`/billing/test-requests/${selectedBillingForVerification._id}/mark-paid`, {
         verificationNotes: verificationNotes
       });
 
-      toast.success('Payment verified successfully');
+      if (!actionSuccessToastShown.current) {
+        toast.success('Payment verified successfully');
+        actionSuccessToastShown.current = true;
+      }
       setShowVerificationModal(false);
       fetchBillingData(); // Refresh data
     } catch (error) {
       console.error('Error verifying payment:', error);
       
-      if (error.response?.data?.message) {
-        toast.error(error.response.data.message);
-      } else {
-        toast.error('Error verifying payment');
+      if (!actionErrorToastShown.current) {
+        if (error.response?.data?.message) {
+          toast.error(error.response.data.message);
+        } else {
+          toast.error('Error verifying payment');
+        }
+        actionErrorToastShown.current = true;
       }
     }
   };
@@ -559,6 +666,123 @@ const CenterAdminBilling = () => {
   };
 
   const totals = calculateTotals();
+
+  // Pagination logic
+  const totalPages = Math.ceil((filteredData?.length || 0) / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedData = filteredData?.slice(startIndex, endIndex) || [];
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, dateFilter, paymentStatusFilter]);
+
+  // Pagination controls component
+  const PaginationControls = () => {
+    if (!filteredData || filteredData.length === 0) return null;
+
+    const getPageNumbers = () => {
+      const pages = [];
+      const maxVisiblePages = 5;
+      
+      if (totalPages <= maxVisiblePages) {
+        for (let i = 1; i <= totalPages; i++) {
+          pages.push(i);
+        }
+      } else {
+        if (currentPage <= 3) {
+          for (let i = 1; i <= 4; i++) pages.push(i);
+          pages.push('...');
+          pages.push(totalPages);
+        } else if (currentPage >= totalPages - 2) {
+          pages.push(1);
+          pages.push('...');
+          for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
+        } else {
+          pages.push(1);
+          pages.push('...');
+          for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i);
+          pages.push('...');
+          pages.push(totalPages);
+        }
+      }
+      
+      return pages;
+    };
+
+    return (
+      <div className="flex items-center justify-between bg-white px-6 py-4 border-t border-gray-200">
+        <div className="flex items-center space-x-4">
+          <div className="text-sm text-gray-700">
+            Showing <span className="font-medium">{startIndex + 1}</span> to{' '}
+            <span className="font-medium">{Math.min(endIndex, filteredData?.length || 0)}</span> of{' '}
+            <span className="font-medium">{filteredData?.length || 0}</span> results
+          </div>
+          <div className="flex items-center space-x-2">
+            <label className="text-sm text-gray-700">Show:</label>
+            <select
+              value={itemsPerPage}
+              onChange={(e) => {
+                setItemsPerPage(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              className="border border-gray-300 rounded-md px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value={5}>5</option>
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+            </select>
+            <span className="text-sm text-gray-700">per page</span>
+          </div>
+        </div>
+        
+        <div className="flex items-center space-x-4">
+          <div className="text-sm text-gray-600">
+            Page <span className="font-medium">{currentPage}</span> of <span className="font-medium">{totalPages}</span>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1 || totalPages <= 1}
+              className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+            >
+              Previous
+            </button>
+            
+            <div className="flex space-x-1">
+              {getPageNumbers().map((page, index) => (
+                <button
+                  key={index}
+                  onClick={() => typeof page === 'number' && setCurrentPage(page)}
+                  disabled={page === '...'}
+                  className={`px-3 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
+                    page === currentPage
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : page === '...'
+                      ? 'text-gray-500 cursor-default'
+                      : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 hover:border-gray-400'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+            </div>
+            
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages || totalPages <= 1}
+              className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   // Safety check: if user is not authenticated, show loading or redirect
   if (!user) {
@@ -618,12 +842,25 @@ const CenterAdminBilling = () => {
 
   try {
     return (
-      <div className="p-6 bg-gray-50 min-h-screen">
-        <div className="max-w-7xl mx-auto">
-          {/* Header */}
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+        <div className="max-w-7xl mx-auto p-6">
+          {/* Professional Header */}
           <div className="mb-8">
-            <h1 className="text-md font-bold text-gray-900 mb-2">Center Billing Management</h1>
-            <p className="text-gray-600">Monitor and manage billing for your center</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-slate-800 mb-2">Center Billing Management</h1>
+                <p className="text-slate-600 text-lg">Monitor and manage billing for your center</p>
+              </div>
+              <div className="flex items-center space-x-3">
+                <div className="text-right">
+                  <div className="text-sm text-slate-500">Total Records</div>
+                  <div className="text-2xl font-bold text-slate-800">{filteredData?.length || 0}</div>
+                </div>
+                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
+                  <DollarSign className="w-6 h-6 text-white" />
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Error State - No Center ID */}
@@ -648,52 +885,56 @@ const CenterAdminBilling = () => {
 
           
 
-          {/* Statistics Cards */}
+          {/* Enhanced Statistics Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <FileText className="w-6 h-6 text-blue-600" />
+            <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-6 hover:shadow-xl transition-shadow duration-300">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600 mb-1">Total Bills</p>
+                  <p className="text-2xl font-bold text-slate-800">{totals.totalCount}</p>
+                  <p className="text-xs text-slate-500 mt-1">All billing records</p>
                 </div>
-                <div className="ml-4">
-                  <p className="text-xs font-medium text-gray-600">Total Bills</p>
-                  <p className="text-md font-bold text-gray-900">{totals.totalCount}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <CheckCircle className="w-6 h-6 text-green-600" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-xs font-medium text-gray-600">Paid Bills</p>
-                  <p className="text-md font-bold text-gray-900">{totals.paidCount}</p>
+                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
+                  <FileText className="w-6 h-6 text-white" />
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center">
-                <div className="p-2 bg-yellow-100 rounded-lg">
-                  <Clock className="w-6 h-6 text-yellow-600" />
+            <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-6 hover:shadow-xl transition-shadow duration-300">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600 mb-1">Paid Bills</p>
+                  <p className="text-2xl font-bold text-green-600">{totals.paidCount}</p>
+                  <p className="text-xs text-slate-500 mt-1">Successfully paid</p>
                 </div>
-                <div className="ml-4">
-                  <p className="text-xs font-medium text-gray-600">Pending Bills</p>
-                  <p className="text-md font-bold text-gray-900">{totals.pendingCount}</p>
+                <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-green-600 rounded-xl flex items-center justify-center">
+                  <CheckCircle className="w-6 h-6 text-white" />
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center">
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <DollarSign className="w-6 h-6 text-purple-600" />
+            <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-6 hover:shadow-xl transition-shadow duration-300">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600 mb-1">Pending Bills</p>
+                  <p className="text-2xl font-bold text-yellow-600">{totals.pendingCount}</p>
+                  <p className="text-xs text-slate-500 mt-1">Awaiting payment</p>
                 </div>
-                <div className="ml-4">
-                  <p className="text-xs font-medium text-gray-600">Total Amount</p>
-                  <p className="text-md font-bold text-gray-900">₹{totals.totalAmount.toLocaleString()}</p>
+                <div className="w-12 h-12 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center">
+                  <Clock className="w-6 h-6 text-white" />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-6 hover:shadow-xl transition-shadow duration-300">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600 mb-1">Total Amount</p>
+                  <p className="text-2xl font-bold text-purple-600">₹{totals.totalAmount.toLocaleString()}</p>
+                  <p className="text-xs text-slate-500 mt-1">All billing amounts</p>
+                </div>
+                <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
+                  <DollarSign className="w-6 h-6 text-white" />
                 </div>
               </div>
             </div>
@@ -728,26 +969,50 @@ const CenterAdminBilling = () => {
             </div>
           </div>
 
-          {/* Filters */}
-          <div className="bg-white rounded-lg shadow p-6 mb-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              {/* Search */}
+          {/* Enhanced Filters */}
+          <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-6 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-slate-800">Filters & Search</h3>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => {
+                    setSearchTerm('');
+                    setStatusFilter('all');
+                    setDateFilter('all');
+                    setPaymentStatusFilter('all');
+                  }}
+                  className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors duration-200 text-sm font-medium"
+                >
+                  Clear All
+                </button>
+                <button
+                  onClick={fetchBillingData}
+                  disabled={loading}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors duration-200 text-sm font-medium"
+                >
+                  {loading ? 'Loading...' : 'Refresh'}
+                </button>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              {/* Enhanced Search */}
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
                 <input
                   type="text"
                   placeholder="Search bills..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm"
                 />
               </div>
 
-              {/* Status Filter */}
+              {/* Enhanced Status Filter */}
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="px-3 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm"
               >
                 <option value="all">All Status</option>
                 <option value="not_generated">Not Generated</option>
@@ -757,11 +1022,23 @@ const CenterAdminBilling = () => {
                 <option value="verified">Verified</option>
               </select>
 
-              {/* Date Filter */}
+              {/* Enhanced Payment Status Filter */}
+              <select
+                value={paymentStatusFilter}
+                onChange={(e) => setPaymentStatusFilter(e.target.value)}
+                className="px-3 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm"
+              >
+                <option value="all">All Payment Status</option>
+                <option value="unpaid">Unpaid</option>
+                <option value="partial">Partially Paid</option>
+                <option value="full">Fully Paid</option>
+              </select>
+
+              {/* Enhanced Date Filter */}
               <select
                 value={dateFilter}
                 onChange={(e) => setDateFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="px-3 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm"
               >
                 <option value="all">All Time</option>
                 <option value="today">Today</option>
@@ -769,52 +1046,101 @@ const CenterAdminBilling = () => {
                 <option value="month">Last 30 Days</option>
               </select>
 
-              {/* Refresh Button */}
+              {/* Export Button */}
               <button
-                onClick={fetchBillingData}
-                disabled={loading}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center"
+                onClick={() => {
+                  resetToastTracking(); // Reset toast tracking for new action
+                  // Simple CSV export functionality
+                  const csvData = filteredData.map(item => ({
+                    'Patient Name': item.patientName || '',
+                    'Test Type': item.testType || '',
+                    'Doctor': item.doctorName || '',
+                    'Amount': item.billing?.amount || 0,
+                    'Status': item.billing?.status || 'not_generated',
+                    'Created Date': item.createdAt ? new Date(item.createdAt).toLocaleDateString() : '',
+                  }));
+                  
+                  const headers = Object.keys(csvData[0]);
+                  const csvContent = [
+                    headers.join(','),
+                    ...csvData.map(row => headers.map(header => row[header]).join(','))
+                  ].join('\n');
+                  
+                  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                  const url = window.URL.createObjectURL(blob);
+                  const link = document.createElement('a');
+                  link.href = url;
+                  link.download = `center-billing-${new Date().toISOString().split('T')[0]}.csv`;
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                  window.URL.revokeObjectURL(url);
+                  
+                  if (!successToastShown.current) {
+                    toast.success(`Exported ${filteredData.length} billing records successfully`);
+                    successToastShown.current = true;
+                  }
+                }}
+                disabled={!filteredData || filteredData.length === 0}
+                className="px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors duration-200 text-sm font-medium flex items-center justify-center"
               >
-                {loading ? 'Loading...' : 'Refresh'}
+                <Download className="w-4 h-4 mr-2" />
+                Export ({filteredData?.length || 0})
               </button>
             </div>
           </div>
 
-          {/* Billing Table */}
-          <div className="bg-white rounded-lg shadow overflow-hidden">
+          {/* Enhanced Billing Table */}
+          <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-slate-200">
+                <thead className="bg-gradient-to-r from-slate-50 to-blue-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                       Patient & Test
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                       Doctor
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                       Billing Details
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                       Status
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                       Date
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredData.length === 0 ? (
+                <tbody className="bg-white divide-y divide-slate-200">
+                  {loading ? (
                     <tr>
-                      <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
-                        {loading ? 'Loading billing data...' : 'No billing records found'}
+                      <td colSpan="6" className="px-6 py-16 text-center">
+                        <div className="flex flex-col items-center">
+                          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+                          <p className="text-slate-600 text-lg">Loading billing data...</p>
+                          <p className="text-slate-500 text-sm mt-2">Please wait while we fetch the latest data</p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : paginatedData.length === 0 ? (
+                    <tr>
+                      <td colSpan="6" className="px-6 py-16 text-center">
+                        <div className="flex flex-col items-center">
+                          <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                            <FileText className="w-8 h-8 text-slate-400" />
+                          </div>
+                          <p className="text-slate-600 text-lg font-medium">No billing records found</p>
+                          <p className="text-slate-500 text-sm mt-2">Try adjusting your filters or search terms</p>
+                        </div>
                       </td>
                     </tr>
                   ) : (
-                    filteredData.map((item) => {
+                    paginatedData.map((item) => {
                       // Safety check: ensure item is an object with required properties
                       if (!item || typeof item !== 'object') {
                         console.warn('Invalid item in filteredData:', item);
@@ -822,24 +1148,24 @@ const CenterAdminBilling = () => {
                       }
                       
                       return (
-                        <tr key={item._id || Math.random()} className="hover:bg-gray-50">
+                        <tr key={item._id || Math.random()} className="hover:bg-slate-50 transition-colors duration-200">
                           <td className="px-6 py-4">
                             <div>
-                              <div className="text-xs font-medium text-gray-900">
+                              <div className="text-sm font-semibold text-slate-800">
                                 {item.patientName || 'Unknown Patient'}
                               </div>
-                              <div className="text-xs text-gray-500">
+                              <div className="text-sm text-slate-600 mt-1">
                                 {item.testType || 'Unknown Test'}
                               </div>
                               {item.urgency && (
-                                <div className="mt-1">
+                                <div className="mt-2">
                                   {getUrgencyBadge(item.urgency)}
                                 </div>
                               )}
                             </div>
                           </td>
                           <td className="px-6 py-4">
-                            <div className="text-xs font-medium text-gray-900">
+                            <div className="text-sm font-semibold text-slate-800">
                               Dr. {item.doctorName || 'Unknown Doctor'}
                             </div>
                           </td>
@@ -847,10 +1173,44 @@ const CenterAdminBilling = () => {
                             <div>
                               {item.billing ? (
                                 <>
-                                  <div className="text-xs font-medium text-gray-900">
-                                    ₹{(item.billing.amount || 0).toLocaleString()}
+                                  <div className="text-sm font-bold text-slate-800">
+                                    Total: ₹{(item.billing.amount || 0).toLocaleString()}
                                   </div>
-                                  <div className="text-xs text-gray-500">
+                                  
+                                  {/* Simple remaining amount display */}
+                                  {(() => {
+                                    const partialData = getPartialPaymentData(item._id);
+                                    const totalPaidFromStorage = partialData.totalPaid;
+                                    const backendPaidAmount = item.billing.paidAmount || 0;
+                                    const totalAmount = item.billing.amount || 0;
+                                    
+                                    // Check if bill is fully paid by status
+                                    const isFullyPaidByStatus = item.billing?.status === 'paid' || 
+                                                              item.billing?.status === 'verified';
+                                    
+                                    // If status indicates paid but paidAmount is 0, assume full amount was paid
+                                    let actualPaidAmount;
+                                    if (isFullyPaidByStatus && backendPaidAmount === 0) {
+                                      actualPaidAmount = totalAmount;
+                                    } else {
+                                      actualPaidAmount = Math.max(backendPaidAmount, totalPaidFromStorage);
+                                    }
+                                    
+                                    const remainingAmount = totalAmount - actualPaidAmount;
+                                    const isFullyPaid = isFullyPaidByStatus || actualPaidAmount >= totalAmount;
+                                    
+                                    return (
+                                      <div className="text-xs">
+                                        {!isFullyPaid && remainingAmount > 0 && (
+                                          <div className="text-orange-600 font-medium">
+                                            Remaining: ₹{remainingAmount.toLocaleString()}
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })()}
+                                  
+                                  <div className="text-xs text-gray-500 mt-1">
                                     {item.billing.invoiceNumber || 'No Invoice'}
                                   </div>
                                 </>
@@ -860,13 +1220,13 @@ const CenterAdminBilling = () => {
                             </div>
                           </td>
                           <td className="px-6 py-4">
-                            {getStatusBadge(item.billing?.status || 'not_generated')}
+                            {getStatusBadge(item.billing?.status || 'not_generated', item.billing)}
                           </td>
                           <td className="px-6 py-4">
-                            <div className="text-xs text-gray-900">
+                            <div className="text-sm text-slate-800">
                               {new Date(item.billing?.generatedAt || item.createdAt || Date.now()).toLocaleDateString()}
                             </div>
-                            <div className="text-xs text-gray-500">
+                            <div className="text-sm text-slate-500">
                               {new Date(item.billing?.generatedAt || item.createdAt || Date.now()).toLocaleTimeString()}
                             </div>
                           </td>
@@ -874,7 +1234,7 @@ const CenterAdminBilling = () => {
                             <div className="flex space-x-2">
                               <button
                                 onClick={() => viewBillingDetails(item)}
-                                className="text-blue-600 hover:text-blue-900 p-1"
+                                className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors duration-200"
                                 title="View Details"
                               >
                                 <Eye className="w-4 h-4" />
@@ -885,7 +1245,7 @@ const CenterAdminBilling = () => {
                                 <>
                                   <button
                                     onClick={() => openVerificationModal(item)}
-                                    className="text-green-600 hover:text-green-900 p-1"
+                                    className="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-lg transition-colors duration-200"
                                     title="Verify Payment"
                                   >
                                     <Shield className="w-4 h-4" />
@@ -895,7 +1255,7 @@ const CenterAdminBilling = () => {
                                   {item.billing?.receiptUpload && (
                                     <button
                                       onClick={() => viewReceipt(item.billing.receiptUpload)}
-                                      className="text-blue-600 hover:text-blue-900 p-1"
+                                      className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors duration-200"
                                       title="View Receipt"
                                     >
                                       <Receipt className="w-4 h-4" />
@@ -904,15 +1264,6 @@ const CenterAdminBilling = () => {
                                 </>
                               )}
                               
-                              {item.billing?.invoiceNumber && (
-                                <button
-                                  onClick={() => handleDownloadInvoice(item._id)}
-                                  className="text-purple-600 hover:text-purple-900 p-1"
-                                  title="Download Invoice"
-                                >
-                                  <Download className="w-4 h-4" />
-                                </button>
-                              )}
                             </div>
                           </td>
                         </tr>
@@ -922,179 +1273,12 @@ const CenterAdminBilling = () => {
                 </tbody>
               </table>
             </div>
+            
+            {/* Pagination Controls */}
+            <PaginationControls />
           </div>
         </div>
 
-        {/* Billing Details Modal */}
-        {showBillingModal && selectedBilling && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-            <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
-              <div className="mt-3">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-sm font-medium text-gray-900">Billing Details</h3>
-                  <button
-                    onClick={() => setShowBillingModal(false)}
-                    className="text-gray-400 hover:text-gray-600"
-                  >
-                    <span className="sr-only">Close</span>
-                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-
-                <div className="space-y-4">
-                  {/* Patient & Test Info */}
-                  <div className="border-b pb-4">
-                    <h4 className="font-medium text-gray-900 mb-2">Patient & Test Information</h4>
-                    <div className="grid grid-cols-2 gap-4 text-xs">
-                      <div>
-                        <span className="text-gray-500">Patient:</span>
-                        <span className="ml-2 font-medium">{selectedBilling.patientName}</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-500">Test Type:</span>
-                        <span className="ml-2 font-medium">{selectedBilling.testType}</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-500">Urgency:</span>
-                        <span className="ml-2">{getUrgencyBadge(selectedBilling.urgency)}</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-500">Status:</span>
-                        <span className="ml-2">{getStatusBadge(selectedBilling.billing?.status || 'not_generated')}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Doctor Info */}
-                  <div className="border-b pb-4">
-                    <h4 className="font-medium text-gray-900 mb-2">Doctor Information</h4>
-                    <div className="text-xs">
-                      <span className="text-gray-500">Doctor:</span>
-                      <span className="ml-2 font-medium">Dr. {selectedBilling.doctorName}</span>
-                    </div>
-                  </div>
-
-                  {/* Billing Details */}
-                  {selectedBilling.billing && (
-                    <div className="border-b pb-4">
-                      <h4 className="font-medium text-gray-900 mb-2">Billing Information</h4>
-                      <div className="grid grid-cols-2 gap-4 text-xs">
-                        <div>
-                          <span className="text-gray-500">Invoice Number:</span>
-                          <span className="ml-2 font-medium">{selectedBilling.billing.invoiceNumber}</span>
-                        </div>
-                        <div>
-                          <span className="text-gray-500">Amount:</span>
-                          <span className="ml-2 font-medium">₹{selectedBilling.billing.amount?.toLocaleString()}</span>
-                        </div>
-                        <div>
-                          <span className="text-gray-500">Currency:</span>
-                          <span className="ml-2 font-medium">{selectedBilling.billing.currency}</span>
-                        </div>
-                        <div>
-                          <span className="text-gray-500">Generated By:</span>
-                          <span className="ml-2 font-medium">{selectedBilling.billing.generatedBy}</span>
-                        </div>
-                        {selectedBilling.billing.paymentMethod && (
-                          <div>
-                            <span className="text-gray-500">Payment Method:</span>
-                            <span className="ml-2 font-medium">{selectedBilling.billing.paymentMethod}</span>
-                          </div>
-                        )}
-                        {selectedBilling.billing.transactionId && (
-                          <div>
-                            <span className="text-gray-500">Transaction ID:</span>
-                            <span className="ml-2 font-medium">{selectedBilling.billing.transactionId}</span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Billing Items */}
-                      {selectedBilling.billing.items && selectedBilling.billing.items.length > 0 && (
-                        <div className="mt-4">
-                          <h5 className="font-medium text-gray-900 mb-2">Billing Items</h5>
-                          <div className="bg-gray-50 rounded-lg p-3">
-                            {selectedBilling.billing.items.map((item, index) => (
-                              <div key={index} className="flex justify-between text-xs py-1">
-                                <span>{item.name} (x{item.quantity})</span>
-                                <span>₹{item.total}</span>
-                              </div>
-                            ))}
-                            {selectedBilling.billing.taxes > 0 && (
-                              <div className="flex justify-between text-xs py-1 border-t pt-1">
-                                <span>Taxes</span>
-                                <span>₹{selectedBilling.billing.taxes}</span>
-                              </div>
-                            )}
-                            {selectedBilling.billing.discounts > 0 && (
-                              <div className="flex justify-between text-xs py-1">
-                                <span>Discounts</span>
-                                <span>-₹{selectedBilling.billing.discounts}</span>
-                              </div>
-                            )}
-                            <div className="flex justify-between text-xs py-1 border-t pt-1 font-medium">
-                              <span>Total</span>
-                              <span>₹{selectedBilling.billing.amount}</span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Dates */}
-                  <div>
-                    <h4 className="font-medium text-gray-900 mb-2">Important Dates</h4>
-                    <div className="grid grid-cols-2 gap-4 text-xs">
-                      <div>
-                        <span className="text-gray-500">Created:</span>
-                        <span className="ml-2">{new Date(selectedBilling.createdAt).toLocaleString()}</span>
-                      </div>
-                      {selectedBilling.billing?.generatedAt && (
-                        <div>
-                          <span className="text-gray-500">Bill Generated:</span>
-                          <span className="ml-2">{new Date(selectedBilling.billing.generatedAt).toLocaleString()}</span>
-                        </div>
-                      )}
-                      {selectedBilling.billing?.paidAt && (
-                        <div>
-                          <span className="text-gray-500">Payment Date:</span>
-                          <span className="ml-2">{new Date(selectedBilling.billing.paidAt).toLocaleString()}</span>
-                        </div>
-                      )}
-                      {selectedBilling.billing?.verifiedAt && (
-                        <div>
-                          <span className="text-gray-500">Verified Date:</span>
-                          <span className="ml-2">{new Date(selectedBilling.billing.verifiedAt).toLocaleString()}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-6 flex justify-end space-x-3">
-                  <button
-                    onClick={() => setShowBillingModal(false)}
-                    className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
-                  >
-                    Close
-                  </button>
-                  {selectedBilling.billing?.invoiceNumber && (
-                    <button
-                      onClick={() => downloadInvoice(selectedBilling._id)}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
-                    >
-                      <Download className="w-4 h-4 mr-2" />
-                      Download Invoice
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Payment Verification Modal */}
         {showVerificationModal && selectedBillingForVerification && (
@@ -1102,7 +1286,15 @@ const CenterAdminBilling = () => {
             <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
               <div className="mt-3">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-sm font-medium text-gray-900">Verify Payment</h3>
+                  <div className="flex items-center space-x-3">
+                    <h3 className="text-sm font-medium text-gray-900">Verify Payment</h3>
+                    {selectedBillingForVerification.billing?.paidAmount && selectedBillingForVerification.billing.paidAmount > 0 && selectedBillingForVerification.billing.paidAmount < selectedBillingForVerification.billing.amount && (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                        <DollarSign className="w-3 h-3 mr-1" />
+                        Partial Payment
+                      </span>
+                    )}
+                  </div>
                   <button
                     onClick={() => setShowVerificationModal(false)}
                     className="text-gray-400 hover:text-gray-600"
@@ -1127,10 +1319,82 @@ const CenterAdminBilling = () => {
                         <div className="mt-2 text-xs text-blue-700">
                           <p>Patient: <strong>{selectedBillingForVerification.patientName}</strong></p>
                           <p>Test Type: <strong>{selectedBillingForVerification.testType}</strong></p>
-                          <p>Amount: <strong>₹{selectedBillingForVerification.billing?.amount?.toLocaleString()}</strong></p>
-                          <p>Payment Method: <strong>{selectedBillingForVerification.billing?.paymentMethod || 'Not specified'}</strong></p>
-                          <p>Transaction ID: <strong>{selectedBillingForVerification.billing?.transactionId}</strong></p>
-                          <p>Payment Date: <strong>{selectedBillingForVerification.billing?.paidAt ? new Date(selectedBillingForVerification.billing.paidAt).toLocaleDateString() : 'Not specified'}</strong></p>
+                          <p>Total Amount: <strong>₹{selectedBillingForVerification.billing?.amount?.toLocaleString()}</strong></p>
+                          
+                          {/* Enhanced payment information with partial payment details */}
+                          {(() => {
+                            const partialData = getPartialPaymentData(selectedBillingForVerification._id);
+                            const totalPaidFromStorage = partialData.totalPaid;
+                            const backendPaidAmount = selectedBillingForVerification.billing?.paidAmount || 0;
+                            const actualPaidAmount = Math.max(backendPaidAmount, totalPaidFromStorage);
+                            const remainingAmount = (selectedBillingForVerification.billing?.amount || 0) - actualPaidAmount;
+                            
+                            return (
+                              <>
+                                <p>Paid Amount: <strong className="text-green-600">₹{actualPaidAmount.toLocaleString()}</strong></p>
+                                {remainingAmount > 0 && (
+                                  <p>Remaining Amount: <strong className="text-orange-600">₹{remainingAmount.toLocaleString()}</strong></p>
+                                )}
+                                
+                                {/* Show detailed partial payment information */}
+                                {partialData.paymentCount > 0 && (
+                                  <div className="mt-3 p-3 bg-white rounded border border-blue-300">
+                                    <div className="text-xs font-medium text-blue-800 mb-2">
+                                      Payment History ({partialData.paymentCount} payment{partialData.paymentCount > 1 ? 's' : ''})
+                                    </div>
+                                    <div className="space-y-2">
+                                      {partialData.payments.map((payment, index) => (
+                                        <div key={payment.id || index} className="text-xs bg-blue-50 rounded p-2 border border-blue-200">
+                                          <div className="flex justify-between items-start">
+                                            <div className="flex-1">
+                                              <div className="font-medium text-blue-800">
+                                                Payment #{index + 1} - {payment.method}
+                                              </div>
+                                              <div className="text-blue-700 mt-1">
+                                                Date: {new Date(payment.timestamp).toLocaleString()}
+                                              </div>
+                                              <div className="text-blue-700">
+                                                Transaction ID: {payment.transactionId}
+                                              </div>
+                                              {payment.notes && (
+                                                <div className="text-blue-600 italic mt-1">
+                                                  Notes: "{payment.notes}"
+                                                </div>
+                                              )}
+                                              <div className="text-blue-600 text-xs mt-1">
+                                                Recorded by: {payment.recordedBy || 'Receptionist'}
+                                              </div>
+                                            </div>
+                                            <div className="text-right">
+                                              <div className="text-sm font-bold text-green-600">
+                                                ₹{payment.amount.toLocaleString()}
+                                              </div>
+                                              <div className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${
+                                                payment.status === 'recorded' ? 'bg-blue-100 text-blue-800' :
+                                                payment.status === 'verified' ? 'bg-green-100 text-green-800' :
+                                                'bg-gray-100 text-gray-800'
+                                              }`}>
+                                                {payment.status || 'recorded'}
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {/* Show single payment info if no partial payments */}
+                                {partialData.paymentCount === 0 && (
+                                  <>
+                                    <p>Payment Method: <strong>{selectedBillingForVerification.billing?.paymentMethod || 'Not specified'}</strong></p>
+                                    <p>Transaction ID: <strong>{selectedBillingForVerification.billing?.transactionId}</strong></p>
+                                    <p>Payment Date: <strong>{selectedBillingForVerification.billing?.paidAt ? new Date(selectedBillingForVerification.billing.paidAt).toLocaleDateString() : 'Not specified'}</strong></p>
+                                  </>
+                                )}
+                              </>
+                            );
+                          })()}
                         </div>
                       </div>
                     </div>
@@ -1210,6 +1474,11 @@ const CenterAdminBilling = () => {
                           <p>By verifying this payment, you confirm that:</p>
                           <ul className="list-disc list-inside mt-1">
                             <li>The payment has been received and verified</li>
+                            {selectedBillingForVerification.billing?.paidAmount && selectedBillingForVerification.billing.paidAmount < selectedBillingForVerification.billing.amount ? (
+                              <li>This is a partial payment - remaining balance will be collected later</li>
+                            ) : (
+                              <li>The full payment has been received</li>
+                            )}
                             <li>The test request can proceed to lab processing</li>
                             <li>All payment details are accurate</li>
                           </ul>

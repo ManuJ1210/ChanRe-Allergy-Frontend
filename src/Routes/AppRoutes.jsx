@@ -12,6 +12,8 @@ import ErrorBoundary from '../components/ErrorBoundary';
 // Superadmin Pages
 import SuperadminDashboard from '../pages/Superadmin/Dashboard';
 import SuperadminBilling from '../pages/Superadmin/Billing';
+import BillingDetails from '../pages/Superadmin/BillingDetails';
+import CenterAdminBillingDetails from '../pages/CenterAdmin/BillingDetails';
 import SuperadminBillingReports from '../pages/Superadmin/BillingReports';
 import CentersList from '../pages/Superadmin/Centers/CentersList';
 import AddCenter from '../pages/Superadmin/Centers/AddCenter';
@@ -213,6 +215,12 @@ export default function AppRoutes() {
 <Route path="/receptionist/edit-patient/:id" element={<PrivateRoute><ReceptionistLayout><ReceptionistEditPatient /></ReceptionistLayout></PrivateRoute>} />
 <Route path="/receptionist/patients" element={<PrivateRoute><ReceptionistLayout><ReceptionistPatientList /></ReceptionistLayout></PrivateRoute>} />
 <Route path="/dashboard/receptionist/edit-patient/:id" element={<PrivateRoute><ReceptionistLayout><ReceptionistEditPatient /></ReceptionistLayout></PrivateRoute>} />
+
+      {/* Superadmin Billing Details Route at Root Level (for direct navigation) */}
+      <Route path="/superadmin/billing/:billingId" element={<PrivateRoute><DashboardLayout><ErrorBoundary><BillingDetails /></ErrorBoundary></DashboardLayout></PrivateRoute>} />
+      
+      {/* Center Admin Billing Details Route at Root Level (for direct navigation) */}
+      <Route path="/centeradmin/billing/:billingId" element={<PrivateRoute><DashboardLayout><ErrorBoundary><CenterAdminBillingDetails /></ErrorBoundary></DashboardLayout></PrivateRoute>} />
       
       {/* CenterAdmin FollowUp Routes at Root Level */}
       <Route path="/CenterAdmin/patients/FollowUp/:id" element={<PrivateRoute><DashboardLayout><FollowUp /></DashboardLayout></PrivateRoute>} />
@@ -339,6 +347,7 @@ export default function AppRoutes() {
         
         {/* Billing Routes */}
         <Route path="superadmin/billing" element={<SuperadminBilling />} />
+        <Route path="superadmin/billing/:billingId" element={<BillingDetails />} />
         <Route path="superadmin/billing-reports" element={<SuperadminBillingReports />} />
         
         {/* Doctors Routes */}
@@ -420,6 +429,7 @@ export default function AppRoutes() {
 
         {/* Center Admin Billing Routes */}
         <Route path="centeradmin/billing" element={<ErrorBoundary><CenterAdminBilling /></ErrorBoundary>} />
+        <Route path="centeradmin/billing/:billingId" element={<ErrorBoundary><CenterAdminBillingDetails /></ErrorBoundary>} />
         <Route path="centeradmin/billing-reports" element={<ErrorBoundary><CenterAdminBillingReports /></ErrorBoundary>} />
         
         {/* Center Admin Followup Routes (lowercase) */}
