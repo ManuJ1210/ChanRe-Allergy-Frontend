@@ -595,3 +595,83 @@ export const verifyPaymentAndApprove = createAsyncThunk(
     }
   }
 );
+
+// ===============================
+// DETAILED CENTER INFORMATION APIS
+// ===============================
+
+// Fetch detailed center information including all patients, doctors, and receptionists
+export const fetchCenterDetailedInfo = createAsyncThunk(
+  'superadmin/fetchCenterDetailedInfo',
+  async (centerId, { rejectWithValue }) => {
+    try {
+      // Fetch all data in parallel
+      const [centerRes, patientsRes, doctorsRes, receptionistsRes] = await Promise.all([
+        API.get(`/centers/${centerId}/stats`),
+        API.get(`/patients?centerId=${centerId}`),
+        API.get(`/doctors?centerId=${centerId}`),
+        API.get(`/receptionists?centerId=${centerId}`)
+      ]);
+
+      console.log('🔍 API Responses:', {
+        center: centerRes.data,
+        patients: patientsRes.data,
+        doctors: doctorsRes.data,
+        receptionists: receptionistsRes.data
+      });
+
+      return {
+        center: centerRes.data,
+        patients: patientsRes.data.patients || patientsRes.data,
+        doctors: doctorsRes.data,
+        receptionists: receptionistsRes.data
+      };
+    } catch (error) {
+      console.error('Center detailed info error:', error.response?.data || error.message);
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch detailed center information');
+    }
+  }
+);
+
+// Fetch center patients
+export const fetchCenterPatients = createAsyncThunk(
+  'superadmin/fetchCenterPatients',
+  async (centerId, { rejectWithValue }) => {
+    try {
+      const res = await API.get(`/patients?centerId=${centerId}`);
+      return res.data;
+    } catch (error) {
+      console.error('Center patients error:', error.response?.data || error.message);
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch center patients');
+    }
+  }
+);
+
+// Fetch center doctors
+export const fetchCenterDoctors = createAsyncThunk(
+  'superadmin/fetchCenterDoctors',
+  async (centerId, { rejectWithValue }) => {
+    try {
+      const res = await API.get(`/doctors?centerId=${centerId}`);
+      return res.data;
+    } catch (error) {
+      console.error('Center doctors error:', error.response?.data || error.message);
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch center doctors');
+    }
+  }
+);
+
+// Fetch center receptionists
+export const fetchCenterReceptionists = createAsyncThunk(
+  'superadmin/fetchCenterReceptionists',
+  async (centerId, { rejectWithValue }) => {
+    try {
+      const res = await API.get(`/receptionists?centerId=${centerId}`);
+      return res.data;
+    } catch (error) {
+      console.error('Center receptionists error:', error.response?.data || error.message);
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch center receptionists');
+    }
+  }
+);
+

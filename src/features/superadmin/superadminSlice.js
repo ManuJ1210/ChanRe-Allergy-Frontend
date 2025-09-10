@@ -30,7 +30,11 @@ import {
   fetchPatientMedications,
   fetchPatientPrescriptions,
   fetchPatientHistory,
-  fetchPatientGeneralFollowUps
+  fetchPatientGeneralFollowUps,
+  fetchCenterDetailedInfo,
+  fetchCenterPatients,
+  fetchCenterDoctors,
+  fetchCenterReceptionists
 } from './superadminThunks';
 
 const initialState = {
@@ -77,7 +81,16 @@ const initialState = {
     prescriptions: []
   },
   patientDataLoading: false,
-  patientDataError: null
+  patientDataError: null,
+  // Detailed center information state
+  centerDetailedInfo: {
+    center: null,
+    patients: [],
+    doctors: [],
+    receptionists: []
+  },
+  centerDetailedLoading: false,
+  centerDetailedError: null
 };
 
 const superadminSlice = createSlice({
@@ -579,6 +592,66 @@ const superadminSlice = createSlice({
       .addCase(fetchPatientHistory.rejected, (state, action) => {
         state.patientDataLoading = false;
         state.patientDataError = action.payload;
+      })
+
+      // Fetch detailed center information
+      .addCase(fetchCenterDetailedInfo.pending, (state) => {
+        state.centerDetailedLoading = true;
+        state.centerDetailedError = null;
+      })
+      .addCase(fetchCenterDetailedInfo.fulfilled, (state, action) => {
+        state.centerDetailedLoading = false;
+        state.centerDetailedInfo = action.payload;
+        state.centerDetailedError = null;
+      })
+      .addCase(fetchCenterDetailedInfo.rejected, (state, action) => {
+        state.centerDetailedLoading = false;
+        state.centerDetailedError = action.payload;
+      })
+
+      // Fetch center patients
+      .addCase(fetchCenterPatients.pending, (state) => {
+        state.centerDetailedLoading = true;
+        state.centerDetailedError = null;
+      })
+      .addCase(fetchCenterPatients.fulfilled, (state, action) => {
+        state.centerDetailedLoading = false;
+        state.centerDetailedInfo.patients = action.payload;
+        state.centerDetailedError = null;
+      })
+      .addCase(fetchCenterPatients.rejected, (state, action) => {
+        state.centerDetailedLoading = false;
+        state.centerDetailedError = action.payload;
+      })
+
+      // Fetch center doctors
+      .addCase(fetchCenterDoctors.pending, (state) => {
+        state.centerDetailedLoading = true;
+        state.centerDetailedError = null;
+      })
+      .addCase(fetchCenterDoctors.fulfilled, (state, action) => {
+        state.centerDetailedLoading = false;
+        state.centerDetailedInfo.doctors = action.payload;
+        state.centerDetailedError = null;
+      })
+      .addCase(fetchCenterDoctors.rejected, (state, action) => {
+        state.centerDetailedLoading = false;
+        state.centerDetailedError = action.payload;
+      })
+
+      // Fetch center receptionists
+      .addCase(fetchCenterReceptionists.pending, (state) => {
+        state.centerDetailedLoading = true;
+        state.centerDetailedError = null;
+      })
+      .addCase(fetchCenterReceptionists.fulfilled, (state, action) => {
+        state.centerDetailedLoading = false;
+        state.centerDetailedInfo.receptionists = action.payload;
+        state.centerDetailedError = null;
+      })
+      .addCase(fetchCenterReceptionists.rejected, (state, action) => {
+        state.centerDetailedLoading = false;
+        state.centerDetailedError = action.payload;
       });
   }
 });
