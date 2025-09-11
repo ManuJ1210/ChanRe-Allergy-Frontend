@@ -48,7 +48,7 @@ const Accordion = ({ title, desc }) => {
 
 export default function Home() {
   return (
-    <div className="font-sans bg-white text-gray-800">
+    <div className="font-sans bg-gradient-to-br from-slate-50 to-blue-50 text-gray-800">
      <HomeHeader/>
 
       {/* Hero */}

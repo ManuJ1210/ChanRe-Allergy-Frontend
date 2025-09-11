@@ -18,7 +18,7 @@ export default function Header({ onHamburgerClick }) {
 
   // Only show center name for center-related roles
   const shouldShowCenterName = ['centeradmin', 'centerAdmin', 'receptionist', 'doctor'].includes(user?.role?.toLowerCase()) && 
-                              !user?.isSuperAdminStaff; // Exclude superadmin doctors
+                              !user?.isSuperAdminStaff; // Exclude superadmin consultants
 
   useEffect(() => {
     async function fetchCenterName() {

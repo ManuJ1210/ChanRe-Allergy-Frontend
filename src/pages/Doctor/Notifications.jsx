@@ -62,12 +62,34 @@ const Notifications = () => {
   } = useSelector((state) => state.doctor);
 
   const [selectedNotification, setSelectedNotification] = useState(null);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [recordsPerPage, setRecordsPerPage] = useState(4);
 
   useEffect(() => {
     dispatch(fetchDoctorNotifications());
   }, [dispatch]);
 
+  // Pagination functions
+  const getTotalPages = () => {
+    return Math.ceil(notifications.length / recordsPerPage);
+  };
 
+  const getCurrentData = () => {
+    const startIndex = (currentPage - 1) * recordsPerPage;
+    const endIndex = startIndex + recordsPerPage;
+    return notifications.slice(startIndex, endIndex);
+  };
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
+  const handleRecordsPerPageChange = (value) => {
+    setRecordsPerPage(parseInt(value));
+    setCurrentPage(1); // Reset to first page
+  };
 
   const handleMarkAsRead = async (notificationId) => {
     await dispatch(markNotificationAsRead(notificationId));
@@ -207,7 +229,9 @@ const Notifications = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              {notifications.map((notification) => (
+              {getCurrentData().map((notification, index) => {
+                const globalIndex = (currentPage - 1) * recordsPerPage + index;
+                return (
                 <div
                   key={notification._id}
                   className={`p-4 rounded-lg border-l-4 transition-all hover:shadow-md ${
@@ -220,7 +244,7 @@ const Notifications = () => {
                       <div className="flex-1">
                         <div className="flex items-center justify-between">
                           <h3 className="font-semibold text-gray-800">
-                            {notification.title}
+                            #{globalIndex + 1} {notification.title}
                           </h3>
                           <div className="flex items-center space-x-2">
                             {!notification.read && (
@@ -289,7 +313,65 @@ const Notifications = () => {
                     </div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
+            </div>
+          )}
+          
+          {/* Pagination Controls */}
+          {notifications.length > 0 && (
+            <div className="px-8 py-6 bg-gradient-to-r from-gray-50 to-gray-100 border-t border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="text-sm text-gray-600">
+                    Showing {((currentPage - 1) * recordsPerPage) + 1} to {Math.min(currentPage * recordsPerPage, notifications.length)} of {notifications.length} results
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-gray-600">Show:</span>
+                    <select
+                      value={recordsPerPage}
+                      onChange={(e) => handleRecordsPerPageChange(e.target.value)}
+                      className="px-3 py-1 text-sm border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value={4}>4</option>
+                      <option value={5}>5</option>
+                      <option value={10}>10</option>
+                      <option value={20}>20</option>
+                    </select>
+                    <span className="text-sm text-gray-600">per page</span>
+                  </div>
+                </div>
+                
+                <div className="flex items-center space-x-4">
+                  <div className="text-sm text-gray-600">
+                    Page {currentPage} of {getTotalPages()}
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 1}
+                      className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:text-gray-300"
+                    >
+                      Previous
+                    </button>
+                    
+                    <button
+                      onClick={() => handlePageChange(currentPage)}
+                      className="px-3 py-1 rounded-md text-xs font-medium bg-blue-600 text-white border border-blue-600"
+                    >
+                      {currentPage}
+                    </button>
+                    
+                    <button
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage === getTotalPages()}
+                      className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:text-gray-300"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </div>

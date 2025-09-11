@@ -29,6 +29,10 @@ export default function PatientList() {
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredPatients, setFilteredPatients] = useState([]);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [recordsPerPage, setRecordsPerPage] = useState(4);
 
   const { assignedPatients = [], loading } = useSelector((state) => state.doctor);
   const { user } = useSelector((state) => state.auth);
@@ -60,6 +64,31 @@ export default function PatientList() {
   };
 
   const genderStats = getGenderStats();
+
+  // Pagination functions
+  const getTotalPages = () => {
+    return Math.ceil(filteredPatients.length / recordsPerPage);
+  };
+
+  const getCurrentData = () => {
+    const startIndex = (currentPage - 1) * recordsPerPage;
+    const endIndex = startIndex + recordsPerPage;
+    return filteredPatients.slice(startIndex, endIndex);
+  };
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
+  const handleRecordsPerPageChange = (value) => {
+    setRecordsPerPage(parseInt(value));
+    setCurrentPage(1); // Reset to first page
+  };
+
+  // Reset pagination when search term changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   // Handle assigning doctor to patient
   const handleAssignDoctor = async (patientId) => {
@@ -204,12 +233,14 @@ export default function PatientList() {
               </div>
             ) : (
               <div className="space-y-4">
-                {filteredPatients.map((patient, index) => (
+                {getCurrentData().map((patient, index) => {
+                  const globalIndex = (currentPage - 1) * recordsPerPage + index;
+                  return (
                   <div key={patient?._id || index} className="bg-slate-50 rounded-lg p-4 space-y-3 border border-slate-200">
                     <div className="flex items-center justify-between">
                       <div>
                         <h3 className="font-semibold text-slate-800 text-sm">{patient?.name || 'N/A'}</h3>
-                        <p className="text-slate-500 text-xs">#{index + 1}</p>
+                        <p className="text-slate-500 text-xs">#{globalIndex + 1}</p>
                       </div>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${
                         patient?.gender === 'male' ? 'bg-blue-100 text-blue-700' :
@@ -295,7 +326,8 @@ export default function PatientList() {
                       {/* Delete button removed - doctors can't delete patients */}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -343,12 +375,14 @@ export default function PatientList() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200">
-                    {filteredPatients.map((patient, index) => (
+                    {getCurrentData().map((patient, index) => {
+                      const globalIndex = (currentPage - 1) * recordsPerPage + index;
+                      return (
                       <tr key={patient?._id || index} className="hover:bg-slate-50 transition-colors">
                         <td className="px-6 py-4">
                           <div>
                             <div className="font-semibold text-slate-800 text-xs">{patient?.name || 'N/A'}</div>
-                            <div className="text-xs text-slate-500">#{index + 1}</div>
+                            <div className="text-xs text-slate-500">#{globalIndex + 1}</div>
                           </div>
                         </td>
                         <td className="px-6 py-4">
@@ -449,12 +483,70 @@ export default function PatientList() {
                           </div>
                         </td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
             )}
           </div>
+          
+          {/* Pagination Controls */}
+          {filteredPatients.length > 0 && (
+            <div className="px-8 py-6 bg-gradient-to-r from-gray-50 to-gray-100 border-t border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="text-sm text-gray-600">
+                    Showing {((currentPage - 1) * recordsPerPage) + 1} to {Math.min(currentPage * recordsPerPage, filteredPatients.length)} of {filteredPatients.length} results
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-gray-600">Show:</span>
+                    <select
+                      value={recordsPerPage}
+                      onChange={(e) => handleRecordsPerPageChange(e.target.value)}
+                      className="px-3 py-1 text-sm border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value={4}>4</option>
+                      <option value={5}>5</option>
+                      <option value={10}>10</option>
+                      <option value={20}>20</option>
+                    </select>
+                    <span className="text-sm text-gray-600">per page</span>
+                  </div>
+                </div>
+                
+                <div className="flex items-center space-x-4">
+                  <div className="text-sm text-gray-600">
+                    Page {currentPage} of {getTotalPages()}
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 1}
+                      className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:text-gray-300"
+                    >
+                      Previous
+                    </button>
+                    
+                    <button
+                      onClick={() => handlePageChange(currentPage)}
+                      className="px-3 py-1 rounded-md text-xs font-medium bg-blue-600 text-white border border-blue-600"
+                    >
+                      {currentPage}
+                    </button>
+                    
+                    <button
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage === getTotalPages()}
+                      className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:text-gray-300"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -47,11 +47,6 @@ const CenterProfile = () => {
   
   const centerId = getCenterId();
 
-  // Debug logging
-  console.log('🔍 CenterProfile Debug - User:', user);
-  console.log('🔍 CenterProfile Debug - CenterId:', centerId);
-  console.log('🔍 CenterProfile Debug - Center:', center);
-  console.log('🔍 CenterProfile Debug - CenterError:', centerError);
 
   // Don't auto-restore user session - let PrivateRoute handle it
   // useEffect(() => {
@@ -65,40 +60,26 @@ const CenterProfile = () => {
   // Alternative approach: if no centerId, try to fetch center by centerAdminId
   useEffect(() => {
     if (centerId) {
-      console.log('🔍 Fetching center stats for centerId:', centerId);
       dispatch(fetchCenterStats(centerId)).catch(error => {
-        console.error('🔍 Failed to fetch center stats:', error);
+        console.error('Failed to fetch center stats:', error);
       });
     } else if (user && user.role === 'centeradmin') {
-      console.log('🔍 No centerId available, trying alternative approach for center admin');
       // Try to fetch center where this user is the centerAdminId
       fetchCenterByAdminId(user.id || user._id);
-    } else {
-      console.log('🔍 No centerId available - User:', user);
-      if (user) {
-        console.log('🔍 User exists but no centerId found. User object:', user);
-        console.log('🔍 User centerId field:', user.centerId);
-        console.log('🔍 User centerId type:', typeof user.centerId);
-      }
     }
   }, [dispatch, centerId, user]);
 
   // Helper function to fetch center by admin ID
   const fetchCenterByAdminId = async (adminId) => {
     try {
-      console.log('🔍 Trying to fetch center by centerAdminId:', adminId);
       const response = await API.get(`/centers/by-admin/${adminId}`);
       
-      console.log('🔍 Found center by admin ID:', response.data);
       // If we found the center, we can fetch its stats
       if (response.data._id) {
         dispatch(fetchCenterStats(response.data._id));
       }
     } catch (error) {
-      console.error('🔍 Error fetching center by admin ID:', error);
-      if (error.response?.status === 404) {
-        console.log('🔍 No center found for admin ID:', adminId);
-      }
+      console.error('Error fetching center by admin ID:', error);
     }
   };
 

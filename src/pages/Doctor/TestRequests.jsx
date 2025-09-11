@@ -33,6 +33,10 @@ const TestRequests = () => {
   const [filterPriority, setFilterPriority] = useState('');
   const [sortBy, setSortBy] = useState('date');
   const [lastRefreshTime, setLastRefreshTime] = useState(new Date());
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [recordsPerPage, setRecordsPerPage] = useState(4);
 
   useEffect(() => {
 
@@ -64,6 +68,31 @@ const TestRequests = () => {
 
     return () => clearInterval(interval);
   }, [dispatch]);
+
+  // Pagination functions
+  const getTotalPages = () => {
+    return Math.ceil(filteredTestRequests.length / recordsPerPage);
+  };
+
+  const getCurrentData = () => {
+    const startIndex = (currentPage - 1) * recordsPerPage;
+    const endIndex = startIndex + recordsPerPage;
+    return filteredTestRequests.slice(startIndex, endIndex);
+  };
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
+  const handleRecordsPerPageChange = (value) => {
+    setRecordsPerPage(parseInt(value));
+    setCurrentPage(1); // Reset to first page
+  };
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterStatus, filterPriority]);
 
   // Filter and sort test requests (with safety check)
   const filteredTestRequests = (testRequests || [])
@@ -351,7 +380,9 @@ const TestRequests = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
-                  {filteredTestRequests.map((test) => (
+                  {getCurrentData().map((test, index) => {
+                    const globalIndex = (currentPage - 1) * recordsPerPage + index;
+                    return (
                     <tr key={test._id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center">
@@ -360,7 +391,7 @@ const TestRequests = () => {
                           </div>
                           <div>
                             <div className=" text-slate-800">
-                              {test.patientName || 'Unknown Patient'}
+                              #{globalIndex + 1} {test.patientName || 'Unknown Patient'}
                             </div>
                             <div className="text-sm text-slate-500">
                               Phone: {test.patientPhone}
@@ -435,9 +466,67 @@ const TestRequests = () => {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
+            </div>
+          )}
+          
+          {/* Pagination Controls */}
+          {filteredTestRequests.length > 0 && (
+            <div className="px-8 py-6 bg-gradient-to-r from-gray-50 to-gray-100 border-t border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="text-sm text-gray-600">
+                    Showing {((currentPage - 1) * recordsPerPage) + 1} to {Math.min(currentPage * recordsPerPage, filteredTestRequests.length)} of {filteredTestRequests.length} results
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-gray-600">Show:</span>
+                    <select
+                      value={recordsPerPage}
+                      onChange={(e) => handleRecordsPerPageChange(e.target.value)}
+                      className="px-3 py-1 text-sm border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value={4}>4</option>
+                      <option value={5}>5</option>
+                      <option value={10}>10</option>
+                      <option value={20}>20</option>
+                    </select>
+                    <span className="text-sm text-gray-600">per page</span>
+                  </div>
+                </div>
+                
+                <div className="flex items-center space-x-4">
+                  <div className="text-sm text-gray-600">
+                    Page {currentPage} of {getTotalPages()}
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 1}
+                      className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:text-gray-300"
+                    >
+                      Previous
+                    </button>
+                    
+                    <button
+                      onClick={() => handlePageChange(currentPage)}
+                      className="px-3 py-1 rounded-md text-xs font-medium bg-blue-600 text-white border border-blue-600"
+                    >
+                      {currentPage}
+                    </button>
+                    
+                    <button
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage === getTotalPages()}
+                      className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:text-gray-300"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </div>

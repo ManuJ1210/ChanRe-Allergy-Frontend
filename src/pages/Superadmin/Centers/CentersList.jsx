@@ -1,7 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { Building2, MapPin, UserCheck, Trash2, Eye, Edit, Plus, Search } from 'lucide-react';
+import { Building2, MapPin, UserCheck, Trash2, Eye, Edit, Plus, Search, ArrowLeft, ArrowRight } from 'lucide-react';
 import { fetchCenters, deleteCenter } from '../../../features/center/centerThunks';
 
 export default function CentersList() {
@@ -9,10 +9,40 @@ export default function CentersList() {
   const navigate = useNavigate();
 
   const { centers, loading, deletingId, error } = useSelector((state) => state.center);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(7);
 
   useEffect(() => {
     dispatch(fetchCenters());
   }, [dispatch]);
+
+  // Calculate pagination
+  const totalPages = Math.ceil(centers.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentCenters = centers.slice(startIndex, endIndex);
+
+  // Pagination handlers
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // Reset to first page when changing items per page
+  };
 
   const handleDelete = (id) => {
     const confirmDelete = window.confirm('Are you sure you want to delete this center?');
@@ -58,6 +88,76 @@ export default function CentersList() {
           </div>
         </div>
 
+        {/* Pagination Controls */}
+        {centers.length > 0 && (
+          <div className="bg-white rounded-xl shadow-sm border border-blue-100 mb-6">
+            <div className="p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                {/* Left side - Results info and items per page */}
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                  <div className="text-xs text-slate-600">
+                    Showing {startIndex + 1} to {Math.min(endIndex, centers.length)} of {centers.length} results
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-600">Show:</span>
+                    <select
+                      value={itemsPerPage}
+                      onChange={(e) => handleItemsPerPageChange(parseInt(e.target.value))}
+                      className="px-3 py-1 border border-slate-300 rounded-md text-xs focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value={5}>5</option>
+                      <option value={7}>7</option>
+                      <option value={10}>10</option>
+                      <option value={15}>15</option>
+                      <option value={20}>20</option>
+                    </select>
+                    <span className="text-xs text-slate-600">per page</span>
+                  </div>
+                </div>
+
+                {/* Right side - Page navigation */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-600">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={handlePreviousPage}
+                      disabled={currentPage === 1}
+                      className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                        currentPage === 1
+                          ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
+                          : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 hover:border-slate-400'
+                      }`}
+                    >
+                      Previous
+                    </button>
+                    
+                    <button
+                      onClick={() => handlePageChange(currentPage)}
+                      className="px-3 py-1 rounded-md text-xs font-medium bg-blue-600 text-white border border-blue-600"
+                    >
+                      {currentPage}
+                    </button>
+                    
+                    <button
+                      onClick={handleNextPage}
+                      disabled={currentPage === totalPages}
+                      className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                        currentPage === totalPages
+                          ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
+                          : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 hover:border-slate-400'
+                      }`}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Loading State */}
         {loading && (
           <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-8">
@@ -95,7 +195,7 @@ export default function CentersList() {
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {centers.map((center) => (
+                {currentCenters.map((center) => (
                   <div
                     key={center._id}
                     className="bg-white rounded-xl shadow-sm border border-blue-100 hover:shadow-md transition-shadow"

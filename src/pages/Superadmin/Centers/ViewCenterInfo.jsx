@@ -409,7 +409,7 @@ export default function ViewCenterInfo() {
 
   if (centerDetailedLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 sm:p-6">
+      <div className="min-h-screen  p-4 sm:p-6">
         <div className="max-w-6xl mx-auto">
           <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-8">
             <div className="text-center">
@@ -424,7 +424,7 @@ export default function ViewCenterInfo() {
 
   if (centerDetailedError) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 sm:p-6">
+      <div className="min-h-screen  p-4 sm:p-6">
         <div className="max-w-6xl mx-auto">
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center">
             <AlertCircle className="h-5 w-5 text-red-500 mr-3" />
@@ -438,7 +438,7 @@ export default function ViewCenterInfo() {
   if (!center) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 sm:p-6">
+    <div className="min-h-screen  p-4 sm:p-6">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8">

@@ -12,6 +12,10 @@ export default function CompletedRequests() {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [recordsPerPage, setRecordsPerPage] = useState(4);
 
   useEffect(() => {
     if (user && (user._id || user.id)) {
@@ -243,6 +247,89 @@ export default function CompletedRequests() {
     return matchesSearch && matchesFilter;
   });
 
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterStatus]);
+
+  // Pagination logic
+  const totalPages = Math.ceil((filteredRequests?.length || 0) / recordsPerPage);
+  const startIndex = (currentPage - 1) * recordsPerPage;
+  const endIndex = startIndex + recordsPerPage;
+  const paginatedData = filteredRequests?.slice(startIndex, endIndex) || [];
+
+  // Pagination controls component
+  const PaginationControls = () => {
+    if (!filteredRequests || filteredRequests.length === 0) return null;
+
+    return (
+      <div className="px-8 py-6 bg-gradient-to-r from-gray-50 to-gray-100 border-t border-gray-200">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <div className="text-sm text-gray-600">
+              Showing {startIndex + 1} to {Math.min(endIndex, filteredRequests?.length || 0)} of {filteredRequests?.length || 0} results
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-gray-600">Show:</span>
+              <select
+                value={recordsPerPage}
+                onChange={(e) => {
+                  setRecordsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="px-3 py-1 text-sm border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value={4}>4</option>
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+              </select>
+              <span className="text-sm text-gray-600">per page</span>
+            </div>
+          </div>
+          
+          <div className="flex items-center space-x-4">
+            <div className="text-sm text-gray-600">
+              Page {currentPage} of {totalPages}
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:text-gray-300"
+              >
+                Previous
+              </button>
+              
+              {/* Page Numbers */}
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                <button
+                  key={pageNum}
+                  onClick={() => setCurrentPage(pageNum)}
+                  className={`px-3 py-1 rounded-md text-xs font-medium border ${
+                    currentPage === pageNum
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              ))}
+              
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:text-gray-300"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   if (!user || (!user._id && !user.id)) {
     return (
       <div className="p-4 sm:p-6">
@@ -418,10 +505,13 @@ export default function CompletedRequests() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-slate-200">
-                  {filteredRequests.map((request) => (
+                  {paginatedData.map((request, index) => {
+                    const globalIndex = (currentPage - 1) * recordsPerPage + index;
+                    return (
                     <tr key={request._id} className="hover:bg-slate-50">
                       <td className="px-6 py-4">
                         <div>
+                          <div className="text-xs font-medium text-slate-500 mb-1">#{globalIndex + 1}</div>
                           <div className="text-xs font-medium text-slate-900">{request.patientName || 'N/A'}</div>
                           <div className="text-xs text-slate-500">{request.patientPhone || 'N/A'}</div>
                           <div className="text-xs text-slate-400">
@@ -482,10 +572,14 @@ export default function CompletedRequests() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
+            
+            {/* Pagination Controls */}
+            <PaginationControls />
           </div>
         )}
       </div>

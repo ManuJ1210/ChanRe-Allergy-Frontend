@@ -50,16 +50,17 @@ const DoctorList = () => {
   const [statusFilter, setStatusFilter] = useState(filters.status || '');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
+  const [itemsPerPage, setItemsPerPage] = useState(7);
 
   useEffect(() => {
     dispatch(fetchCenterAdminDoctors({ 
       page: pagination.currentPage, 
-      limit: pagination.limit, 
+      limit: itemsPerPage, 
       search: filters.search, 
       status: filters.status 
     }));
     dispatch(fetchCenterAdminDoctorStats());
-  }, [dispatch, pagination.currentPage, filters.search, filters.status]);
+  }, [dispatch, pagination.currentPage, filters.search, filters.status, itemsPerPage]);
 
   useEffect(() => {
     if (success) {
@@ -117,7 +118,30 @@ const DoctorList = () => {
   const handlePageChange = (page) => {
     dispatch(fetchCenterAdminDoctors({ 
       page, 
-      limit: pagination.limit, 
+      limit: itemsPerPage, 
+      search: filters.search, 
+      status: filters.status 
+    }));
+  };
+
+  const handlePreviousPage = () => {
+    if (pagination.currentPage > 1) {
+      handlePageChange(pagination.currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (pagination.currentPage < pagination.totalPages) {
+      handlePageChange(pagination.currentPage + 1);
+    }
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage) => {
+    setItemsPerPage(newItemsPerPage);
+    // Reset to first page when changing items per page
+    dispatch(fetchCenterAdminDoctors({ 
+      page: 1, 
+      limit: newItemsPerPage, 
       search: filters.search, 
       status: filters.status 
     }));
@@ -262,6 +286,76 @@ const DoctorList = () => {
             </div>
           </div>
         </div>
+
+        {/* Pagination Controls */}
+        {doctors.length > 0 && (
+          <div className="bg-white rounded-xl shadow-sm border border-blue-100 mb-6">
+            <div className="p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                {/* Left side - Results info and items per page */}
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                  <div className="text-xs text-slate-600">
+                    Showing {((pagination.currentPage - 1) * itemsPerPage) + 1} to {Math.min(pagination.currentPage * itemsPerPage, pagination.total)} of {pagination.total} results
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-600">Show:</span>
+                    <select
+                      value={itemsPerPage}
+                      onChange={(e) => handleItemsPerPageChange(parseInt(e.target.value))}
+                      className="px-3 py-1 border border-slate-300 rounded-md text-xs focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value={5}>5</option>
+                      <option value={7}>7</option>
+                      <option value={10}>10</option>
+                      <option value={15}>15</option>
+                      <option value={20}>20</option>
+                    </select>
+                    <span className="text-xs text-slate-600">per page</span>
+                  </div>
+                </div>
+
+                {/* Right side - Page navigation */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-600">
+                    Page {pagination.currentPage} of {pagination.totalPages}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={handlePreviousPage}
+                      disabled={pagination.currentPage === 1}
+                      className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                        pagination.currentPage === 1
+                          ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
+                          : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 hover:border-slate-400'
+                      }`}
+                    >
+                      Previous
+                    </button>
+                    
+                    <button
+                      onClick={() => handlePageChange(pagination.currentPage)}
+                      className="px-3 py-1 rounded-md text-xs font-medium bg-blue-600 text-white border border-blue-600"
+                    >
+                      {pagination.currentPage}
+                    </button>
+                    
+                    <button
+                      onClick={handleNextPage}
+                      disabled={pagination.currentPage === pagination.totalPages}
+                      className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                        pagination.currentPage === pagination.totalPages
+                          ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
+                          : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 hover:border-slate-400'
+                      }`}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Doctors Table */}
         <div className="bg-white rounded-2xl shadow-lg border border-blue-100 overflow-hidden">
@@ -534,35 +628,6 @@ const DoctorList = () => {
           </div>
         </div>
 
-        {/* Pagination */}
-        {pagination.totalPages > 1 && (
-          <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="text-xs text-slate-700 text-center sm:text-left">
-              Showing {((pagination.currentPage - 1) * pagination.limit) + 1} to{' '}
-              {Math.min(pagination.currentPage * pagination.limit, pagination.total)} of{' '}
-              {pagination.total} results
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => handlePageChange(pagination.currentPage - 1)}
-                disabled={pagination.currentPage === 1}
-                className="px-3 py-2 border border-slate-300 rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </button>
-              <span className="px-3 py-2 text-xs text-slate-700">
-                Page {pagination.currentPage} of {pagination.totalPages}
-              </span>
-              <button
-                onClick={() => handlePageChange(pagination.currentPage + 1)}
-                disabled={pagination.currentPage === pagination.totalPages}
-                className="px-3 py-2 border border-slate-300 rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-              >
-                <ArrowRight className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Delete Confirmation Modal */}

@@ -60,6 +60,13 @@ const SuperadminBillingReports = () => {
     endDate: ''
   });
   const [showCustomRange, setShowCustomRange] = useState(false);
+  const [isChangingCenter, setIsChangingCenter] = useState(false);
+  
+  // Pagination state
+  const [currentTransactionPage, setCurrentTransactionPage] = useState(1);
+  const [currentPartialPage, setCurrentPartialPage] = useState(1);
+  const [transactionRecordsPerPage, setTransactionRecordsPerPage] = useState(4);
+  const [partialRecordsPerPage, setPartialRecordsPerPage] = useState(4);
 
   // Fetch data on component mount
   useEffect(() => {
@@ -67,18 +74,6 @@ const SuperadminBillingReports = () => {
     // Don't fetch reports immediately - wait for centers to load
   }, [dispatch]);
 
-  // Debug centers data
-  useEffect(() => {
-    if (centers && centers.length > 0) {
-      console.log('🏥 Available centers:', centers.map(c => ({
-        id: c._id,
-        name: c.centername || c.name,
-        code: c.centerCode
-      })));
-      console.log('🏥 Currently selected center:', selectedCenter);
-      console.log('🏥 Selected center details:', centers.find(c => c._id === selectedCenter));
-    }
-  }, [centers, selectedCenter]);
 
   // Handle success messages
   useEffect(() => {
@@ -88,42 +83,27 @@ const SuperadminBillingReports = () => {
     }
   }, [actionSuccess, dispatch]);
 
-  // Debug reports data
+  // Reset center changing state when new data arrives
   useEffect(() => {
     if (reportsData) {
-      console.log('📊 Reports data received:', {
-        period: selectedPeriod,
-        centerId: selectedCenter,
-        centerName: centers.find(c => c._id === selectedCenter)?.centername || centers.find(c => c._id === selectedCenter)?.name || 'All Centers',
-        totalBills: reportsData.billingData?.length || 0,
-        stats: reportsData.stats,
-        sampleData: reportsData.billingData?.slice(0, 3).map(item => ({
-          id: item._id,
-          centerId: item.centerId,
-          centerName: item.centerName,
-          generatedAt: item.billing?.generatedAt,
-          createdAt: item.createdAt,
-          status: item.billing?.status
-        }))
-      });
+      setIsChangingCenter(false);
     }
-  }, [reportsData, selectedPeriod, selectedCenter, centers]);
+  }, [reportsData]);
 
   // Fetch initial reports when centers are loaded
   useEffect(() => {
     if (centers && centers.length > 0 && !reportsData) {
-      console.log('🔄 Initial fetch after centers loaded');
-      fetchReports();
+      if (selectedCenter === 'all') {
+        fetchReports();
+      } else {
+        fetchReportsForCenter(selectedCenter);
+      }
     }
   }, [centers]);
 
-  // Fetch reports when selectedCenter changes
-  useEffect(() => {
-    if (selectedCenter && centers && centers.length > 0) {
-      console.log('🔄 Center changed, fetching reports for:', selectedCenter);
-      fetchReports();
-    }
-  }, [selectedCenter, centers]);
+
+  // Note: Center change is now handled directly in handleCenterChange function
+  // to avoid duplicate API calls and ensure immediate data fetching
 
   // Handle error messages
   useEffect(() => {
@@ -145,21 +125,11 @@ const SuperadminBillingReports = () => {
       _t: Date.now()
     };
 
-    console.log('🔍 Fetching reports with params:', params);
-    console.log('🔍 Period being used:', periodToUse);
-    console.log('🔍 Override period:', overridePeriod);
-    console.log('🔍 Selected period state:', selectedPeriod);
-    console.log('🔍 Selected center ID:', selectedCenter);
-    console.log('🔍 Selected center ID type:', typeof selectedCenter);
-    console.log('🔍 Selected center ID length:', selectedCenter?.length);
-    console.log('🔍 Selected center name:', centers.find(c => c._id === selectedCenter)?.centername || centers.find(c => c._id === selectedCenter)?.name || 'All Centers');
     dispatch(fetchBillingReports(params));
   };
 
   // Handle period change
   const handlePeriodChange = (period) => {
-    console.log('🔄 Period changed to:', period);
-    console.log('🔄 Previous period was:', selectedPeriod);
     setSelectedPeriod(period);
     setShowCustomRange(period === 'custom');
     // Clear previous data when changing periods
@@ -177,9 +147,52 @@ const SuperadminBillingReports = () => {
     console.log('🏥 Center name:', centers.find(c => c._id === centerId)?.centername || centers.find(c => c._id === centerId)?.name || 'All Centers');
     console.log('🏥 Center ID type:', typeof centerId);
     console.log('🏥 Center ID length:', centerId?.length);
-    setSelectedCenter(centerId);
-    // Clear previous data when changing centers
+    console.log('🏥 Previous center was:', selectedCenter);
+    console.log('🏥 Center ID === "all":', centerId === 'all');
+    console.log('🏥 Center ID !== "all":', centerId !== 'all');
+    
+    // Set loading state to prevent showing old data
+    setIsChangingCenter(true);
+    
+    // Clear previous data immediately when changing centers
     dispatch(clearReportsData());
+    
+    // Update the selected center state
+    setSelectedCenter(centerId);
+    console.log('🏥 State updated to:', centerId);
+    
+    // Add a small delay to ensure state is updated and data is cleared
+    setTimeout(() => {
+      console.log('🔄 Fetching data for new center after delay:', centerId);
+      console.log('🔄 Current selectedCenter state:', selectedCenter);
+      console.log('🔄 About to call fetchReportsForCenter with centerId:', centerId);
+      fetchReportsForCenter(centerId);
+    }, 100);
+  };
+
+  // Fetch reports for specific center
+  const fetchReportsForCenter = (centerId) => {
+    const params = {
+      period: showCustomRange ? null : selectedPeriod,
+      centerId: centerId, // Use the passed centerId instead of state
+      startDate: showCustomRange ? customDateRange.startDate : null,
+      endDate: showCustomRange ? customDateRange.endDate : null,
+      // Add timestamp and random number to prevent caching
+      _t: Date.now(),
+      _r: Math.random().toString(36).substr(2, 9) // Random string for cache busting
+    };
+
+    console.log('🔍 Fetching reports for center with params:', params);
+    console.log('🔍 Center ID being used:', centerId);
+    console.log('🔍 Center ID type:', typeof centerId);
+    console.log('🔍 Center ID length:', centerId?.length);
+    console.log('🔍 Period being used:', showCustomRange ? 'custom' : selectedPeriod);
+    console.log('🔍 Center name:', centers.find(c => c._id === centerId)?.centername || centers.find(c => c._id === centerId)?.name || 'All Centers');
+    console.log('🔍 API URL will be: /billing/reports?period=' + params.period + '&centerId=' + params.centerId + '&_t=' + params._t + '&_r=' + params._r);
+    console.log('🔍 Current selectedCenter state:', selectedCenter);
+    console.log('🔍 Are they different?', centerId !== selectedCenter);
+    
+    dispatch(fetchBillingReports(params));
   };
 
   // Handle custom date range
@@ -190,6 +203,53 @@ const SuperadminBillingReports = () => {
     }
     fetchReports();
   };
+
+  // Pagination functions
+  const getTotalTransactionPages = () => {
+    return Math.ceil((reportsData?.billingData?.length || 0) / transactionRecordsPerPage);
+  };
+
+  const getTotalPartialPages = () => {
+    return Math.ceil((reportsData?.billingData?.length || 0) / partialRecordsPerPage);
+  };
+
+  const getCurrentTransactionData = () => {
+    if (!reportsData?.billingData) return [];
+    const startIndex = (currentTransactionPage - 1) * transactionRecordsPerPage;
+    const endIndex = startIndex + transactionRecordsPerPage;
+    return reportsData.billingData.slice(startIndex, endIndex);
+  };
+
+  const getCurrentPartialData = (partialBills) => {
+    if (!partialBills) return [];
+    const startIndex = (currentPartialPage - 1) * partialRecordsPerPage;
+    const endIndex = startIndex + partialRecordsPerPage;
+    return partialBills.slice(startIndex, endIndex);
+  };
+
+  const handleTransactionPageChange = (page) => {
+    setCurrentTransactionPage(page);
+  };
+
+  const handlePartialPageChange = (page) => {
+    setCurrentPartialPage(page);
+  };
+
+  const handleTransactionRecordsPerPageChange = (value) => {
+    setTransactionRecordsPerPage(parseInt(value));
+    setCurrentTransactionPage(1); // Reset to first page
+  };
+
+  const handlePartialRecordsPerPageChange = (value) => {
+    setPartialRecordsPerPage(parseInt(value));
+    setCurrentPartialPage(1); // Reset to first page
+  };
+
+  // Reset pagination when data changes
+  useEffect(() => {
+    setCurrentTransactionPage(1);
+    setCurrentPartialPage(1);
+  }, [reportsData]);
 
   // Export reports
   const handleExportReports = () => {
@@ -229,64 +289,37 @@ const SuperadminBillingReports = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      <div className="max-w-8xl mx-auto px-6 py-8">
-        {/* Professional Header */}
-        <div className="mb-10">
-          <div className="relative overflow-hidden bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 rounded-3xl shadow-2xl">
-            {/* Background Pattern */}
-            <div className="absolute inset-0 opacity-20" style={{
-              backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
-            }}></div>
-            
-            <div className="relative p-10">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-8">
-                  <div className="p-5 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20">
-                    <BarChart3 className="w-10 h-10 text-white" />
-                  </div>
-                  <div>
-                    <h1 className="text-md md:text-md font-bold text-white mb-3 tracking-tight">
-                      Financial Analytics
-                    </h1>
-                    <p className="text-sm md:text-md text-blue-100 mb-4 font-light">
-                      Advanced billing insights and revenue intelligence
-                    </p>
-                    <div className="flex items-center space-x-8">
-                      <div className="flex items-center space-x-2">
-                        <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                        <span className="text-xs font-medium text-blue-100">
-                          {centers?.length || 0} Medical Centers
-                        </span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-                        <span className="text-xs font-medium text-blue-100">
-                          Real-time Analytics
-                        </span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
-                        <span className="text-xs font-medium text-blue-100">
-                          AI-Powered Insights
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 py-6">
+        {/* Compact Header */}
+        <div className="mb-6">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="p-3 bg-blue-100 rounded-lg">
+                  <BarChart3 className="w-6 h-6 text-blue-600" />
                 </div>
-                
-                <div className="text-right">
-                  <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
-                    <div className="text-md md:text-md font-bold text-white mb-2">
-                      {reportsData ? `₹${reportsData.stats?.totalAmount?.toLocaleString() || '0'}` : '₹0'}
-                    </div>
-                    <div className="text-blue-100 text-xs font-medium mb-2">Total Revenue</div>
-                    <div className="text-xs text-blue-200 bg-white/10 rounded-lg px-3 py-1 inline-block">
-                      {selectedPeriod === 'custom' 
-                        ? `${customDateRange.startDate} to ${customDateRange.endDate}` 
-                        : selectedPeriod.charAt(0).toUpperCase() + selectedPeriod.slice(1)
-                      }
-                    </div>
+                <div>
+                  <h1 className="text-xl font-bold text-gray-900 mb-1">
+                    Financial Analytics
+                  </h1>
+                  <p className="text-sm text-gray-600">
+                    Billing insights and revenue intelligence
+                  </p>
+                </div>
+              </div>
+              
+              <div className="text-right">
+                <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                  <div className="text-lg font-bold text-blue-600 mb-1">
+                    {reportsData ? `₹${reportsData.stats?.totalAmount?.toLocaleString() || '0'}` : '₹0'}
+                  </div>
+                  <div className="text-xs text-blue-700 font-medium">Total Revenue</div>
+                  <div className="text-xs text-blue-600 mt-1">
+                    {selectedPeriod === 'custom' 
+                      ? `${customDateRange.startDate} to ${customDateRange.endDate}` 
+                      : selectedPeriod.charAt(0).toUpperCase() + selectedPeriod.slice(1)
+                    }
                   </div>
                 </div>
               </div>
@@ -294,153 +327,140 @@ const SuperadminBillingReports = () => {
           </div>
         </div>
 
-        {/* Professional Filters Panel */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8 mb-10">
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center space-x-4">
-              <div className="p-4 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
-                <Filter className="w-6 h-6 text-white" />
+        {/* Compact Filters Panel */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Filter className="w-5 h-5 text-blue-600" />
               </div>
               <div>
-                <h3 className="text-md md:text-md font-bold text-gray-900 mb-2">Analytics Controls</h3>
-                <p className="text-gray-600 font-medium">Configure your financial reporting parameters</p>
-                {/* Current Filter Status */}
-                <div className="flex items-center mt-3 space-x-3">
-                  <div className="flex items-center space-x-2 bg-blue-50 border border-blue-200 rounded-full px-4 py-2">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    <span className="text-xs font-semibold text-blue-800">
-                      {selectedPeriod === 'custom' ? 'Custom Range' : selectedPeriod.charAt(0).toUpperCase() + selectedPeriod.slice(1)}
-                    </span>
-                  </div>
-                  {selectedCenter !== 'all' && (
-                    <div className="flex items-center space-x-2 bg-green-50 border border-green-200 rounded-full px-4 py-2">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span className="text-xs font-semibold text-green-800">
-                        {centers.find(c => c._id === selectedCenter)?.centername || centers.find(c => c._id === selectedCenter)?.name || 'Selected'}
-                      </span>
-                    </div>
-                  )}
-                </div>
+                <h3 className="text-lg font-bold text-gray-900 mb-1">Filters</h3>
+                <p className="text-sm text-gray-600">Configure reporting parameters</p>
               </div>
             </div>
-            <div className="flex space-x-4">
+            <div className="flex space-x-3">
               <button
                 onClick={fetchReports}
                 disabled={reportsLoading}
-                className="group px-6 py-3 bg-gradient-to-r from-slate-700 to-slate-800 text-white rounded-xl hover:from-slate-800 hover:to-slate-900 disabled:opacity-50 flex items-center shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5"
+                className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800 disabled:opacity-50 flex items-center text-sm font-medium"
               >
-                <RefreshCw className={`w-5 h-5 mr-2 group-hover:rotate-180 transition-transform duration-500 ${reportsLoading ? 'animate-spin' : ''}`} />
-                <span className="font-semibold">{reportsLoading ? 'Processing...' : 'Refresh Data'}</span>
+                <RefreshCw className={`w-4 h-4 mr-2 ${reportsLoading ? 'animate-spin' : ''}`} />
+                {reportsLoading ? 'Loading...' : 'Refresh'}
               </button>
               <button
                 onClick={handleExportReports}
                 disabled={!reportsData || reportsLoading}
-                className="group px-6 py-3 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-xl hover:from-emerald-700 hover:to-emerald-800 disabled:opacity-50 flex items-center shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5"
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center text-sm font-medium"
               >
-                <Download className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" />
-                <span className="font-semibold">Export Data</span>
+                <Download className="w-4 h-4 mr-2" />
+                Export
               </button>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Time Period Selection */}
-            <div className="space-y-4">
-              <div className="flex items-center space-x-3 mb-4">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <Calendar className="w-5 h-5 text-blue-600" />
+            <div className="space-y-3">
+              <div className="flex items-center space-x-2 mb-3">
+                <div className="p-1.5 bg-blue-100 rounded-md">
+                  <Calendar className="w-4 h-4 text-blue-600" />
                 </div>
                 <div>
-                  <h4 className="text-base md:text-sm font-bold text-gray-900">Time Period</h4>
-                  <p className="text-xs text-gray-600">Select analysis timeframe</p>
+                  <h4 className="text-sm font-bold text-gray-900">Time Period</h4>
+                  <p className="text-xs text-gray-600">Select timeframe</p>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={() => handlePeriodChange('daily')}
-                  className={`group px-4 py-3 rounded-xl text-xs font-semibold transition-all duration-300 transform hover:-translate-y-1 ${
+                  className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
                     selectedPeriod === 'daily'
-                      ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/25'
-                      : 'bg-white border-2 border-gray-200 text-gray-700 hover:border-blue-300 hover:shadow-md'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  <div className="flex items-center justify-center space-x-2">
-                    <Clock className="w-4 h-4" />
+                  <div className="flex items-center justify-center space-x-1">
+                    <Clock className="w-3 h-3" />
                     <span>Today</span>
                   </div>
                 </button>
                 <button
                   onClick={() => handlePeriodChange('weekly')}
-                  className={`group px-4 py-3 rounded-xl text-xs font-semibold transition-all duration-300 transform hover:-translate-y-1 ${
+                  className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
                     selectedPeriod === 'weekly'
-                      ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/25'
-                      : 'bg-white border-2 border-gray-200 text-gray-700 hover:border-blue-300 hover:shadow-md'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  <div className="flex items-center justify-center space-x-2">
-                    <Calendar className="w-4 h-4" />
+                  <div className="flex items-center justify-center space-x-1">
+                    <Calendar className="w-3 h-3" />
                     <span>7 Days</span>
                   </div>
                 </button>
                 <button
                   onClick={() => handlePeriodChange('monthly')}
-                  className={`group px-4 py-3 rounded-xl text-xs font-semibold transition-all duration-300 transform hover:-translate-y-1 ${
+                  className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
                     selectedPeriod === 'monthly'
-                      ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/25'
-                      : 'bg-white border-2 border-gray-200 text-gray-700 hover:border-blue-300 hover:shadow-md'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  <div className="flex items-center justify-center space-x-2">
-                    <BarChart3 className="w-4 h-4" />
+                  <div className="flex items-center justify-center space-x-1">
+                    <BarChart3 className="w-3 h-3" />
                     <span>30 Days</span>
                   </div>
                 </button>
                 <button
                   onClick={() => handlePeriodChange('yearly')}
-                  className={`group px-4 py-3 rounded-xl text-xs font-semibold transition-all duration-300 transform hover:-translate-y-1 ${
+                  className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
                     selectedPeriod === 'yearly'
-                      ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/25'
-                      : 'bg-white border-2 border-gray-200 text-gray-700 hover:border-blue-300 hover:shadow-md'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  <div className="flex items-center justify-center space-x-2">
-                    <TrendingUp className="w-4 h-4" />
+                  <div className="flex items-center justify-center space-x-1">
+                    <TrendingUp className="w-3 h-3" />
                     <span>1 Year</span>
                   </div>
                 </button>
               </div>
               <button
                 onClick={() => handlePeriodChange('custom')}
-                className={`w-full px-4 py-3 rounded-xl text-xs font-semibold transition-all duration-300 transform hover:-translate-y-1 ${
+                className={`w-full px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
                   selectedPeriod === 'custom'
-                    ? 'bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-lg shadow-purple-500/25'
-                    : 'bg-white border-2 border-gray-200 text-gray-700 hover:border-purple-300 hover:shadow-md'
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                <div className="flex items-center justify-center space-x-2">
-                  <Calendar className="w-4 h-4" />
+                <div className="flex items-center justify-center space-x-1">
+                  <Calendar className="w-3 h-3" />
                   <span>Custom Range</span>
                 </div>
               </button>
             </div>
 
             {/* Center Selection */}
-            <div className="space-y-4">
-              <div className="flex items-center space-x-3 mb-4">
-                <div className="p-2 bg-emerald-100 rounded-lg">
-                  <Building className="w-5 h-5 text-emerald-600" />
+            <div className="space-y-3">
+              <div className="flex items-center space-x-2 mb-3">
+                <div className="p-1.5 bg-green-100 rounded-md">
+                  <Building className="w-4 h-4 text-green-600" />
                 </div>
                 <div>
-                  <h4 className="text-base md:text-sm font-bold text-gray-900">Center Filter</h4>
-                  <p className="text-xs text-gray-600">Select specific center or all</p>
+                  <h4 className="text-sm font-bold text-gray-900">Center Filter</h4>
+                  <p className="text-xs text-gray-600">Select center</p>
                 </div>
               </div>
               <div className="relative">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <select
                   value={selectedCenter}
-                  onChange={(e) => handleCenterChange(e.target.value)}
-                  className="w-full pl-12 pr-4 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white shadow-sm text-gray-900 font-medium transition-all duration-200 hover:border-gray-300"
+                  onChange={(e) => {
+                    console.log('🔍 Dropdown changed to:', e.target.value);
+                    console.log('🔍 Selected option text:', e.target.options[e.target.selectedIndex].text);
+                    handleCenterChange(e.target.value);
+                  }}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white text-sm text-gray-900 transition-colors"
                 >
                   <option value="all">🏥 All Centers ({centers?.length || 0})</option>
                   {centers?.map(center => (
@@ -451,16 +471,16 @@ const SuperadminBillingReports = () => {
                 </select>
               </div>
               {selectedCenter !== 'all' && (
-                <div className="bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-200 rounded-xl p-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-emerald-100 rounded-lg">
-                      <Building className="w-4 h-4 text-emerald-600" />
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                  <div className="flex items-center space-x-2">
+                    <div className="p-1 bg-green-100 rounded-md">
+                      <Building className="w-3 h-3 text-green-600" />
                     </div>
                     <div>
-                      <span className="text-xs font-semibold text-emerald-800">
-                        Active Filter: {centers.find(c => c._id === selectedCenter)?.centername || centers.find(c => c._id === selectedCenter)?.name || 'Selected Center'}
+                      <span className="text-xs font-medium text-green-800">
+                        {centers.find(c => c._id === selectedCenter)?.centername || centers.find(c => c._id === selectedCenter)?.name || 'Selected Center'}
                       </span>
-                      <div className="text-xs text-emerald-600 mt-1">Showing data for this center only</div>
+                      <div className="text-xs text-green-600">Active filter</div>
                     </div>
                   </div>
                 </div>
@@ -521,7 +541,7 @@ const SuperadminBillingReports = () => {
         </div>
 
         {/* Professional Loading State */}
-        {reportsLoading && (
+        {(reportsLoading || isChangingCenter) && (
           <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl border border-white/20 p-16 text-center">
             <div className="flex flex-col items-center">
               <div className="relative mb-8">
@@ -549,7 +569,7 @@ const SuperadminBillingReports = () => {
         )}
 
         {/* Reports Content */}
-        {!reportsLoading && reportsData && (
+        {!reportsLoading && !isChangingCenter && reportsData && (
           <>
             {/* Professional Data Summary */}
             <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8 mb-10">
@@ -572,7 +592,11 @@ const SuperadminBillingReports = () => {
                   <div className="bg-gradient-to-r from-emerald-50 to-green-50 rounded-2xl p-6 border border-emerald-200">
                     <div className="text-md md:text-md font-bold text-emerald-600 mb-1">₹{reportsData.stats?.totalAmount?.toLocaleString() || '0'}</div>
                     <div className="text-xs font-semibold text-emerald-700">Total Revenue</div>
-                    <div className="text-xs text-emerald-600 mt-1">All Centers Combined</div>
+                    <div className="text-xs text-emerald-600 mt-1">
+                      {selectedCenter === 'all' 
+                        ? 'All Centers Combined' 
+                        : `Center: ${centers.find(c => c._id === selectedCenter)?.centername || centers.find(c => c._id === selectedCenter)?.name || 'Selected Center'}`}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -645,7 +669,9 @@ const SuperadminBillingReports = () => {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-100">
-                    {reportsData.billingData?.slice(0, 10).map((item, index) => (
+                    {getCurrentTransactionData().map((item, index) => {
+                      const globalIndex = (currentTransactionPage - 1) * transactionRecordsPerPage + index;
+                      return (
                       <tr key={item._id} className="hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-300 group">
                         <td className="px-8 py-6 whitespace-nowrap">
                           <div className="flex items-center space-x-4">
@@ -656,7 +682,7 @@ const SuperadminBillingReports = () => {
                               <div className="text-xs font-bold text-gray-900">
                                 {item.billing?.invoiceNumber || 'N/A'}
                               </div>
-                              <div className="text-xs text-gray-500 font-medium">#{index + 1}</div>
+                              <div className="text-xs text-gray-500 font-medium">#{globalIndex + 1}</div>
                             </div>
                           </div>
                         </td>
@@ -742,27 +768,67 @@ const SuperadminBillingReports = () => {
                           </div>
                         </td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
               
-              {reportsData.billingData?.length > 10 && (
-                <div className="px-8 py-6 bg-gradient-to-r from-slate-50 to-gray-50 border-t border-gray-200 text-center">
-                  <div className="flex items-center justify-center space-x-4">
-                    <p className="text-xs font-semibold text-gray-600">
-                      Showing 10 of <span className="font-bold text-blue-600">{reportsData.billingData.length}</span> records
-                    </p>
-                    <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-                    <button 
-                      onClick={handleExportReports}
-                      className="text-blue-600 hover:text-blue-800 font-bold text-xs transition-colors duration-200 hover:underline"
-                    >
-                      Export All Data
-                    </button>
+              {/* Pagination Controls */}
+              <div className="px-8 py-6 bg-gradient-to-r from-slate-50 to-gray-50 border-t border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <div className="text-sm text-gray-600">
+                      Showing {((currentTransactionPage - 1) * transactionRecordsPerPage) + 1} to {Math.min(currentTransactionPage * transactionRecordsPerPage, reportsData.billingData?.length || 0)} of {reportsData.billingData?.length || 0} results
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-gray-600">Show:</span>
+                      <select
+                        value={transactionRecordsPerPage}
+                        onChange={(e) => handleTransactionRecordsPerPageChange(e.target.value)}
+                        className="px-3 py-1 text-sm border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        <option value={4}>4</option>
+                        <option value={5}>5</option>
+                        <option value={10}>10</option>
+                        <option value={20}>20</option>
+                      </select>
+                      <span className="text-sm text-gray-600">per page</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-4">
+                    <div className="text-sm text-gray-600">
+                      Page {currentTransactionPage} of {getTotalTransactionPages()}
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => handleTransactionPageChange(currentTransactionPage - 1)}
+                        disabled={currentTransactionPage === 1}
+                        className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:text-gray-300"
+                      >
+                        Previous
+                      </button>
+                      
+                      <button
+                        onClick={() => handleTransactionPageChange(currentTransactionPage)}
+                        className="px-3 py-2 text-sm font-medium bg-purple-600 text-white rounded-lg"
+                      >
+                        {currentTransactionPage}
+                      </button>
+                      
+                      <button
+                        onClick={() => handleTransactionPageChange(currentTransactionPage + 1)}
+                        disabled={currentTransactionPage === getTotalTransactionPages()}
+                        className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:text-gray-300"
+                      >
+                        Next
+                      </button>
+                    </div>
                   </div>
                 </div>
-              )}
+              </div>
+              
             </div>
 
             {/* Professional Report Summary */}
@@ -777,21 +843,21 @@ const SuperadminBillingReports = () => {
                 </div>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-10">
-                <div className="text-center p-8 bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl border-2 border-blue-200 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-                  <div className="p-4 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl w-20 h-20 mx-auto mb-6 flex items-center justify-center shadow-lg">
-                    <FileText className="w-10 h-10 text-white" />
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-10">
+                <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border border-blue-200 shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-0.5">
+                  <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg w-12 h-12 mx-auto mb-3 flex items-center justify-center shadow-md">
+                    <FileText className="w-6 h-6 text-white" />
                   </div>
-                  <div className="text-md md:text-md font-bold text-blue-600 mb-3">{reportsData.stats.totalBills}</div>
-                  <div className="text-base md:text-sm font-bold text-blue-800 mb-2">Total Bills</div>
+                  <div className="text-lg font-bold text-blue-600 mb-2">{reportsData.stats.totalBills}</div>
+                  <div className="text-sm font-bold text-blue-800 mb-1">Total Bills</div>
                   <div className="text-xs text-blue-600 font-semibold">Generated</div>
                 </div>
-                <div className="text-center p-8 bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-2xl border-2 border-emerald-200 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-                  <div className="p-4 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl w-20 h-20 mx-auto mb-6 flex items-center justify-center shadow-lg">
-                    <CheckCircle className="w-10 h-10 text-white" />
+                <div className="text-center p-4 bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl border border-emerald-200 shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-0.5">
+                  <div className="p-2 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg w-12 h-12 mx-auto mb-3 flex items-center justify-center shadow-md">
+                    <CheckCircle className="w-6 h-6 text-white" />
                   </div>
-                  <div className="text-md md:text-md font-bold text-emerald-600 mb-3">{reportsData.stats.paidBills}</div>
-                  <div className="text-base md:text-sm font-bold text-emerald-800 mb-2">Paid Bills</div>
+                  <div className="text-lg font-bold text-emerald-600 mb-2">{reportsData.stats.paidBills}</div>
+                  <div className="text-sm font-bold text-emerald-800 mb-1">Paid Bills</div>
                   <div className="text-xs text-emerald-600 font-semibold">
                     {reportsData.stats.totalBills > 0 ? 
                       `${Math.round((reportsData.stats.paidBills / reportsData.stats.totalBills) * 100)}%` : 
@@ -799,23 +865,367 @@ const SuperadminBillingReports = () => {
                     } Success Rate
                   </div>
                 </div>
-                <div className="text-center p-8 bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-2xl border-2 border-yellow-200 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-                  <div className="p-4 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-2xl w-20 h-20 mx-auto mb-6 flex items-center justify-center shadow-lg">
-                    <Clock className="w-10 h-10 text-white" />
+                <div className="text-center p-4 bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl border border-yellow-200 shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-0.5">
+                  <div className="p-2 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg w-12 h-12 mx-auto mb-3 flex items-center justify-center shadow-md">
+                    <Clock className="w-6 h-6 text-white" />
                   </div>
-                  <div className="text-md md:text-md font-bold text-yellow-600 mb-3">{reportsData.stats.pendingBills}</div>
-                  <div className="text-base md:text-sm font-bold text-yellow-800 mb-2">Pending Bills</div>
+                  <div className="text-lg font-bold text-yellow-600 mb-2">{reportsData.stats.pendingBills}</div>
+                  <div className="text-sm font-bold text-yellow-800 mb-1">Pending Bills</div>
                   <div className="text-xs text-yellow-600 font-semibold">Awaiting Payment</div>
                 </div>
-                <div className="text-center p-8 bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl border-2 border-purple-200 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-                  <div className="p-4 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl w-20 h-20 mx-auto mb-6 flex items-center justify-center shadow-lg">
-                    <DollarSign className="w-10 h-10 text-white" />
+                <div className="text-center p-4 bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl border border-orange-200 shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-0.5">
+                  <div className="p-2 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg w-12 h-12 mx-auto mb-3 flex items-center justify-center shadow-md">
+                    <DollarSign className="w-6 h-6 text-white" />
                   </div>
-                  <div className="text-md md:text-md font-bold text-purple-600 mb-3">₹{reportsData.stats.totalAmount.toLocaleString()}</div>
-                  <div className="text-base md:text-sm font-bold text-purple-800 mb-2">Total Revenue</div>
+                  <div className="text-lg font-bold text-orange-600 mb-2">
+                    {(() => {
+                      // Simple function to get partial payment data from localStorage
+                      const getPartialPaymentData = (requestId) => {
+                        const paymentKey = `partial_payment_${requestId}`;
+                        const payments = JSON.parse(localStorage.getItem(paymentKey) || '[]');
+                        const totalPaid = payments.reduce((sum, payment) => sum + payment.amount, 0);
+                        
+                        return {
+                          payments: payments,
+                          totalPaid: totalPaid,
+                          paymentCount: payments.length
+                        };
+                      };
+
+                      // Count bills that have partial payments in localStorage (excluding fully paid)
+                      const localStoragePartialCount = reportsData.billingData?.filter(item => {
+                        const partialData = getPartialPaymentData(item._id);
+                        const totalAmount = item.billing?.amount || 0;
+                        const backendPaidAmount = item.billing?.paidAmount || 0;
+                        const status = item.billing?.status;
+                        
+                        const actualPaidAmount = partialData.totalPaid > 0 ? partialData.totalPaid : backendPaidAmount;
+                        
+                        return actualPaidAmount > 0 && 
+                               (actualPaidAmount < totalAmount || partialData.totalPaid > 0);
+                      }).length || 0;
+
+                      // If no localStorage partial payments, check for status-based partial payments (excluding fully paid)
+                      const statusBasedPartialCount = reportsData.billingData?.filter(item => {
+                        const status = item.billing?.status;
+                        const paidAmount = item.billing?.paidAmount || 0;
+                        const totalAmount = item.billing?.amount || 0;
+                        
+                        return (status === 'payment_received' || 
+                                status === 'generated' || 
+                                status === 'paid' ||
+                                status === 'verified' ||
+                                (paidAmount > 0 && paidAmount < totalAmount));
+                      }).length || 0;
+
+                      // Use the higher count
+                      const finalCount = Math.max(localStoragePartialCount, statusBasedPartialCount);
+                      
+                      return finalCount;
+                    })()}
+                  </div>
+                  <div className="text-sm font-bold text-orange-800 mb-1">Partial Bills</div>
+                  <div className="text-xs text-orange-600 font-semibold">Partially Paid</div>
+                </div>
+                <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl border border-purple-200 shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-0.5">
+                  <div className="p-2 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg w-12 h-12 mx-auto mb-3 flex items-center justify-center shadow-md">
+                    <TrendingUp className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="text-lg font-bold text-purple-600 mb-2">₹{reportsData.stats.totalAmount.toLocaleString()}</div>
+                  <div className="text-sm font-bold text-purple-800 mb-1">Total Revenue</div>
                   <div className="text-xs text-purple-600 font-semibold">All Centers</div>
                 </div>
               </div>
+
+              {/* Partial Payment Details Section */}
+              {(() => {
+                // Simple approach: Get partial payment data from localStorage
+                const getPartialPaymentData = (requestId) => {
+                  const paymentKey = `partial_payment_${requestId}`;
+                  const payments = JSON.parse(localStorage.getItem(paymentKey) || '[]');
+                  const totalPaid = payments.reduce((sum, payment) => sum + payment.amount, 0);
+                  
+                  return {
+                    payments: payments,
+                    totalPaid: totalPaid,
+                    paymentCount: payments.length
+                  };
+                };
+
+                // Get all partial payment keys from localStorage
+                const partialPaymentKeys = Object.keys(localStorage).filter(key => key.startsWith('partial_payment_'));
+                
+                // Get all bills that have partial payments in localStorage
+                const partialBills = reportsData.billingData?.filter(item => {
+                  const partialData = getPartialPaymentData(item._id);
+                  const totalAmount = item.billing?.amount || 0;
+                  const backendPaidAmount = item.billing?.paidAmount || 0;
+                  const status = item.billing?.status;
+                  
+                  // Calculate actual paid amount (use localStorage if available, otherwise backend)
+                  const actualPaidAmount = partialData.totalPaid > 0 ? partialData.totalPaid : backendPaidAmount;
+                  
+                  
+                  // Show bills that have partial payments (paid some amount)
+                  // Include both outstanding and completed partial payments for superadmin visibility
+                  return actualPaidAmount > 0 && 
+                         (actualPaidAmount < totalAmount || partialData.totalPaid > 0);
+                }) || [];
+
+
+                // If no partial bills found in localStorage, try a different approach
+                // Check if there are bills with status that might indicate partial payment
+                const statusBasedPartial = reportsData.billingData?.filter(item => {
+                  const status = item.billing?.status;
+                  const paidAmount = item.billing?.paidAmount || 0;
+                  const totalAmount = item.billing?.amount || 0;
+                  
+                  
+                  // Check for status that might indicate partial payment
+                  // Include bills with partial payments (both outstanding and completed)
+                  return (status === 'payment_received' || 
+                          status === 'generated' || 
+                          status === 'paid' ||
+                          status === 'verified' ||
+                          (paidAmount > 0 && paidAmount < totalAmount));
+                }) || [];
+
+
+                // Use status-based partial bills if localStorage doesn't have any
+                const finalPartialBills = partialBills.length > 0 ? partialBills : statusBasedPartial;
+
+                // Enhance the partial bills with localStorage data
+                const enhancedPartialBills = finalPartialBills.map(item => {
+                  const partialData = getPartialPaymentData(item._id);
+                  const totalAmount = item.billing?.amount || 0;
+                  const backendPaidAmount = item.billing?.paidAmount || 0;
+                  
+                  // Use localStorage data if available, otherwise use backend data
+                  const actualPaidAmount = partialData.totalPaid > 0 ? partialData.totalPaid : backendPaidAmount;
+                  
+                  return {
+                    ...item,
+                    billing: {
+                      ...item.billing,
+                      paidAmount: actualPaidAmount,
+                      partialPayments: partialData.payments,
+                      remainingAmount: totalAmount - actualPaidAmount
+                    }
+                  };
+                });
+                
+                
+                return enhancedPartialBills.length > 0 ? (
+                <div className="mb-8">
+                  <div className="bg-gradient-to-r from-orange-50 to-orange-100 rounded-xl border border-orange-200 p-6">
+                    <div className="flex items-center mb-4">
+                      <div className="p-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg mr-4">
+                        <DollarSign className="w-6 h-6 text-white" />
+                      </div>
+                      <div>
+                        <h4 className="text-lg font-bold text-orange-800 mb-1">Partial Payment History</h4>
+                        <p className="text-sm text-orange-700">Patients who made partial payments - complete payment timeline</p>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      {getCurrentPartialData(enhancedPartialBills).map((item, index) => {
+                        const globalIndex = (currentPartialPage - 1) * partialRecordsPerPage + index;
+                          const paidAmount = item.billing?.paidAmount || 0;
+                          const totalAmount = item.billing?.amount || 0;
+                          const remainingAmount = item.billing?.remainingAmount || (totalAmount - paidAmount);
+                          const paymentPercentage = Math.round((paidAmount / totalAmount) * 100);
+                          const partialPayments = item.billing?.partialPayments || [];
+                          const isFullyPaid = remainingAmount <= 0;
+                          
+                          return (
+                            <div key={item._id} className="bg-white rounded-lg p-4 border border-orange-200 shadow-sm">
+                              <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center space-x-3">
+                                  <div className="p-2 bg-orange-100 rounded-lg">
+                                    <FileText className="w-4 h-4 text-orange-600" />
+                                  </div>
+                                  <div>
+                                    <div className="text-sm font-bold text-gray-900">
+                                      {item.billing?.invoiceNumber || `Bill #${globalIndex + 1}`}
+                                    </div>
+                                    <div className="text-xs text-gray-600">{item.patientName || 'N/A'}</div>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <div className={`text-sm font-bold ${isFullyPaid ? 'text-green-600' : 'text-orange-600'}`}>
+                                    {isFullyPaid ? '100% Paid' : `${paymentPercentage}% Paid`}
+                                  </div>
+                                  <div className="text-xs text-gray-600">
+                                    {item.centerName || 'N/A'}
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              <div className="grid grid-cols-3 gap-4 mb-3">
+                                <div className="text-center p-2 bg-blue-50 rounded-lg">
+                                  <div className="text-sm font-bold text-blue-600">₹{totalAmount.toLocaleString()}</div>
+                                  <div className="text-xs text-blue-700">Total Amount</div>
+                                </div>
+                                <div className="text-center p-2 bg-green-50 rounded-lg">
+                                  <div className="text-sm font-bold text-green-600">₹{paidAmount.toLocaleString()}</div>
+                                  <div className="text-xs text-green-700">Paid Amount</div>
+                                </div>
+                                <div className="text-center p-2 bg-red-50 rounded-lg">
+                                  <div className="text-sm font-bold text-red-600">₹{remainingAmount.toLocaleString()}</div>
+                                  <div className="text-xs text-red-700">{isFullyPaid ? 'Fully Paid' : 'Remaining'}</div>
+                                </div>
+                              </div>
+
+                              {/* Payment Timeline */}
+                              {partialPayments.length > 0 && (
+                                <div className="mb-3">
+                                  <div className="text-xs font-semibold text-gray-700 mb-2">Payment Timeline:</div>
+                                  <div className="space-y-2">
+                                    {partialPayments.map((payment, paymentIndex) => (
+                                      <div key={paymentIndex} className="flex items-center justify-between bg-gray-50 rounded-lg p-2">
+                                        <div className="flex items-center space-x-3">
+                                          <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
+                                            <span className="text-xs font-bold text-green-600">{paymentIndex + 1}</span>
+                                          </div>
+                                          <div>
+                                            <div className="text-xs font-bold text-gray-900">₹{payment.amount?.toLocaleString()}</div>
+                                            <div className="text-xs text-gray-600">
+                                              {payment.timestamp ? new Date(payment.timestamp).toLocaleDateString() : 'N/A'} at{' '}
+                                              {payment.timestamp ? new Date(payment.timestamp).toLocaleTimeString() : 'N/A'}
+                                            </div>
+                                          </div>
+                                        </div>
+                                        <div className="text-xs text-gray-500">
+                                          Payment #{paymentIndex + 1}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Fallback for bills without detailed payment history */}
+                              {partialPayments.length === 0 && (
+                                <div className="mb-3">
+                                  <div className="text-xs font-semibold text-gray-700 mb-2">Payment Information:</div>
+                                  <div className="bg-gray-50 rounded-lg p-2">
+                                    <div className="flex items-center justify-between">
+                                      <div>
+                                        <div className="text-xs font-bold text-gray-900">First Payment</div>
+                                        <div className="text-xs text-gray-600">
+                                          {item.billing?.paidAt ? new Date(item.billing.paidAt).toLocaleDateString() : 'N/A'} at{' '}
+                                          {item.billing?.paidAt ? new Date(item.billing.paidAt).toLocaleTimeString() : 'N/A'}
+                                        </div>
+                                      </div>
+                                      <div className="text-xs text-gray-500">
+                                        {isFullyPaid ? 'Completed' : 'Partial'}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                              
+                              <div className="flex items-center justify-between text-xs text-gray-600">
+                                <div className="flex items-center space-x-4">
+                                  <span>
+                                    <strong>Generated:</strong> {item.billing?.generatedAt ? new Date(item.billing.generatedAt).toLocaleDateString() : 'N/A'}
+                                  </span>
+                                  <span>
+                                    <strong>Status:</strong> {item.billing?.status || 'N/A'}
+                                  </span>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <div className={`w-2 h-2 rounded-full ${isFullyPaid ? 'bg-green-400' : 'bg-orange-400'}`}></div>
+                                  <span className={`font-semibold ${isFullyPaid ? 'text-green-600' : 'text-orange-600'}`}>
+                                    {isFullyPaid ? 'Fully Paid' : 'Outstanding Balance'}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      
+                      {/* Pagination Controls for Partial Payment History */}
+                      <div className="pt-4 border-t border-orange-200">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-4">
+                            <div className="text-sm text-orange-600">
+                              Showing {((currentPartialPage - 1) * partialRecordsPerPage) + 1} to {Math.min(currentPartialPage * partialRecordsPerPage, enhancedPartialBills.length)} of {enhancedPartialBills.length} results
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <span className="text-sm text-orange-600">Show:</span>
+                              <select
+                                value={partialRecordsPerPage}
+                                onChange={(e) => handlePartialRecordsPerPageChange(e.target.value)}
+                                className="px-3 py-1 text-sm border border-orange-300 rounded-lg bg-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                              >
+                                <option value={4}>4</option>
+                                <option value={5}>5</option>
+                                <option value={10}>10</option>
+                                <option value={20}>20</option>
+                              </select>
+                              <span className="text-sm text-orange-600">per page</span>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center space-x-4">
+                            <div className="text-sm text-orange-600">
+                              Page {currentPartialPage} of {Math.ceil(enhancedPartialBills.length / partialRecordsPerPage)}
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <button
+                                onClick={() => handlePartialPageChange(currentPartialPage - 1)}
+                                disabled={currentPartialPage === 1}
+                                className="px-3 py-2 text-sm font-medium text-orange-500 bg-white border border-orange-300 rounded-lg hover:bg-orange-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:text-orange-300"
+                              >
+                                Previous
+                              </button>
+                              
+                              <button
+                                onClick={() => handlePartialPageChange(currentPartialPage)}
+                                className="px-3 py-2 text-sm font-medium bg-purple-600 text-white rounded-lg"
+                              >
+                                {currentPartialPage}
+                              </button>
+                              
+                              <button
+                                onClick={() => handlePartialPageChange(currentPartialPage + 1)}
+                                disabled={currentPartialPage === Math.ceil(enhancedPartialBills.length / partialRecordsPerPage)}
+                                className="px-3 py-2 text-sm font-medium text-orange-500 bg-white border border-orange-300 rounded-lg hover:bg-orange-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:text-orange-300"
+                              >
+                                Next
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                ) : (
+                  <div className="mb-8">
+                    <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200 p-6">
+                      <div className="flex items-center mb-4">
+                        <div className="p-3 bg-gradient-to-br from-gray-400 to-gray-500 rounded-lg mr-4">
+                          <DollarSign className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-bold text-gray-700 mb-1">Outstanding Partial Payments</h4>
+                          <p className="text-sm text-gray-600">No outstanding partial payments found for the selected period</p>
+                        </div>
+                      </div>
+                      <div className="text-center py-8">
+                        <div className="p-4 bg-gray-100 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                          <CheckCircle className="w-8 h-8 text-gray-500" />
+                        </div>
+                        <p className="text-gray-600 font-medium">All patients have either paid in full or haven't made any payments yet</p>
+                        <p className="text-sm text-gray-500 mt-2">No outstanding partial payment balances</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
               
               <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-6">
                 <div className="text-center">
@@ -844,7 +1254,7 @@ const SuperadminBillingReports = () => {
         )}
 
         {/* Professional No Data State */}
-        {!reportsLoading && !reportsData && (
+        {!reportsLoading && !isChangingCenter && !reportsData && (
           <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl border border-white/20 p-16 text-center">
             <div className="flex flex-col items-center">
               <div className="p-8 bg-gradient-to-br from-gray-100 to-gray-200 rounded-3xl mb-8 shadow-lg">

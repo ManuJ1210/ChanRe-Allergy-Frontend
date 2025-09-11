@@ -99,11 +99,6 @@ const CompleteTesting = () => {
       }
       
       setSelectedFile(file);
-      console.log('📁 File selected:', {
-        name: file.name,
-        size: file.size,
-        type: file.type
-      });
     }
   };
 
@@ -133,13 +128,7 @@ const CompleteTesting = () => {
       
       // Add file (mandatory)
       formDataToSend.append('labReportFile', selectedFile);
-      console.log('📤 Uploading file:', selectedFile.name);
 
-      console.log('🚀 Submitting lab report upload:', {
-        testRequestId: id,
-        fileName: selectedFile.name,
-        hasNotes: !!formData.labTestingNotes.trim()
-      });
 
       const response = await API.put(`/test-requests/${id}/complete-testing`, formDataToSend, {
         headers: {

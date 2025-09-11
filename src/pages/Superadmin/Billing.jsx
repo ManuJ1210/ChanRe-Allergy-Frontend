@@ -124,33 +124,11 @@ const SuperadminBilling = () => {
 
   // Fetch data on component mount
   useEffect(() => {
-    console.log('🔄 Super Admin fetching billing data...');
     dispatch(fetchAllBillingData());
     dispatch(fetchBillingStats());
     dispatch(fetchCenters());
   }, [dispatch]);
 
-  // Debug billing data when it changes
-  useEffect(() => {
-    if (billingData && billingData.length > 0) {
-      console.log('📊 Super Admin billing data received:', billingData.map(req => {
-        const partialData = getPartialPaymentData(req._id);
-        return {
-          id: req._id,
-          patientName: req.patientName,
-          testType: req.testType,
-          centerName: req.centerName,
-          billing: req.billing ? {
-            amount: req.billing.amount,
-            paidAmount: req.billing.paidAmount || partialData.totalPaid,
-            status: req.billing.status,
-            invoiceNumber: req.billing.invoiceNumber
-          } : null,
-          partialPayments: partialData.payments
-        };
-      }));
-    }
-  }, [billingData]);
 
   // Handle filter changes
   useEffect(() => {

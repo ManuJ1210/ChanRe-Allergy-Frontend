@@ -33,7 +33,7 @@ export default function Login() {
         navigate('/dashboard/centeradmin/dashboard');
       }
       else if (role === 'doctor') {
-        // Check if it's a superadmin doctor
+        // Check if it's a superadmin consultant
         if (user.isSuperAdminStaff === true) {
           navigate('/dashboard/superadmin/doctor/dashboard');
         } else {
@@ -65,7 +65,7 @@ export default function Login() {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-slate-100 to-blue-50 px-4">
+    <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 px-4">
       <form
         onSubmit={handleSubmit}
         className="w-full max-w-md bg-white p-8 rounded-3xl shadow-2xl space-y-7 border border-blue-100"

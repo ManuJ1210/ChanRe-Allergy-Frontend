@@ -4,7 +4,7 @@ import API from '../../services/api';
 // Async thunks
 export const fetchCenterAdminDoctors = createAsyncThunk(
   'centerAdminDoctors/fetchCenterAdminDoctors',
-  async ({ page = 1, limit = 10, search = '', status = '' }, { rejectWithValue }) => {
+  async ({ page = 1, limit = 5, search = '', status = '' }, { rejectWithValue }) => {
     try {
       const params = new URLSearchParams();
       if (page) params.append('page', page);
@@ -117,7 +117,7 @@ const initialState = {
     currentPage: 1,
     totalPages: 1,
     total: 0,
-    limit: 10
+    limit: 5
   },
   filters: {
     search: '',
@@ -144,6 +144,10 @@ const centerAdminDoctorSlice = createSlice({
     setFilters: (state, action) => {
       state.filters = { ...state.filters, ...action.payload };
       state.pagination.currentPage = 1; // Reset to first page when filters change
+    },
+    setPaginationLimit: (state, action) => {
+      state.pagination.limit = action.payload;
+      state.pagination.currentPage = 1; // Reset to first page when limit changes
     },
     clearFilters: (state) => {
       state.filters = {
@@ -295,6 +299,7 @@ export const {
   clearError,
   clearSuccess,
   setFilters,
+  setPaginationLimit,
   clearFilters
 } = centerAdminDoctorSlice.actions;
 

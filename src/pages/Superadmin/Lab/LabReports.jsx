@@ -18,7 +18,9 @@ import {
   Mail,
   Phone,
   TrendingUp,
-  Activity
+  Activity,
+  ArrowLeft,
+  ArrowRight
 } from 'lucide-react';
 
 const LabReports = () => {
@@ -31,6 +33,8 @@ const LabReports = () => {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(7);
 
   // Fetch lab reports from API
   useEffect(() => {
@@ -101,10 +105,37 @@ const LabReports = () => {
     return matchesSearch && matchesStatus && matchesCenter;
   });
 
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredReports.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentReports = filteredReports.slice(startIndex, endIndex);
+
+  // Pagination handlers
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // Reset to first page when changing items per page
+  };
+
   const handleViewReport = async (reportId) => {
     try {
       setError(null); // Clear any previous errors
-      console.log('[PDF DEBUG] Starting view report for ID:', reportId);
       
       // Check if user is authenticated
       const token = localStorage.getItem('token');
@@ -113,7 +144,6 @@ const LabReports = () => {
         return;
       }
 
-      console.log('[PDF DEBUG] Making request to:', `/test-requests/download-report/${reportId}`);
       const response = await API.get(`/test-requests/download-report/${reportId}`, {
         responseType: 'blob',
         headers: {
@@ -122,27 +152,17 @@ const LabReports = () => {
         }
       });
       
-      console.log('[PDF DEBUG] Response received:', {
-        status: response.status,
-        headers: response.headers,
-        dataType: typeof response.data,
-        dataSize: response.data?.size || 'unknown'
-      });
       
       const contentType = response.headers['content-type'] || response.headers['Content-Type'];
-      console.log('[PDF DEBUG] Content-Type:', contentType);
       
       let blob;
       if (contentType && contentType.includes('application/pdf')) {
-        console.log('[PDF DEBUG] Processing as PDF blob');
         
         // Check if the PDF is too small (likely an error response)
         if (response.data.size < 1000) {
-          console.warn('[PDF DEBUG] PDF file is suspiciously small:', response.data.size, 'bytes');
           // Try to read the response as text to see the actual error
           const reader = new FileReader();
           reader.onload = function(e) {
-            console.error('[PDF DEBUG] Small PDF content:', e.target.result);
             
             // Check if it's a JSON response indicating the file is not a PDF
             try {
@@ -163,7 +183,6 @@ const LabReports = () => {
         
         blob = new Blob([response.data], { type: 'application/pdf' });
       } else {
-        console.log('[PDF DEBUG] Processing as text/JSON response');
         // Handle text/JSON response
         let pdfContent = response.data;
         if (typeof pdfContent === 'object' && pdfContent.pdfContent) {
@@ -186,35 +205,46 @@ const LabReports = () => {
         blob = new Blob([byteArray], { type: 'application/pdf' });
       }
       
-      console.log('[PDF DEBUG] Final blob created:', {
-        size: blob.size,
-        type: blob.type
-      });
       
       // Open PDF in new tab for viewing
       const url = window.URL.createObjectURL(blob);
-      console.log('[PDF DEBUG] Opening URL in new tab:', url);
       window.open(url, '_blank');
       
       // Clean up the URL after a delay
       setTimeout(() => {
         window.URL.revokeObjectURL(url);
-        console.log('[PDF DEBUG] URL revoked');
       }, 1000);
       
     } catch (error) {
-      console.error('[PDF DEBUG] Error viewing report:', error);
-      console.error('[PDF DEBUG] Error details:', {
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
-        message: error.message
-      });
+      console.error('Error viewing report:', error);
       
+      // Handle different types of errors
       if (error.response?.status === 401) {
         setError('Authentication failed. Please login again to view reports.');
       } else if (error.response?.status === 404) {
-        setError('Report not found. The report may not have been generated yet.');
+        const errorData = error.response?.data;
+        if (typeof errorData === 'object' && errorData.message) {
+          setError(`Report not found: ${errorData.message}`);
+        } else {
+          setError('Report not found. The report may not have been generated yet.');
+        }
+      } else if (error.response?.status === 400) {
+        const errorData = error.response?.data;
+        if (typeof errorData === 'object' && errorData.message) {
+          setError(`Cannot download report: ${errorData.message}`);
+          if (errorData.suggestion) {
+            setError(prev => prev + ` ${errorData.suggestion}`);
+          }
+        } else {
+          setError('Report is not available for download.');
+        }
+      } else if (error.response?.status === 500) {
+        const errorData = error.response?.data;
+        if (typeof errorData === 'object' && errorData.message) {
+          setError(`Server error: ${errorData.message}`);
+        } else {
+          setError('Server error occurred while downloading the report.');
+        }
       } else {
         setError(`Failed to view report: ${error.response?.data?.message || error.message}`);
       }
@@ -246,11 +276,9 @@ const LabReports = () => {
       if (contentType && contentType.includes('application/pdf')) {
         // Check if the PDF is too small (likely an error response)
         if (response.data.size < 1000) {
-          console.warn('[PDF DEBUG] Download PDF file is suspiciously small:', response.data.size, 'bytes');
           // Try to read the response as text to see the actual error
           const reader = new FileReader();
           reader.onload = function(e) {
-            console.error('[PDF DEBUG] Small download PDF content:', e.target.result);
           };
           reader.readAsText(response.data);
           
@@ -469,6 +497,76 @@ const LabReports = () => {
           </div>
         </div>
 
+        {/* Pagination Controls */}
+        {filteredReports.length > 0 && (
+          <div className="bg-white rounded-xl shadow-sm border border-blue-100 mb-6">
+            <div className="p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                {/* Left side - Results info and items per page */}
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                  <div className="text-xs text-slate-600">
+                    Showing {startIndex + 1} to {Math.min(endIndex, filteredReports.length)} of {filteredReports.length} results
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-600">Show:</span>
+                    <select
+                      value={itemsPerPage}
+                      onChange={(e) => handleItemsPerPageChange(parseInt(e.target.value))}
+                      className="px-3 py-1 border border-slate-300 rounded-md text-xs focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value={5}>5</option>
+                      <option value={7}>7</option>
+                      <option value={10}>10</option>
+                      <option value={15}>15</option>
+                      <option value={20}>20</option>
+                    </select>
+                    <span className="text-xs text-slate-600">per page</span>
+                  </div>
+                </div>
+
+                {/* Right side - Page navigation */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-600">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={handlePreviousPage}
+                      disabled={currentPage === 1}
+                      className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                        currentPage === 1
+                          ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
+                          : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 hover:border-slate-400'
+                      }`}
+                    >
+                      Previous
+                    </button>
+                    
+                    <button
+                      onClick={() => handlePageChange(currentPage)}
+                      className="px-3 py-1 rounded-md text-xs font-medium bg-blue-600 text-white border border-blue-600"
+                    >
+                      {currentPage}
+                    </button>
+                    
+                    <button
+                      onClick={handleNextPage}
+                      disabled={currentPage === totalPages}
+                      className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                        currentPage === totalPages
+                          ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
+                          : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 hover:border-slate-400'
+                      }`}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Reports Table */}
         <div className="bg-white rounded-2xl shadow-lg border border-blue-100 overflow-hidden">
           <div className="p-4 sm:p-6 border-b border-blue-100 bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50">
@@ -493,7 +591,7 @@ const LabReports = () => {
               </div>
             ) : (
               <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
-                {filteredReports.map(report => (
+                {currentReports.map(report => (
                   <div key={report._id} className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-4 sm:p-5 space-y-4 border border-slate-200 hover:border-blue-300 transition-all duration-200 hover:shadow-md">
                     {/* Patient Info */}
                     <div className="flex items-start justify-between">
@@ -592,7 +690,7 @@ const LabReports = () => {
                     </td>
                   </tr>
                 ) : (
-                  filteredReports.map(report => (
+                  currentReports.map(report => (
                     <tr key={report._id} className="hover:bg-gradient-to-r hover:from-slate-50 hover:to-blue-50 transition-all duration-200">
                       <td className="px-6 py-4">
                         <div>

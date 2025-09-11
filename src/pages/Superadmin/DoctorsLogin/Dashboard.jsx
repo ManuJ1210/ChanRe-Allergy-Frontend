@@ -34,9 +34,9 @@ const Dashboard = () => {
 
   return (
     <div className="p-6">
-      <h1 className="text-md font-bold text-gray-800 mb-8">Superadmin Doctor Dashboard</h1>
+      <h1 className="text-md font-bold text-gray-800 mb-8">Superadmin Consultant Dashboard</h1>
       
-      {/* Stats Cards - Superadmin Doctor Focused */}
+      {/* Stats Cards - Superadmin Consultant Focused */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center">

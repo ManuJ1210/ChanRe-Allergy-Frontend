@@ -48,6 +48,8 @@ import ViewSuperadminDoctor from '../pages/Superadmin/Docters/ViewSuperadminDoct
 import EditSuperadminDoctor from '../pages/Superadmin/Docters/EditSuperadminDoctor';
 
 import AllTestReports from '../pages/Superadmin/Docters/AllTestReports';
+import ActiveSessions from '../pages/Superadmin/Sessions/ActiveSessions';
+import LoginHistory from '../pages/Superadmin/Sessions/LoginHistory';
 import OldSuperadminTestRequestDetails from '../pages/Superadmin/Docters/SuperadminTestRequestDetails';
 
 // Test Request Pages
@@ -56,7 +58,7 @@ import SuperadminTestRequestDetails from '../pages/Superadmin/TestRequests/TestR
 import TestRequestReview from '../pages/Superadmin/DoctorsLogin/TestRequestReview';
 import TestRequestReviewDetails from '../pages/Superadmin/DoctorsLogin/TestRequestReviewDetails';
 
-// Superadmin Doctor Working Pages
+// Superadmin Consultant Working Pages
 import SuperadminDoctorDashboard from '../pages/Superadmin/DoctorsLogin/Dashboard';
 import SuperadminDoctorMyPatients from '../pages/Superadmin/DoctorsLogin/MyPatients';
 import PatientDetails from '../pages/Superadmin/DoctorsLogin/PatientDetails';
@@ -65,7 +67,7 @@ import SuperadminDoctorReviewLabReports from '../pages/Superadmin/DoctorsLogin/R
 import SuperadminDoctorPatientHistory from '../pages/Superadmin/DoctorsLogin/PatientHistory';
 import SuperadminDoctorPatientProfile from '../pages/Superadmin/DoctorsLogin/PatientProfile';
 
-// Superadmin Doctor Followups View Pages
+// Superadmin Consultant Followups View Pages
 import SuperadminDoctorViewAllergicRhinitis from '../pages/Superadmin/DoctorsLogin/Followups/ViewAllergicRhinitis';
 import SuperadminDoctorViewAtopicDermatitis from '../pages/Superadmin/DoctorsLogin/Followups/ViewAtopicDermatitis';
 import SuperadminDoctorViewAllergicConjunctivitis from '../pages/Superadmin/DoctorsLogin/Followups/ViewAllergicConjunctivitis';
@@ -247,7 +249,7 @@ export default function AppRoutes() {
         <Route path="Superadmin/dashboard" element={<SuperadminDashboard />} />
         <Route path="Superadmin" element={<SuperadminDashboard />} />
         
-        {/* Superadmin Doctor Working Routes */}
+        {/* Superadmin Consultant Working Routes */}
         <Route path="superadmin/doctor/dashboard" element={<SuperadminDoctorDashboard />} />
         <Route path="superadmin/doctor/patients" element={<PatientDetails />} />
         <Route path="superadmin/doctor/my-patients" element={<SuperadminDoctorMyPatients />} />
@@ -258,7 +260,7 @@ export default function AppRoutes() {
         <Route path="superadmin/doctor/patient/:patientId/profile" element={<SuperadminDoctorPatientProfile />} />
         <Route path="superadmin/doctor/patient/:patientId/lab-reports" element={<PatientLabReports />} />
         <Route path="superadmin/doctor/patient/:patientId/history" element={<SuperadminDoctorPatientHistory />} />
-        {/* Superadmin Doctor Followups view routes */}
+        {/* Superadmin Consultant Followups view routes */}
         <Route path="superadmin/doctor/followups/ViewAllergicRhinitis/:patientId" element={<SuperadminDoctorViewAllergicRhinitis />} />
         <Route path="superadmin/doctor/followups/ViewAtopicDermatitis/:patientId" element={<SuperadminDoctorViewAtopicDermatitis />} />
         <Route path="superadmin/doctor/followups/ViewAllergicConjunctivitis/:patientId" element={<SuperadminDoctorViewAllergicConjunctivitis />} />
@@ -275,7 +277,7 @@ export default function AppRoutes() {
         <Route path="Superadmin/Centers/ManageAdmins" element={<ManageAdmins />} />
         <Route path="Superadmin/Centers/ViewCenterInfo/:id" element={<ViewCenterInfo />} />
         
-        {/* Superadmin Doctors Routes with capital S */}
+        {/* Superadmin Consultants Routes with capital S */}
         <Route path="Superadmin/Docters/SuperAdminDoctorList" element={<SuperAdminDoctorList />} />
         <Route path="Superadmin/Docters/AddSuperadminDoctor" element={<AddSuperAdminDoctor />} />
         <Route path="Superadmin/Docters/ViewSuperadminDoctor/:id" element={<ViewSuperadminDoctor />} />
@@ -344,6 +346,10 @@ export default function AppRoutes() {
         {/* Test Request Routes */}
         <Route path="superadmin/test-requests" element={<TestRequestsList />} />
         <Route path="superadmin/test-requests/:id" element={<SuperadminTestRequestDetails />} />
+        
+        {/* Session Management Routes */}
+        <Route path="Superadmin/Sessions/ActiveSessions" element={<ActiveSessions />} />
+        <Route path="Superadmin/Sessions/LoginHistory" element={<LoginHistory />} />
         
         {/* Billing Routes */}
         <Route path="superadmin/billing" element={<SuperadminBilling />} />

@@ -99,6 +99,7 @@ const superadminBillingSlice = createSlice({
     clearReportsData: (state) => {
       state.reportsData = null;
       state.reportsError = null;
+      state.reportsLoading = false; // Reset loading state
     },
     
     // Update filters

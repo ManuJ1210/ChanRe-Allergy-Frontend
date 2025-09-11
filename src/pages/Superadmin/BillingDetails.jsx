@@ -142,13 +142,11 @@ const BillingDetails = () => {
   // Fetch billing data on component mount
   useEffect(() => {
     if (billingId) {
-      console.log('🔄 Fetching billing data for details page...');
       dispatch(fetchAllBillingData());
       
       // Set a timeout to prevent infinite loading
       const timeout = setTimeout(() => {
         if (loadingDetails) {
-          console.log('⏰ Timeout reached, stopping loading');
           setLoadingDetails(false);
           toast.error('Failed to load billing details - timeout');
           navigate('/dashboard/superadmin/billing');
@@ -162,17 +160,12 @@ const BillingDetails = () => {
   // Watch for billing data changes and find the specific record
   useEffect(() => {
     if (billingData && billingData.length > 0 && billingId) {
-      console.log('📊 Billing data received:', billingData);
-      console.log('🔍 Looking for billing ID:', billingId);
-      
       const billing = billingData.find(item => item._id === billingId);
-      console.log('📋 Found billing record:', billing);
       
       if (billing) {
         setBillingDetails(billing);
         setLoadingDetails(false);
       } else {
-        console.log('❌ Billing record not found');
         toast.error('Billing record not found');
         navigate('/dashboard/superadmin/billing');
       }

@@ -14,7 +14,9 @@ import {
   AlertTriangle,
   CheckCircle,
   XCircle,
-  RefreshCw
+  RefreshCw,
+  ArrowLeft,
+  ArrowRight
 } from 'lucide-react';
 
 const TestRequestsList = () => {
@@ -30,19 +32,21 @@ const TestRequestsList = () => {
   const [centerFilter, setCenterFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(7);
+  const [totalItems, setTotalItems] = useState(0);
   const [centers, setCenters] = useState([]);
 
   useEffect(() => {
     fetchTestRequests();
     fetchCenters();
-  }, [currentPage, statusFilter, urgencyFilter, centerFilter]);
+  }, [currentPage, statusFilter, urgencyFilter, centerFilter, itemsPerPage]);
 
   const fetchTestRequests = async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams({
         page: currentPage,
-        limit: 10,
+        limit: itemsPerPage,
         ...(statusFilter !== 'all' && { status: statusFilter }),
         ...(urgencyFilter !== 'all' && { urgency: urgencyFilter }),
         ...(centerFilter !== 'all' && { centerId: centerFilter }),
@@ -51,8 +55,23 @@ const TestRequestsList = () => {
 
       const response = await API.get(`/test-requests?${params}`);
       
-      setTestRequests(response.data.testRequests || response.data || []);
-      setTotalPages(response.data.pagination?.totalPages || response.data.totalPages || 1);
+      
+      const testRequestsData = response.data.testRequests || response.data || [];
+      setTestRequests(testRequestsData);
+      
+      // Set total pages
+      const totalPagesFromAPI = response.data.pagination?.totalPages || response.data.totalPages || 1;
+      setTotalPages(totalPagesFromAPI);
+      
+      // Set total items - use API data if available, otherwise use current page data length as fallback
+      const totalItemsFromAPI = response.data.pagination?.totalItems || response.data.totalItems;
+      if (totalItemsFromAPI !== undefined && totalItemsFromAPI !== null) {
+        setTotalItems(totalItemsFromAPI);
+      } else {
+        // Fallback: if we're on the first page and have data, use the length
+        // This is not ideal but prevents showing "0 results" when there's actually data
+        setTotalItems(testRequestsData.length);
+      }
       
     } catch (error) {
       console.error('❌ Frontend: Error fetching test requests:', error);
@@ -148,6 +167,28 @@ const TestRequestsList = () => {
     setCenterFilter('all');
     setSearchTerm('');
     setCurrentPage(1);
+  };
+
+  // Pagination handlers
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // Reset to first page when changing items per page
   };
 
   const formatDate = (dateString) => {
@@ -313,6 +354,76 @@ const TestRequestsList = () => {
           </div>
         </div>
 
+        {/* Pagination Controls */}
+        {testRequests.length > 0 && (
+          <div className="bg-white rounded-xl shadow-sm border border-blue-100 mb-6">
+            <div className="p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                {/* Left side - Results info and items per page */}
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                  <div className="text-xs text-slate-600">
+                    Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalItems || testRequests.length)} of {totalItems || testRequests.length} results
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-600">Show:</span>
+                    <select
+                      value={itemsPerPage}
+                      onChange={(e) => handleItemsPerPageChange(parseInt(e.target.value))}
+                      className="px-3 py-1 border border-slate-300 rounded-md text-xs focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value={5}>5</option>
+                      <option value={7}>7</option>
+                      <option value={10}>10</option>
+                      <option value={15}>15</option>
+                      <option value={20}>20</option>
+                    </select>
+                    <span className="text-xs text-slate-600">per page</span>
+                  </div>
+                </div>
+
+                {/* Right side - Page navigation */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-600">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={handlePreviousPage}
+                      disabled={currentPage === 1}
+                      className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                        currentPage === 1
+                          ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
+                          : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 hover:border-slate-400'
+                      }`}
+                    >
+                      Previous
+                    </button>
+                    
+                    <button
+                      onClick={() => handlePageChange(currentPage)}
+                      className="px-3 py-1 rounded-md text-xs font-medium bg-blue-600 text-white border border-blue-600"
+                    >
+                      {currentPage}
+                    </button>
+                    
+                    <button
+                      onClick={handleNextPage}
+                      disabled={currentPage === totalPages}
+                      className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                        currentPage === totalPages
+                          ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
+                          : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 hover:border-slate-400'
+                      }`}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Test Requests List */}
         <div className="bg-white rounded-xl shadow-sm border border-blue-100 overflow-hidden">
           <div className="overflow-x-auto">
@@ -417,42 +528,6 @@ const TestRequestsList = () => {
           )}
         </div>
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="mt-6 flex justify-center">
-            <nav className="flex space-x-2">
-              <button
-                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                disabled={currentPage === 1}
-                className="px-3 py-2 text-xs font-medium text-slate-500 bg-white border border-slate-300 rounded-md hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Previous
-              </button>
-              
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  className={`px-3 py-2 text-xs font-medium rounded-md ${
-                    currentPage === page
-                      ? 'bg-blue-600 text-white'
-                      : 'text-slate-500 bg-white border border-slate-300 hover:bg-slate-50'
-                  }`}
-                >
-                  {page}
-                </button>
-              ))}
-              
-              <button
-                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                disabled={currentPage === totalPages}
-                className="px-3 py-2 text-xs font-medium text-slate-500 bg-white border border-slate-300 rounded-md hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Next
-              </button>
-            </nav>
-          </div>
-        )}
       </div>
     </div>
   );

@@ -114,12 +114,6 @@ const UpdateStatus = () => {
         sampleCollectionNotes: formData.sampleCollectionNotes
       };
 
-      console.log('🚀 Submitting collection status update:', {
-        testRequestId: id,
-        requestData,
-        originalDate: formData.sampleCollectionActualDate,
-        convertedDate: requestData.sampleCollectionActualDate
-      });
 
       const response = await API.put(`/test-requests/${id}/collection-status`, requestData);
       

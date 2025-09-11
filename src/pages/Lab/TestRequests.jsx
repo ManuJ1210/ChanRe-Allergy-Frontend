@@ -34,6 +34,10 @@ export default function TestRequests() {
   const [statusFilter, setStatusFilter] = useState('All');
   const [urgencyFilter, setUrgencyFilter] = useState('All');
   const [lastRefreshTime, setLastRefreshTime] = useState(null);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [recordsPerPage, setRecordsPerPage] = useState(4);
 
   useEffect(() => {
     if (user && (user._id || user.id)) {
@@ -70,40 +74,11 @@ export default function TestRequests() {
     filterRequests();
   }, [testRequests, searchTerm, statusFilter, urgencyFilter]);
 
-  // Debug effect to log state changes
+  // Reset to first page when filters change
   useEffect(() => {
-    console.log('State updated:', {
-      testRequestsCount: testRequests.length,
-      filteredRequestsCount: filteredRequests.length
-    });
-    
-    // Log all unique statuses to help debug
-    if (testRequests.length > 0) {
-      const uniqueStatuses = [...new Set(testRequests.map(req => req.status))];
-      console.log('All unique statuses in data:', uniqueStatuses);
-      
-      // Log count for each status
-      uniqueStatuses.forEach(status => {
-        const count = testRequests.filter(req => req.status === status).length;
-        console.log(`Status "${status}": ${count} requests`);
-      });
-      
-      // Log counts for each category
-      const pendingCount = testRequests.filter(req => ['Pending', 'pending', 'PENDING'].includes(req.status)).length;
-      const assignedCount = testRequests.filter(req => ['Assigned', 'assigned', 'ASSIGNED'].includes(req.status)).length;
-      const inProgressCount = testRequests.filter(req => ['Sample_Collection_Scheduled', 'Sample_Collected', 'In_Lab_Testing', 'Testing_Completed', 'sample_collection_scheduled', 'sample_collected', 'in_lab_testing', 'testing_completed', 'In_Progress', 'in_progress'].includes(req.status)).length;
-      const completedCount = testRequests.filter(req => ['Report_Generated', 'Report_Sent', 'Completed'].includes(req.status)).length;
-      const cancelledCount = testRequests.filter(req => ['Cancelled', 'cancelled', 'CANCELLED'].includes(req.status)).length;
-      
-      console.log('Category counts:', {
-        pending: pendingCount,
-        assigned: assignedCount,
-        inProgress: inProgressCount,
-        completed: completedCount,
-        cancelled: cancelledCount
-      });
-    }
-  }, [testRequests.length, filteredRequests.length, testRequests]);
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, urgencyFilter]);
+
 
   const fetchTestRequests = async () => {
     try {
@@ -111,7 +86,6 @@ export default function TestRequests() {
       setError(null);
       const response = await API.get('/test-requests/lab-staff');
       const data = response.data;
-      console.log('Fetched test requests:', data.length);
       setTestRequests(data);
       setLastRefreshTime(new Date());
     } catch (error) {
@@ -150,15 +124,86 @@ export default function TestRequests() {
       filtered = filtered.filter(request => request.urgency === urgencyFilter);
     }
 
-    console.log('Filtering requests:', {
-      total: testRequests.length,
-      filtered: filtered.length,
-      searchTerm,
-      statusFilter,
-      urgencyFilter
-    });
 
     setFilteredRequests(filtered);
+  };
+
+  // Pagination logic
+  const totalPages = Math.ceil((filteredRequests?.length || 0) / recordsPerPage);
+  const startIndex = (currentPage - 1) * recordsPerPage;
+  const endIndex = startIndex + recordsPerPage;
+  const paginatedData = filteredRequests?.slice(startIndex, endIndex) || [];
+
+  // Pagination controls component
+  const PaginationControls = () => {
+    if (!filteredRequests || filteredRequests.length === 0) return null;
+
+    return (
+      <div className="px-8 py-6 bg-gradient-to-r from-gray-50 to-gray-100 border-t border-gray-200">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <div className="text-sm text-gray-600">
+              Showing {startIndex + 1} to {Math.min(endIndex, filteredRequests?.length || 0)} of {filteredRequests?.length || 0} results
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-gray-600">Show:</span>
+              <select
+                value={recordsPerPage}
+                onChange={(e) => {
+                  setRecordsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="px-3 py-1 text-sm border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value={4}>4</option>
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+              </select>
+              <span className="text-sm text-gray-600">per page</span>
+            </div>
+          </div>
+          
+          <div className="flex items-center space-x-4">
+            <div className="text-sm text-gray-600">
+              Page {currentPage} of {totalPages}
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:text-gray-300"
+              >
+                Previous
+              </button>
+              
+              {/* Page Numbers */}
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                <button
+                  key={pageNum}
+                  onClick={() => setCurrentPage(pageNum)}
+                  className={`px-3 py-1 rounded-md text-xs font-medium border ${
+                    currentPage === pageNum
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              ))}
+              
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:text-gray-300"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   const getStatusColor = (status) => {
@@ -637,122 +682,136 @@ export default function TestRequests() {
           </p>
         </div>
 
-        {/* Test Requests List */}
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200">
+        {/* Test Requests Table */}
+        <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
           {filteredRequests.length === 0 ? (
-                         <div className="text-center py-12">
-               <Microscope className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-               <h3 className="text-sm font-medium text-slate-900 mb-2">No test requests found</h3>
-                               <p className="text-xs text-slate-600">
-                  {testRequests.length === 0 
-                    ? "No test requests are ready for lab processing or completed yet." 
-                    : "No test requests match your current filters."}
-                </p>
-               <p className="text-xs text-slate-500 mt-2">
-                 Test requests with pending billing are handled by receptionists and center admins first.
-               </p>
-             </div>
+            <div className="text-center py-12">
+              <Microscope className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+              <h3 className="text-sm font-medium text-slate-900 mb-2">No test requests found</h3>
+              <p className="text-xs text-slate-600">
+                {testRequests.length === 0 
+                  ? "No test requests are ready for lab processing or completed yet." 
+                  : "No test requests match your current filters."}
+              </p>
+              <p className="text-xs text-slate-500 mt-2">
+                Test requests with pending billing are handled by receptionists and center admins first.
+              </p>
+            </div>
           ) : (
-            <div className="divide-y divide-slate-200">
-              {filteredRequests.map((request) => (
-                <div key={request._id} className="p-6 hover:bg-slate-50 transition-colors">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-3">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[1000px]">
+                <thead className="bg-gradient-to-r from-slate-50 to-blue-50 border-b border-slate-200">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">#</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Patient</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Doctor</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Test Type</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Urgency</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Created</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {paginatedData.map((request, index) => {
+                    const globalIndex = (currentPage - 1) * recordsPerPage + index;
+                    return (
+                    <tr key={request._id} className={`hover:bg-slate-50 transition-colors duration-150 ${index % 2 === 0 ? 'bg-white' : 'bg-slate-25'}`}>
+                      <td className="px-6 py-4 text-sm font-medium text-slate-500">
+                        #{globalIndex + 1}
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        <div>
+                          <div className="font-medium text-slate-800">{request.patientName}</div>
+                          <div className="text-slate-500">{request.patientPhone}</div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        <div>
+                          <div className="font-medium text-slate-800">{request.doctorName}</div>
+                          <div className="text-slate-500">{request.centerName}</div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        <div>
+                          <div className="font-medium text-slate-800">{request.testType}</div>
+                          <div className="text-slate-500">{request.testDescription}</div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-sm">
                         <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(request.status)}`}>
                           {getStatusIcon(request.status)}
                           <span className="ml-1">{request.status.replace(/_/g, ' ')}</span>
                         </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm">
                         <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getUrgencyColor(request.urgency)}`}>
                           {getUrgencyIcon(request.urgency)}
                           <span className="ml-1">{request.urgency}</span>
                         </span>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                      </td>
+                      <td className="px-6 py-4 text-sm">
                         <div>
-                          <h3 className="text-xs font-semibold text-slate-900 mb-1">Patient</h3>
-                          <p className="text-xs text-slate-600">{request.patientName}</p>
-                          <p className="text-xs text-slate-500">{request.patientPhone}</p>
+                          <div className="text-slate-800">{new Date(request.createdAt).toLocaleDateString()}</div>
+                          <div className="text-slate-500">{new Date(request.createdAt).toLocaleTimeString()}</div>
                         </div>
-                        <div>
-                          <h3 className="text-xs font-semibold text-slate-900 mb-1">Doctor</h3>
-                          <p className="text-xs text-slate-600">{request.doctorName}</p>
-                          <p className="text-xs text-slate-500">{request.centerName}</p>
-                        </div>
-                        <div>
-                          <h3 className="text-xs font-semibold text-slate-900 mb-1">Test Type</h3>
-                          <p className="text-xs text-slate-600">{request.testType}</p>
-                          <p className="text-xs text-slate-500">{request.testDescription}</p>
-                        </div>
-                        <div>
-                          <h3 className="text-xs font-semibold text-slate-900 mb-1">Created</h3>
-                          <p className="text-xs text-slate-600">
-                            {new Date(request.createdAt).toLocaleDateString()}
-                          </p>
-                          <p className="text-xs text-slate-500">
-                            {new Date(request.createdAt).toLocaleTimeString()}
-                          </p>
-                        </div>
-                      </div>
-
-                      {request.notes && (
-                        <div className="mb-4">
-                          <h3 className="text-xs font-semibold text-slate-900 mb-1">Notes</h3>
-                          <p className="text-xs text-slate-600">{request.notes}</p>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex flex-col gap-2 ml-4">
-                      <button
-                        onClick={() => handleViewDetails(request._id)}
-                        className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
-                      >
-                        <Eye className="h-4 w-4 mr-1" />
-                        View Details
-                      </button>
-                      <button
-                        onClick={() => handleUpdateStatus(request._id)}
-                        className="flex items-center px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
-                      >
-                        <Edit className="h-4 w-4 mr-1" />
-                        Update Status
-                      </button>
-                      {(request.status === 'Report_Generated' || request.status === 'Report_Sent' || request.status === 'Completed') && request.reportFilePath && (
-                        <>
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        <div className="flex flex-wrap gap-2">
                           <button
-                            onClick={() => handleViewReport(request._id)}
-                            className="flex items-center px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm"
+                            onClick={() => handleViewDetails(request._id)}
+                            className="inline-flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors duration-200 shadow-sm"
                           >
-                            <Eye className="h-4 w-4 mr-1" />
-                            View Report
+                            <Eye className="h-3 w-3 mr-1" />
+                            View
                           </button>
                           <button
-                            onClick={() => handleDownloadReport(request._id)}
-                            className="flex items-center px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm"
+                            onClick={() => handleUpdateStatus(request._id)}
+                            className="inline-flex items-center px-3 py-2 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700 transition-colors duration-200 shadow-sm"
                           >
-                            <Download className="h-4 w-4 mr-1" />
-                            Download Report
+                            <Edit className="h-3 w-3 mr-1" />
+                            Update
                           </button>
-                        </>
-                      )}
-                      {(request.status === 'Cancelled') && (
-                        <button
-                          onClick={() => handleDeleteRequest(request._id, request.patientName)}
-                          className="flex items-center px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
-                        >
-                          <Trash2 className="h-4 w-4 mr-1" />
-                          Delete
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
+                          {(request.status === 'Report_Generated' || request.status === 'Report_Sent' || request.status === 'Completed') && request.reportFilePath && (
+                            <>
+                              <button
+                                onClick={() => handleViewReport(request._id)}
+                                className="inline-flex items-center px-3 py-2 bg-indigo-600 text-white rounded-lg text-xs font-medium hover:bg-indigo-700 transition-colors duration-200 shadow-sm"
+                              >
+                                <Eye className="h-3 w-3 mr-1" />
+                                Report
+                              </button>
+                              <button
+                                onClick={() => handleDownloadReport(request._id)}
+                                className="inline-flex items-center px-3 py-2 bg-purple-600 text-white rounded-lg text-xs font-medium hover:bg-purple-700 transition-colors duration-200 shadow-sm"
+                              >
+                                <Download className="h-3 w-3 mr-1" />
+                                Download
+                              </button>
+                            </>
+                          )}
+                          {(request.status === 'Cancelled') && (
+                            <button
+                              onClick={() => handleDeleteRequest(request._id, request.patientName)}
+                              className="inline-flex items-center px-3 py-2 bg-red-600 text-white rounded-lg text-xs font-medium hover:bg-red-700 transition-colors duration-200 shadow-sm"
+                            >
+                              <Trash2 className="h-3 w-3 mr-1" />
+                              Delete
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
+        
+        {/* Pagination Controls */}
+        <PaginationControls />
       </div>
     </div>
   );

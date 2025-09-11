@@ -78,7 +78,7 @@ const ultraSafeRender = (value, fallback = 'N/A') => {
   }
 };
 
-export default function ReceptionistBilling() {
+function ReceptionistBilling() {
   const dispatch = useDispatch();
   const { billingRequests, loading, error } = useSelector((s) => s.receptionist);
   const { user, token } = useSelector((s) => s.auth); // Add auth state
@@ -89,7 +89,7 @@ export default function ReceptionistBilling() {
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(5);
+  const [itemsPerPage, setItemsPerPage] = useState(2);
   const [items, setItems] = useState([{ name: '', code: '', quantity: 1, unitPrice: 0 }]);
   const [taxes, setTaxes] = useState(0);
   const [discounts, setDiscounts] = useState(0);
@@ -109,7 +109,6 @@ export default function ReceptionistBilling() {
 
   useEffect(() => {
     if (user && token) {
-      console.log('🔄 Fetching billing requests...');
       dispatch(fetchReceptionistBillingRequests());
     }
   }, [dispatch, user, token]);
@@ -154,13 +153,6 @@ export default function ReceptionistBilling() {
     const updatedPayments = [...existingPayments, newPayment];
     localStorage.setItem(paymentKey, JSON.stringify(updatedPayments));
     
-    console.log('💾 Stored partial payment separately:', {
-      requestId,
-      paymentId: newPayment.id,
-      amount: newPayment.amount,
-      method: newPayment.method,
-      totalPayments: updatedPayments.length
-    });
     
     return newPayment;
   };
@@ -185,26 +177,6 @@ export default function ReceptionistBilling() {
     return allPayments.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
   };
 
-  // Debug billing data when it changes
-  useEffect(() => {
-    if (billingRequests && billingRequests.length > 0) {
-      console.log('📊 Billing requests received:', billingRequests.map(req => {
-        const partialData = getPartialPaymentData(req._id);
-        return {
-          id: req._id,
-          patientName: req.patientName,
-          testType: req.testType,
-          billing: req.billing ? {
-            amount: req.billing.amount,
-            paidAmount: req.billing.paidAmount || partialData.totalPaid,
-            status: req.billing.status,
-            invoiceNumber: req.billing.invoiceNumber
-          } : null,
-          partialPayments: partialData.payments
-        };
-      }));
-    }
-  }, [billingRequests]);
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -263,6 +235,7 @@ export default function ReceptionistBilling() {
   const endIndex = startIndex + itemsPerPage;
   const paginatedData = filtered?.slice(startIndex, endIndex) || [];
 
+
   // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1);
@@ -270,99 +243,73 @@ export default function ReceptionistBilling() {
 
   // Pagination controls component
   const PaginationControls = () => {
-    if (totalPages <= 1) return null;
-
-    const getPageNumbers = () => {
-      const pages = [];
-      const maxVisiblePages = 5;
-      
-      if (totalPages <= maxVisiblePages) {
-        for (let i = 1; i <= totalPages; i++) {
-          pages.push(i);
-        }
-      } else {
-        if (currentPage <= 3) {
-          for (let i = 1; i <= 4; i++) pages.push(i);
-          pages.push('...');
-          pages.push(totalPages);
-        } else if (currentPage >= totalPages - 2) {
-          pages.push(1);
-          pages.push('...');
-          for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
-        } else {
-          pages.push(1);
-          pages.push('...');
-          for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i);
-          pages.push('...');
-          pages.push(totalPages);
-        }
-      }
-      
-      return pages;
-    };
+    // Always show pagination if there are any filtered results
+    if (!filtered || filtered.length === 0) return null;
 
     return (
-      <div className="flex items-center justify-between bg-white px-6 py-4 border-t border-gray-200">
-        <div className="flex items-center space-x-4">
-          <div className="text-sm text-gray-700">
-            Showing <span className="font-medium">{startIndex + 1}</span> to{' '}
-            <span className="font-medium">{Math.min(endIndex, filtered?.length || 0)}</span> of{' '}
-            <span className="font-medium">{filtered?.length || 0}</span> results
-          </div>
-          <div className="flex items-center space-x-2">
-            <label className="text-sm text-gray-700">Show:</label>
-            <select
-              value={itemsPerPage}
-              onChange={(e) => {
-                setItemsPerPage(Number(e.target.value));
-                setCurrentPage(1);
-              }}
-              className="border border-gray-300 rounded-md px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value={5}>5</option>
-              <option value={10}>10</option>
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-            </select>
-            <span className="text-sm text-gray-700">per page</span>
-          </div>
-        </div>
-        
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-            disabled={currentPage === 1}
-            className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Previous
-          </button>
-          
-          <div className="flex space-x-1">
-            {getPageNumbers().map((page, index) => (
-              <button
-                key={index}
-                onClick={() => typeof page === 'number' && setCurrentPage(page)}
-                disabled={page === '...'}
-                className={`px-3 py-2 text-sm font-medium rounded-md ${
-                  page === currentPage
-                    ? 'bg-blue-600 text-white'
-                    : page === '...'
-                    ? 'text-gray-500 cursor-default'
-                    : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
-                }`}
+      <div className="px-8 py-6 bg-gradient-to-r from-gray-50 to-gray-100 border-t border-gray-200">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <div className="text-sm text-gray-600">
+              Showing {startIndex + 1} to {Math.min(endIndex, filtered?.length || 0)} of {filtered?.length || 0} results
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-gray-600">Show:</span>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="px-3 py-1 text-sm border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                {page}
-              </button>
-            ))}
+                <option value={2}>2</option>
+                <option value={4}>4</option>
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+              </select>
+              <span className="text-sm text-gray-600">per page</span>
+            </div>
           </div>
           
-          <button
-            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-            disabled={currentPage === totalPages}
-            className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Next
-          </button>
+          <div className="flex items-center space-x-4">
+            <div className="text-sm text-gray-600">
+              Page {currentPage} of {totalPages}
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:text-gray-300"
+              >
+                Previous
+              </button>
+              
+              {/* Page Numbers */}
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                <button
+                  key={pageNum}
+                  onClick={() => setCurrentPage(pageNum)}
+                  className={`px-3 py-1 rounded-md text-xs font-medium border ${
+                    currentPage === pageNum
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              ))}
+              
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:text-gray-300"
+              >
+                Next
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -416,14 +363,6 @@ export default function ReceptionistBilling() {
     const totalPaidFromStorage = partialData.totalPaid;
     const actualRemainingAmount = totalAmount - Math.max(paidAmount, totalPaidFromStorage);
     
-    console.log('💰 Opening payment modal:', {
-      totalAmount,
-      paidAmount,
-      totalPaidFromStorage,
-      actualRemainingAmount,
-      paymentHistory: partialData.payments,
-      billing: req.billing
-    });
     
     setPaymentDetails({
       paymentMethod: '',
@@ -537,14 +476,6 @@ export default function ReceptionistBilling() {
         formData.append('receiptFile', paymentDetails.receiptUpload);
       }
       
-      console.log('🚀 Sending payment data:', {
-        paymentAmount: paymentDetails.paymentAmount,
-        currentPaidAmount: paidAmount,
-        totalAmount: totalAmount,
-        isPartialPayment: paymentDetails.isPartialPayment,
-        paymentMethod: paymentDetails.paymentMethod,
-        transactionId: paymentDetails.transactionId
-      });
       
       // Try alternative API structure if the current one doesn't work
       let response;
@@ -558,7 +489,6 @@ export default function ReceptionistBilling() {
           body: formData
         });
       } catch (error) {
-        console.log('🔄 FormData approach failed, trying JSON approach...');
         // Second try: JSON approach
         const jsonPayload = {
           paymentMethod: paymentDetails.paymentMethod,
@@ -587,7 +517,6 @@ export default function ReceptionistBilling() {
       }
       
       const responseData = await response.json();
-      console.log('✅ Payment response:', responseData);
       
       // Always store payment separately for better tracking
       const paymentData = {
@@ -602,11 +531,9 @@ export default function ReceptionistBilling() {
       
       // Check if the backend properly updated paidAmount
       if (responseData.billing && responseData.billing.paidAmount !== undefined) {
-        console.log('✅ Backend returned paidAmount:', responseData.billing.paidAmount);
-        console.log('✅ Payment also stored separately with ID:', storedPayment.id);
+        // Backend returned paidAmount successfully
       } else {
-        console.log('⚠️ Backend did not return paidAmount, using frontend calculation');
-        console.log('✅ Payment stored separately with ID:', storedPayment.id);
+        // Backend did not return paidAmount, using frontend calculation
       }
       
       const newPaidAmount = paidAmount + paymentDetails.paymentAmount;
@@ -695,7 +622,7 @@ export default function ReceptionistBilling() {
       return (
         <ReceptionistLayout>
           <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4 sm:p-6">
-            <div className="max-w-7xl mx-auto">
+            <div className="max-w-full mx-auto px-4">
                              {/* Professional Header */}
                <div className="mb-8">
                  <div className="flex items-center justify-between mb-4">
@@ -713,53 +640,6 @@ export default function ReceptionistBilling() {
                        Refresh
                      </button>
                      
-                     {/* Debug button to test payment functionality */}
-                     <button 
-                       onClick={() => {
-                         console.log('🔍 Current billing data:', billingRequests);
-                         console.log('🔍 Filtered data:', filtered);
-                         const billingGeneratedBills = billingRequests?.filter(req => req.status === 'Billing_Generated') || [];
-                         console.log('🔍 Billing Generated bills:', billingGeneratedBills);
-                         if (billingGeneratedBills.length > 0) {
-                           const firstBill = billingGeneratedBills[0];
-                           console.log('🔍 First billing generated bill:', firstBill);
-                           console.log('🔍 Should show payment button:', {
-                             status: firstBill.status,
-                             billing: firstBill.billing,
-                             totalAmount: firstBill.billing?.amount || 0,
-                             paidAmount: firstBill.billing?.paidAmount || 0,
-                             remainingAmount: (firstBill.billing?.amount || 0) - (firstBill.billing?.paidAmount || 0)
-                           });
-                         }
-                         
-                         // Show all partial payments
-                         const allPayments = getAllPartialPayments();
-                         console.log('💳 All partial payments across all bills:', allPayments);
-                       }}
-                       className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors duration-200 shadow-sm"
-                     >
-                       <CheckCircle className="h-4 w-4 mr-2" />
-                       Debug Payments
-                     </button>
-                     
-                     {/* Partial Payments Summary */}
-                     {(() => {
-                       const allPayments = getAllPartialPayments();
-                       const totalPartialPayments = allPayments.length;
-                       const totalAmount = allPayments.reduce((sum, payment) => sum + payment.amount, 0);
-                       
-                       if (totalPartialPayments > 0) {
-                         return (
-                           <div className="inline-flex items-center px-3 py-2 bg-green-50 border border-green-200 rounded-lg">
-                             <div className="text-xs text-green-700">
-                               <div className="font-medium">{totalPartialPayments} Partial Payments</div>
-                               <div>Total: {currencySymbol}{totalAmount.toFixed(2)}</div>
-                             </div>
-                           </div>
-                         );
-                       }
-                       return null;
-                     })()}
                    </div>
                 </div>
                 
@@ -838,8 +718,8 @@ export default function ReceptionistBilling() {
 
           {/* Enhanced Search and Filter Section */}
           <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-6 mb-8">
-            <div className="flex flex-col lg:flex-row gap-4">
-              <div className="flex-1 relative">
+            <div className="flex flex-col xl:flex-row gap-4">
+              <div className="flex-1 relative min-w-0">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                 <input 
                   className="w-full pl-12 pr-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" 
@@ -848,25 +728,25 @@ export default function ReceptionistBilling() {
                   onChange={(e) => setSearch(e.target.value)} 
                 />
               </div>
-              <div className="relative">
-                                 <select 
-                   className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 appearance-none bg-white" 
-                   value={status} 
-                   onChange={(e) => setStatus(e.target.value)}
-                 >
-                   <option value="all">All Billing Requests</option>
-                   <option value="Pending">Bill Pending</option>
-                   <option value="Billing_Pending">Billing Pending</option>
-                   <option value="Billing_Generated">Bill Generated</option>
-                   <option value="Billing_Paid">Bill Paid & Verified</option>
-                 </select>
+              <div className="relative min-w-[200px]">
+                <select 
+                  className="w-full px-4 py-3 pr-10 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 appearance-none bg-white" 
+                  value={status} 
+                  onChange={(e) => setStatus(e.target.value)}
+                >
+                  <option value="all">All Billing Requests</option>
+                  <option value="Pending">Bill Pending</option>
+                  <option value="Billing_Pending">Billing Pending</option>
+                  <option value="Billing_Generated">Bill Generated</option>
+                  <option value="Billing_Paid">Bill Paid & Verified</option>
+                </select>
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                   <Filter className="h-5 w-5 text-slate-400" />
                 </div>
               </div>
-              <div className="relative">
+              <div className="relative min-w-[200px]">
                 <select 
-                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 appearance-none bg-white" 
+                  className="w-full px-4 py-3 pr-10 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 appearance-none bg-white" 
                   value={paymentStatus} 
                   onChange={(e) => setPaymentStatus(e.target.value)}
                 >
@@ -882,7 +762,7 @@ export default function ReceptionistBilling() {
               <button 
                 onClick={() => dispatch(fetchReceptionistBillingRequests())}
                 disabled={loading}
-                className="inline-flex items-center justify-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm font-medium"
+                className="inline-flex items-center justify-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm font-medium whitespace-nowrap"
               >
                 {loading ? (
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
@@ -906,7 +786,7 @@ export default function ReceptionistBilling() {
               </div>
             ) : filtered && filtered.length > 0 ? (
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[1000px]">
+                <table className="w-full min-w-[1200px]">
                   <thead className="bg-gradient-to-r from-slate-50 to-blue-50 border-b border-slate-200">
                     <tr>
                       <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Patient</th>
@@ -920,11 +800,13 @@ export default function ReceptionistBilling() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {filtered.map((req, index) => (
+                    {paginatedData.map((req, index) => {
+                      const globalIndex = (currentPage - 1) * itemsPerPage + index;
+                      return (
                       <tr key={req._id} className={`hover:bg-slate-50 transition-colors duration-150 ${index % 2 === 0 ? 'bg-white' : 'bg-slate-25'}`}>
                         <td className="px-6 py-4 text-sm">
                           <div className="font-medium text-slate-800">
-                            {ultraSafeRender(req.patientName) || ultraSafeRender(req.patientId?.name)}
+                            #{globalIndex + 1} {ultraSafeRender(req.patientName) || ultraSafeRender(req.patientId?.name)}
                           </div>
                         </td>
                         <td className="px-6 py-4 text-sm">
@@ -998,14 +880,7 @@ export default function ReceptionistBilling() {
                                 
                                 return (
                                   <div className="text-xs space-y-1">
-                                    <div className="text-green-600 font-medium">
-                                      Paid: {currencySymbol}{actualPaidAmount.toFixed(2)}
-                                    </div>
-                                    {isFullyPaid ? (
-                                      <div className="text-green-600 font-medium">
-                                        ✅ Fully Paid
-                                      </div>
-                                    ) : remainingAmount > 0 && (
+                                    {!isFullyPaid && remainingAmount > 0 && (
                                       <div className="text-orange-600 font-medium">
                                         Remaining: {currencySymbol}{remainingAmount.toFixed(2)}
                                       </div>
@@ -1048,19 +923,6 @@ export default function ReceptionistBilling() {
                                   const paidAmount = req.billing?.paidAmount || 0;
                                   const remainingAmount = totalAmount - paidAmount;
                                   
-                                  console.log('🔍 Payment button check for bill:', {
-                                    requestId: req._id,
-                                    patientName: req.patientName,
-                                    status: req.status,
-                                    billing: req.billing,
-                                    totalAmount,
-                                    paidAmount,
-                                    remainingAmount,
-                                    billingStatus: req.billing?.status,
-                                    shouldShowButton: remainingAmount > 0,
-                                    billingGenerated: req.status === 'Billing_Generated',
-                                    hasRemainingAmount: remainingAmount > 0
-                                  });
                                   
                                   // Always show payment button for billing generated bills
                                   // This allows you to record payments even if amounts seem wrong
@@ -1142,7 +1004,8 @@ export default function ReceptionistBilling() {
                                                      </div>
                          </td>
                        </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -1170,6 +1033,9 @@ export default function ReceptionistBilling() {
               </div>
             )}
           </div>
+          
+          {/* Pagination Controls */}
+          <PaginationControls />
 
           {/* Enhanced Bill Generation Modal */}
           {selected && (
@@ -1703,5 +1569,4 @@ export default function ReceptionistBilling() {
   return renderContent();
 }
 
-
-
+export default ReceptionistBilling;

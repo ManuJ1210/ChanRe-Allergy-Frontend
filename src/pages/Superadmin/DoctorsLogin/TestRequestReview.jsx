@@ -31,6 +31,7 @@ const TestRequestsList = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [centers, setCenters] = useState([]);
+  const [recordsPerPage, setRecordsPerPage] = useState(4);
 
   useEffect(() => {
     fetchTestRequests();
@@ -42,7 +43,7 @@ const TestRequestsList = () => {
       setLoading(true);
       const params = new URLSearchParams({
         page: currentPage,
-        limit: 10,
+        limit: recordsPerPage,
         ...(statusFilter !== 'all' && { status: statusFilter }),
         ...(urgencyFilter !== 'all' && { urgency: urgencyFilter }),
         ...(centerFilter !== 'all' && { centerId: centerFilter }),
@@ -142,6 +143,11 @@ const TestRequestsList = () => {
     setCenterFilter('all');
     setSearchTerm('');
     setCurrentPage(1);
+  };
+
+  const handleRecordsPerPageChange = (value) => {
+    setRecordsPerPage(parseInt(value));
+    setCurrentPage(1); // Reset to first page
   };
 
   const formatDate = (dateString) => {
@@ -334,12 +340,14 @@ const TestRequestsList = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-slate-200">
-                {testRequests.map((testRequest) => (
+                {testRequests.map((testRequest, index) => {
+                  const globalIndex = (currentPage - 1) * recordsPerPage + index;
+                  return (
                   <tr key={testRequest._id} className="hover:bg-slate-50">
                     <td className="px-4 py-4">
                       <div>
                         <div className="text-xs font-medium text-slate-900">
-                          {testRequest.patientName || testRequest.patientId?.name || 'N/A'}
+                          #{globalIndex + 1} {testRequest.patientName || testRequest.patientId?.name || 'N/A'}
                         </div>
                         <div className="text-xs text-slate-500">
                           Dr. {testRequest.doctorName || testRequest.doctorId?.name || 'N/A'}
@@ -394,7 +402,8 @@ const TestRequestsList = () => {
                       </button>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -408,40 +417,62 @@ const TestRequestsList = () => {
           )}
         </div>
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="mt-6 flex justify-center">
-            <nav className="flex space-x-2">
-              <button
-                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                disabled={currentPage === 1}
-                className="px-3 py-2 text-xs font-medium text-slate-500 bg-white border border-slate-300 rounded-md hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Previous
-              </button>
-              
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  className={`px-3 py-2 text-xs font-medium rounded-md ${
-                    currentPage === page
-                      ? 'bg-blue-600 text-white'
-                      : 'text-slate-500 bg-white border border-slate-300 hover:bg-slate-50'
-                  }`}
-                >
-                  {page}
-                </button>
-              ))}
-              
-              <button
-                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                disabled={currentPage === totalPages}
-                className="px-3 py-2 text-xs font-medium text-slate-500 bg-white border border-slate-300 rounded-md hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Next
-              </button>
-            </nav>
+        {/* Professional Pagination */}
+        {testRequests.length > 0 && (
+          <div className="mt-6 bg-white rounded-xl shadow-sm border border-blue-100 overflow-hidden">
+            <div className="px-8 py-6 bg-gradient-to-r from-gray-50 to-gray-100 border-t border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="text-sm text-gray-600">
+                    Showing {((currentPage - 1) * recordsPerPage) + 1} to {Math.min(currentPage * recordsPerPage, testRequests.length)} of {testRequests.length} results
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-gray-600">Show:</span>
+                    <select
+                      value={recordsPerPage}
+                      onChange={(e) => handleRecordsPerPageChange(e.target.value)}
+                      className="px-3 py-1 text-sm border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value={4}>4</option>
+                      <option value={5}>5</option>
+                      <option value={10}>10</option>
+                      <option value={20}>20</option>
+                    </select>
+                    <span className="text-sm text-gray-600">per page</span>
+                  </div>
+                </div>
+                
+                <div className="flex items-center space-x-4">
+                  <div className="text-sm text-gray-600">
+                    Page {currentPage} of {totalPages}
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                      disabled={currentPage === 1}
+                      className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:text-gray-300"
+                    >
+                      Previous
+                    </button>
+                    
+                    <button
+                      onClick={() => setCurrentPage(currentPage)}
+                      className="px-3 py-1 rounded-md text-xs font-medium bg-blue-600 text-white border border-blue-600"
+                    >
+                      {currentPage}
+                    </button>
+                    
+                    <button
+                      onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                      disabled={currentPage === totalPages}
+                      className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:text-gray-300"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>

@@ -35,7 +35,7 @@ export default function Sidebar(props) {
   return (
     <aside
       className={`
-        fixed top-0 left-0 h-screen w-[18.5rem] bg-gradient-to-br from-slate-50 to-blue-50 border-r border-blue-100 shadow-lg text-slate-700 z-60 overflow-y-auto rounded-r-3xl
+        fixed top-0 left-0 h-screen w-[18.5rem] bg-gradient-to-br from-slate-50 to-blue-50 border-r border-blue-100 shadow-lg text-slate-700 z-60 overflow-y-auto
         transition-all duration-500 ease-[cubic-bezier(0.77,0,0.175,1)]
         ${props.drawerOpen ? 'translate-x-0' : '-translate-x-full'}
         md:translate-x-0 md:z-40
@@ -128,6 +128,17 @@ export default function Sidebar(props) {
                 currentPath={location.pathname}
               />
               <SidebarGroup
+                label="Session Management"
+                icon={<FaUsers />}
+                open={centerOpen === 'sessions'}
+                toggle={() => setCenterOpen(centerOpen === 'sessions' ? null : 'sessions')}
+                links={[
+                  { to: "/dashboard/Superadmin/Sessions/ActiveSessions", label: "Active Sessions" },
+                  { to: "/dashboard/Superadmin/Sessions/LoginHistory", label: "Login History" },
+                ]}
+                currentPath={location.pathname}
+              />
+              {/* <SidebarGroup
                 label="Follow Ups"
                 icon={<FaUserCheck />}
                 open={centerOpen === 'followup'}
@@ -138,7 +149,7 @@ export default function Sidebar(props) {
     
                 ]}
                 currentPath={location.pathname}
-              />
+              /> */}
             </>
           )}
 

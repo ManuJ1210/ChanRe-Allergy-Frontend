@@ -382,10 +382,34 @@ const CenterAdminBillingDetails = () => {
               <div>
                 <label className="text-xs font-medium text-slate-600">Specialization</label>
                 <p className="text-sm text-slate-800 mt-1">
-                  {typeof billingDetails.doctorSpecialization === 'object' 
-                    ? billingDetails.doctorSpecialization?.name || billingDetails.doctorSpecialization?.specialization || 'N/A'
-                    : billingDetails.doctorSpecialization || 'N/A'
-                  }
+                  {(() => {
+                    // Handle different possible data structures for specializations
+                    let specializations = null;
+                    
+                    // Check if doctorId is populated with specializations
+                    if (billingDetails.doctorId && typeof billingDetails.doctorId === 'object' && billingDetails.doctorId.specializations) {
+                      specializations = billingDetails.doctorId.specializations;
+                    }
+                    // Check if doctorSpecialization exists
+                    else if (billingDetails.doctorSpecialization) {
+                      if (typeof billingDetails.doctorSpecialization === 'object') {
+                        specializations = billingDetails.doctorSpecialization.specializations || billingDetails.doctorSpecialization.name || billingDetails.doctorSpecialization.specialization;
+                      } else {
+                        specializations = billingDetails.doctorSpecialization;
+                      }
+                    }
+                    
+                    // Format the specializations
+                    if (specializations) {
+                      if (Array.isArray(specializations)) {
+                        return specializations.length > 0 ? specializations.join(', ') : 'N/A';
+                      } else {
+                        return specializations;
+                      }
+                    }
+                    
+                    return 'N/A';
+                  })()}
                 </p>
               </div>
             </div>

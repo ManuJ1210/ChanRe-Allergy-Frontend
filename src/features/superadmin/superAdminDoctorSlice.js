@@ -2,7 +2,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { toast } from 'react-toastify';
 import API from '../../services/api';
 
-// Management thunks (for superadmin to manage superadmin doctors)
+// Management thunks (for superadmin to manage superadmin consultants)
 export const fetchSuperAdminDoctors = createAsyncThunk(
   'superAdminDoctor/fetchSuperAdminDoctors',
   async ({ page = 1, limit = 10, search = '', status = '' }, { rejectWithValue }) => {
@@ -16,7 +16,7 @@ export const fetchSuperAdminDoctors = createAsyncThunk(
       const response = await API.get(`/superadmin/doctors?${queryParams}`);
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch superadmin doctors');
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch superadmin consultants');
     }
   }
 );
@@ -26,10 +26,10 @@ export const addSuperAdminDoctor = createAsyncThunk(
   async (doctorData, { rejectWithValue }) => {
     try {
       const response = await API.post('/superadmin/doctors', doctorData);
-      toast.success('Superadmin doctor added successfully!');
+      toast.success('Superadmin consultant added successfully!');
       return response.data;
     } catch (error) {
-      const errorMsg = error.response?.data?.message || 'Failed to add superadmin doctor';
+      const errorMsg = error.response?.data?.message || 'Failed to add superadmin consultant';
       toast.error(errorMsg);
       return rejectWithValue(errorMsg);
     }
@@ -41,10 +41,10 @@ export const deleteSuperAdminDoctor = createAsyncThunk(
   async (id, { rejectWithValue }) => {
     try {
       await API.delete(`/superadmin/doctors/${id}`);
-      toast.success('Superadmin doctor deleted successfully!');
+      toast.success('Superadmin consultant deleted successfully!');
       return id;
     } catch (error) {
-      const errorMsg = error.response?.data?.message || 'Failed to delete superadmin doctor';
+      const errorMsg = error.response?.data?.message || 'Failed to delete superadmin consultant';
       toast.error(errorMsg);
       return rejectWithValue(errorMsg);
     }
@@ -56,10 +56,10 @@ export const updateSuperAdminDoctor = createAsyncThunk(
   async ({ id, doctorData }, { rejectWithValue }) => {
     try {
       const response = await API.put(`/superadmin/doctors/${id}`, doctorData);
-      toast.success('Superadmin doctor updated successfully!');
+      toast.success('Superadmin consultant updated successfully!');
       return response.data;
     } catch (error) {
-      const errorMsg = error.response?.data?.message || 'Failed to update superadmin doctor';
+      const errorMsg = error.response?.data?.message || 'Failed to update superadmin consultant';
       toast.error(errorMsg);
       return rejectWithValue(errorMsg);
     }
@@ -74,7 +74,7 @@ export const toggleSuperAdminDoctorStatus = createAsyncThunk(
       toast.success('Doctor status updated successfully!');
       return response.data;
     } catch (error) {
-      const errorMsg = error.response?.data?.message || 'Failed to toggle superadmin doctor status';
+      const errorMsg = error.response?.data?.message || 'Failed to toggle superadmin consultant status';
       toast.error(errorMsg);
       return rejectWithValue(errorMsg);
     }
@@ -88,7 +88,7 @@ export const fetchSuperAdminDoctorStats = createAsyncThunk(
       const response = await API.get('/superadmin/doctors/stats');
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch superadmin doctor stats');
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch superadmin consultant stats');
     }
   }
 );
@@ -100,12 +100,12 @@ export const fetchSuperAdminDoctorById = createAsyncThunk(
       const response = await API.get(`/superadmin/doctors/${id}`);
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch superadmin doctor');
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch superadmin consultant');
     }
   }
 );
 
-// Working thunks (for superadmin doctors to perform their duties)
+// Working thunks (for superadmin consultants to perform their duties)
 export const fetchSuperAdminDoctorPatients = createAsyncThunk(
   'superAdminDoctor/fetchSuperAdminDoctorPatients',
   async (_, { rejectWithValue }) => {

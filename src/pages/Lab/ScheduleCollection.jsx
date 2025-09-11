@@ -52,13 +52,6 @@ export default function ScheduleCollection() {
       const response = await API.get(`/test-requests/${id}`);
       setTestRequest(response.data);
       
-      console.log('📋 Test request details loaded:', {
-        testRequestId: id,
-        status: response.data.status,
-        billingStatus: response.data.billing?.status || 'not_generated',
-        assignedLabStaffId: response.data.assignedLabStaffId,
-        workflowStage: response.data.workflowStage
-      });
       
       // Pre-fill form with existing data if available
       if (response.data.sampleCollectorId) {
@@ -168,11 +161,6 @@ export default function ScheduleCollection() {
         sampleCollectionNotes: formData.sampleCollectionNotes
       };
 
-      console.log('🚀 Submitting schedule collection request:', {
-        testRequestId: id,
-        requestData,
-        scheduledDateTime: scheduledDateTime.toISOString()
-      });
 
       const response = await API.put(`/test-requests/${id}/schedule-collection`, requestData);
       

@@ -9,7 +9,9 @@ import {
   BarChart3,
   PieChart,
   User,
-  Filter
+  Filter,
+  FileText,
+  DollarSign
 } from 'lucide-react';
 
 // Import Redux actions
@@ -27,6 +29,24 @@ import {
 
 const CenterAdminBillingReports = () => {
   const dispatch = useDispatch();
+
+  // Helper function to get partial payment data from localStorage (same as Superadmin)
+  const getPartialPaymentData = (requestId) => {
+    try {
+      const paymentKey = `partial_payment_${requestId}`;
+      const payments = JSON.parse(localStorage.getItem(paymentKey) || '[]');
+      const totalPaid = payments.reduce((sum, payment) => sum + payment.amount, 0);
+      
+      return {
+        payments: payments,
+        totalPaid: totalPaid,
+        paymentCount: payments.length
+      };
+    } catch (error) {
+      console.error('Error reading partial payment data:', error);
+      return { payments: [], totalPaid: 0, paymentCount: 0 };
+    }
+  };
   
   // Redux selectors
   const { user } = useSelector(state => state.auth);
@@ -44,6 +64,12 @@ const CenterAdminBillingReports = () => {
     endDate: ''
   });
   const [showCustomRange, setShowCustomRange] = useState(false);
+  
+  // Pagination state
+  const [currentTransactionPage, setCurrentTransactionPage] = useState(1);
+  const [currentPartialPage, setCurrentPartialPage] = useState(1);
+  const [transactionRecordsPerPage, setTransactionRecordsPerPage] = useState(4);
+  const [partialRecordsPerPage, setPartialRecordsPerPage] = useState(4);
 
   // Fetch data on component mount
   useEffect(() => {
@@ -172,6 +198,53 @@ const CenterAdminBillingReports = () => {
       toast.error('Failed to fetch reports for the selected date range. Please try again.');
     }
   };
+
+  // Pagination functions
+  const getTotalTransactionPages = () => {
+    return Math.ceil((reportsData?.billingData?.length || 0) / transactionRecordsPerPage);
+  };
+
+  const getTotalPartialPages = () => {
+    return Math.ceil((reportsData?.billingData?.length || 0) / partialRecordsPerPage);
+  };
+
+  const getCurrentTransactionData = () => {
+    if (!reportsData?.billingData) return [];
+    const startIndex = (currentTransactionPage - 1) * transactionRecordsPerPage;
+    const endIndex = startIndex + transactionRecordsPerPage;
+    return reportsData.billingData.slice(startIndex, endIndex);
+  };
+
+  const getCurrentPartialData = (partialBills) => {
+    if (!partialBills) return [];
+    const startIndex = (currentPartialPage - 1) * partialRecordsPerPage;
+    const endIndex = startIndex + partialRecordsPerPage;
+    return partialBills.slice(startIndex, endIndex);
+  };
+
+  const handleTransactionPageChange = (page) => {
+    setCurrentTransactionPage(page);
+  };
+
+  const handlePartialPageChange = (page) => {
+    setCurrentPartialPage(page);
+  };
+
+  const handleTransactionRecordsPerPageChange = (value) => {
+    setTransactionRecordsPerPage(parseInt(value));
+    setCurrentTransactionPage(1); // Reset to first page
+  };
+
+  const handlePartialRecordsPerPageChange = (value) => {
+    setPartialRecordsPerPage(parseInt(value));
+    setCurrentPartialPage(1); // Reset to first page
+  };
+
+  // Reset pagination when data changes
+  useEffect(() => {
+    setCurrentTransactionPage(1);
+    setCurrentPartialPage(1);
+  }, [reportsData]);
 
   // Export reports
   const handleExportReports = () => {
@@ -448,6 +521,544 @@ const CenterAdminBillingReports = () => {
               <PaymentStatusChart stats={reportsData.stats} />
             </div>
 
+            {/* Professional Billing Data Table */}
+            <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 mb-10 overflow-hidden">
+              <div className="p-8 border-b border-gray-200 bg-gradient-to-r from-slate-50 to-gray-50">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
+                      <FileText className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-md md:text-md font-bold text-gray-900 mb-2">Transaction Records</h3>
+                      <p className="text-gray-600 font-medium">Complete billing history with detailed analytics</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-6">
+                    <div className="text-center">
+                      <div className="text-md md:text-md font-bold text-blue-600 mb-1">{reportsData.billingData?.length || 0}</div>
+                      <div className="text-xs font-semibold text-gray-600">Total Records</div>
+                    </div>
+                    <button
+                      onClick={handleExportReports}
+                      className="group px-6 py-3 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-xl hover:from-emerald-700 hover:to-emerald-800 flex items-center shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5"
+                    >
+                      <Download className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" />
+                      <span className="font-semibold">Export Data</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gradient-to-r from-slate-100 to-gray-100">
+                    <tr>
+                      <th className="px-8 py-6 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Invoice Details</th>
+                      <th className="px-8 py-6 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Patient Information</th>
+                      <th className="px-8 py-6 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Medical Center</th>
+                      <th className="px-8 py-6 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Doctor</th>
+                      <th className="px-8 py-6 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Test Type</th>
+                      <th className="px-8 py-6 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Amount</th>
+                      <th className="px-8 py-6 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Payment Status</th>
+                      <th className="px-8 py-6 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Generated Date</th>
+                      <th className="px-8 py-6 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Payment Date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-100">
+                    {getCurrentTransactionData().map((item, index) => {
+                      const globalIndex = (currentTransactionPage - 1) * transactionRecordsPerPage + index;
+                      return (
+                      <tr key={item._id} className="hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-300 group">
+                        <td className="px-8 py-6 whitespace-nowrap">
+                          <div className="flex items-center space-x-4">
+                            <div className="p-3 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl group-hover:from-blue-200 group-hover:to-blue-300 transition-all duration-300">
+                              <FileText className="w-5 h-5 text-blue-600" />
+                            </div>
+                            <div>
+                              <div className="text-xs font-bold text-gray-900">
+                                {item.billing?.invoiceNumber || 'N/A'}
+                              </div>
+                              <div className="text-xs text-gray-500 font-medium">#{globalIndex + 1}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-8 py-6 whitespace-nowrap">
+                          <div className="flex items-center space-x-3">
+                            <div className="p-2 bg-gradient-to-br from-emerald-100 to-emerald-200 rounded-lg">
+                              <User className="w-4 h-4 text-emerald-600" />
+                            </div>
+                            <div>
+                              <div className="text-xs font-bold text-gray-900">{item.patientName || 'N/A'}</div>
+                              <div className="text-xs text-gray-500 font-medium">{item.patient?.phone || ''}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-8 py-6 whitespace-nowrap">
+                          <div className="flex items-center space-x-3">
+                            <div className="p-2 bg-gradient-to-br from-green-100 to-green-200 rounded-lg">
+                              <User className="w-4 h-4 text-green-600" />
+                            </div>
+                            <div>
+                              <div className="text-xs font-bold text-gray-900">{item.centerName || 'N/A'}</div>
+                              <div className="text-xs text-gray-500 font-medium">{item.centerCode || ''}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-8 py-6 whitespace-nowrap">
+                          <div className="flex items-center space-x-3">
+                            <div className="p-2 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg">
+                              <User className="w-4 h-4 text-blue-600" />
+                            </div>
+                            <div>
+                              <div className="text-xs font-bold text-gray-900">{item.doctorName || 'N/A'}</div>
+                              <div className="text-xs text-gray-500 font-medium">{item.doctor?.email || ''}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-8 py-6 whitespace-nowrap">
+                          <span className="px-4 py-2 text-xs font-bold bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 rounded-full border border-purple-300">
+                            {item.testType || 'N/A'}
+                          </span>
+                        </td>
+                        <td className="px-8 py-6 whitespace-nowrap">
+                          <div className="text-right">
+                            <div className="text-base md:text-sm font-bold text-gray-900">₹{item.billing?.amount?.toLocaleString() || '0'}</div>
+                            <div className="text-xs text-gray-500 font-medium">Amount</div>
+                          </div>
+                        </td>
+                        <td className="px-8 py-6 whitespace-nowrap">
+                          <span className={`inline-flex items-center px-4 py-2 text-xs font-bold rounded-full border ${
+                            item.billing?.status === 'paid' || item.billing?.status === 'verified'
+                              ? 'bg-gradient-to-r from-green-100 to-green-200 text-green-800 border-green-300'
+                              : item.billing?.status === 'generated'
+                              ? 'bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-800 border-yellow-300'
+                              : item.billing?.status === 'cancelled'
+                              ? 'bg-gradient-to-r from-red-100 to-red-200 text-red-800 border-red-300'
+                              : 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 border-gray-300'
+                          }`}>
+                            {item.billing?.status === 'paid' || item.billing?.status === 'verified' ? (
+                              <>Paid</>
+                            ) : item.billing?.status === 'generated' ? (
+                              <>Pending</>
+                            ) : item.billing?.status === 'cancelled' ? (
+                              <>Cancelled</>
+                            ) : (
+                              'Generated'
+                            )}
+                          </span>
+                        </td>
+                        <td className="px-8 py-6 whitespace-nowrap">
+                          <div className="text-xs font-semibold text-gray-900">
+                            {item.billing?.generatedAt ? new Date(item.billing.generatedAt).toLocaleDateString() : 'N/A'}
+                          </div>
+                          <div className="text-xs text-gray-500 font-medium">
+                            {item.billing?.generatedAt ? new Date(item.billing.generatedAt).toLocaleTimeString() : ''}
+                          </div>
+                        </td>
+                        <td className="px-8 py-6 whitespace-nowrap">
+                          <div className="text-xs font-semibold text-gray-900">
+                            {item.billing?.paidAt ? new Date(item.billing.paidAt).toLocaleDateString() : 'N/A'}
+                          </div>
+                          <div className="text-xs text-gray-500 font-medium">
+                            {item.billing?.paidAt ? new Date(item.billing.paidAt).toLocaleTimeString() : ''}
+                          </div>
+                        </td>
+                      </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              
+              {/* Pagination Controls */}
+              <div className="px-8 py-6 bg-gradient-to-r from-slate-50 to-gray-50 border-t border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <div className="text-sm text-gray-600">
+                      Showing {((currentTransactionPage - 1) * transactionRecordsPerPage) + 1} to {Math.min(currentTransactionPage * transactionRecordsPerPage, reportsData.billingData?.length || 0)} of {reportsData.billingData?.length || 0} results
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-gray-600">Show:</span>
+                      <select
+                        value={transactionRecordsPerPage}
+                        onChange={(e) => handleTransactionRecordsPerPageChange(e.target.value)}
+                        className="px-3 py-1 text-sm border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        <option value={4}>4</option>
+                        <option value={5}>5</option>
+                        <option value={10}>10</option>
+                        <option value={20}>20</option>
+                      </select>
+                      <span className="text-sm text-gray-600">per page</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-4">
+                    <div className="text-sm text-gray-600">
+                      Page {currentTransactionPage} of {getTotalTransactionPages()}
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => handleTransactionPageChange(currentTransactionPage - 1)}
+                        disabled={currentTransactionPage === 1}
+                        className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:text-gray-300"
+                      >
+                        Previous
+                      </button>
+                      
+                      <button
+                        onClick={() => handleTransactionPageChange(currentTransactionPage)}
+                        className="px-3 py-2 text-sm font-medium bg-purple-600 text-white rounded-lg"
+                      >
+                        {currentTransactionPage}
+                      </button>
+                      
+                      <button
+                        onClick={() => handleTransactionPageChange(currentTransactionPage + 1)}
+                        disabled={currentTransactionPage === getTotalTransactionPages()}
+                        className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:text-gray-300"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+            </div>
+
+            {/* Partial Payment History Section */}
+            {reportsData.billingData && reportsData.billingData.length > 0 && (
+              <div className="mb-8">
+                {(() => {
+                  // Calculate partial payments count
+                  const localStoragePartialCount = reportsData.billingData?.filter(item => {
+                    const partialData = getPartialPaymentData(item._id);
+                    const totalAmount = item.billing?.amount || 0;
+                    const backendPaidAmount = item.billing?.paidAmount || 0;
+                    const status = item.billing?.status;
+                    
+                    const actualPaidAmount = partialData.totalPaid > 0 ? partialData.totalPaid : backendPaidAmount;
+                    
+                    return actualPaidAmount > 0 && 
+                           (actualPaidAmount < totalAmount || partialData.totalPaid > 0);
+                  }).length || 0;
+
+                  // If no localStorage partial payments, check for status-based partial payments
+                  const statusBasedPartialCount = reportsData.billingData?.filter(item => {
+                    const status = item.billing?.status;
+                    const paidAmount = item.billing?.paidAmount || 0;
+                    const totalAmount = item.billing?.amount || 0;
+                    
+                    return (status === 'payment_received' || 
+                            status === 'generated' || 
+                            status === 'paid' ||
+                            status === 'verified' ||
+                            (paidAmount > 0 && paidAmount < totalAmount));
+                  }).length || 0;
+
+                  // Use the higher count
+                  const finalCount = Math.max(localStoragePartialCount, statusBasedPartialCount);
+
+                  // Get all partial payment keys from localStorage
+                  const partialPaymentKeys = Object.keys(localStorage).filter(key => key.startsWith('partial_payment_'));
+
+                  // Get enhanced billing data with partial payment information (same as Superadmin)
+                  const enhancedBillingData = reportsData.billingData?.map(item => {
+                    const partialData = getPartialPaymentData(item._id);
+                    const backendPaidAmount = item.billing?.paidAmount || 0;
+                    const actualPaidAmount = partialData.totalPaid > 0 ? partialData.totalPaid : backendPaidAmount;
+                    
+                    return {
+                      ...item,
+                      billing: {
+                        ...item.billing,
+                        paidAmount: actualPaidAmount,
+                        partialPayments: partialData.payments || []
+                      }
+                    };
+                  }) || [];
+
+                  // Filter for bills with partial payment history (same as Superadmin)
+                  let partialBills = enhancedBillingData.filter(item => {
+                    const partialData = getPartialPaymentData(item._id);
+                    const totalAmount = item.billing?.amount || 0;
+                    const backendPaidAmount = item.billing?.paidAmount || 0;
+                    const status = item.billing?.status;
+                    
+                    // Calculate actual paid amount (use localStorage if available, otherwise backend)
+                    const actualPaidAmount = partialData.totalPaid > 0 ? partialData.totalPaid : backendPaidAmount;
+                    
+                    
+                    // Show bills that have partial payments (paid some amount)
+                    // Include both outstanding and completed partial payments for center admin visibility
+                    return actualPaidAmount > 0 && 
+                           (actualPaidAmount < totalAmount || partialData.totalPaid > 0);
+                  });
+
+
+                  // If no partial bills found in localStorage, try a different approach
+                  // Check if there are bills with status that might indicate partial payment
+                  const statusBasedPartial = reportsData.billingData?.filter(item => {
+                    const status = item.billing?.status;
+                    const paidAmount = item.billing?.paidAmount || 0;
+                    const totalAmount = item.billing?.amount || 0;
+                    
+                    
+                    // Check for status that might indicate partial payment
+                    // Include bills with partial payments (both outstanding and completed)
+                    return (status === 'payment_received' || 
+                            status === 'generated' || 
+                            status === 'paid' ||
+                            status === 'verified' ||
+                            (paidAmount > 0 && paidAmount < totalAmount));
+                  }) || [];
+
+
+                  // Use status-based partial bills if localStorage doesn't have any
+                  const finalPartialBills = partialBills.length > 0 ? partialBills : statusBasedPartial;
+
+                  // Enhance the partial bills with localStorage data
+                  const enhancedPartialBills = finalPartialBills.map(item => {
+                    const partialData = getPartialPaymentData(item._id);
+                    const totalAmount = item.billing?.amount || 0;
+                    const backendPaidAmount = item.billing?.paidAmount || 0;
+                    
+                    // Use localStorage data if available, otherwise use backend data
+                    const actualPaidAmount = partialData.totalPaid > 0 ? partialData.totalPaid : backendPaidAmount;
+                    
+                    return {
+                      ...item,
+                      billing: {
+                        ...item.billing,
+                        paidAmount: actualPaidAmount,
+                        partialPayments: partialData.payments,
+                        remainingAmount: totalAmount - actualPaidAmount
+                      }
+                    };
+                  });
+                  
+
+                  return enhancedPartialBills.length > 0 ? (
+                    <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8">
+                      <div className="flex items-center mb-6">
+                        <div className="p-4 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg mr-6">
+                          <DollarSign className="w-8 h-8 text-white" />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-bold text-orange-800 mb-1">Partial Payment History</h3>
+                          <p className="text-sm text-orange-700">Patients who made partial payments - complete payment timeline</p>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-3">
+                        {getCurrentPartialData(enhancedPartialBills).map((item, index) => {
+                          const globalIndex = (currentPartialPage - 1) * partialRecordsPerPage + index;
+                          const paidAmount = item.billing?.paidAmount || 0;
+                          const totalAmount = item.billing?.amount || 0;
+                          const remainingAmount = item.billing?.remainingAmount || (totalAmount - paidAmount);
+                          const paymentPercentage = Math.round((paidAmount / totalAmount) * 100);
+                          const partialPayments = item.billing?.partialPayments || [];
+                          const isFullyPaid = remainingAmount <= 0;
+                          
+                          return (
+                            <div key={item._id} className="bg-white rounded-lg p-3 border border-orange-200 shadow-sm hover:shadow-md transition-all duration-200">
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center space-x-2">
+                                  <div className="p-1.5 bg-orange-100 rounded-md">
+                                    <FileText className="w-3 h-3 text-orange-600" />
+                                  </div>
+                                  <div>
+                                    <div className="text-xs font-bold text-gray-900">
+                                      {item.billing?.invoiceNumber || `Bill #${globalIndex + 1}`}
+                                    </div>
+                                    <div className="text-xs text-gray-600">{item.patientName || 'N/A'}</div>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <div className={`text-xs font-bold ${isFullyPaid ? 'text-green-600' : 'text-orange-600'}`}>
+                                    {isFullyPaid ? '100% Paid' : `${paymentPercentage}% Paid`}
+                                  </div>
+                                  <div className="text-xs text-gray-500">
+                                    {item.centerName || 'N/A'}
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              <div className="grid grid-cols-3 gap-2 mb-2">
+                                <div className="text-center p-1.5 bg-blue-50 rounded-md">
+                                  <div className="text-xs font-bold text-blue-600">₹{totalAmount.toLocaleString()}</div>
+                                  <div className="text-xs text-blue-700">Total</div>
+                                </div>
+                                <div className="text-center p-1.5 bg-green-50 rounded-md">
+                                  <div className="text-xs font-bold text-green-600">₹{paidAmount.toLocaleString()}</div>
+                                  <div className="text-xs text-green-700">Paid</div>
+                                </div>
+                                <div className="text-center p-1.5 bg-red-50 rounded-md">
+                                  <div className="text-xs font-bold text-red-600">₹{remainingAmount.toLocaleString()}</div>
+                                  <div className="text-xs text-red-700">{isFullyPaid ? 'Complete' : 'Remaining'}</div>
+                                </div>
+                              </div>
+
+                              {/* Payment Timeline */}
+                              {partialPayments.length > 0 && (
+                                <div className="mb-2">
+                                  <div className="text-xs font-semibold text-gray-700 mb-1">Payment Timeline:</div>
+                                  <div className="space-y-1">
+                                    {partialPayments.map((payment, paymentIndex) => (
+                                      <div key={paymentIndex} className="flex items-center justify-between bg-gray-50 rounded-md p-1.5">
+                                        <div className="flex items-center space-x-2">
+                                          <div className="w-4 h-4 bg-green-100 rounded-full flex items-center justify-center">
+                                            <span className="text-xs font-bold text-green-600">{paymentIndex + 1}</span>
+                                          </div>
+                                          <div>
+                                            <div className="text-xs font-bold text-gray-900">₹{payment.amount?.toLocaleString()}</div>
+                                            <div className="text-xs text-gray-600">
+                                              {payment.timestamp ? new Date(payment.timestamp).toLocaleDateString() : 'N/A'} at{' '}
+                                              {payment.timestamp ? new Date(payment.timestamp).toLocaleTimeString() : 'N/A'}
+                                            </div>
+                                          </div>
+                                        </div>
+                                        <div className="text-xs text-gray-500">
+                                          #{paymentIndex + 1}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Fallback for bills without detailed payment history */}
+                              {partialPayments.length === 0 && (
+                                <div className="mb-2">
+                                  <div className="text-xs font-semibold text-gray-700 mb-1">Payment Info:</div>
+                                  <div className="bg-gray-50 rounded-md p-1.5">
+                                    <div className="flex items-center justify-between">
+                                      <div>
+                                        <div className="text-xs font-bold text-gray-900">First Payment</div>
+                                        <div className="text-xs text-gray-600">
+                                          {item.billing?.paidAt ? new Date(item.billing.paidAt).toLocaleDateString() : 'N/A'} at{' '}
+                                          {item.billing?.paidAt ? new Date(item.billing.paidAt).toLocaleTimeString() : 'N/A'}
+                                        </div>
+                                      </div>
+                                      <div className="text-xs text-gray-500">
+                                        {isFullyPaid ? 'Completed' : 'Partial'}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                              
+                              <div className="flex items-center justify-between text-xs text-gray-600 pt-1 border-t border-gray-100">
+                                <div className="flex items-center space-x-3">
+                                  <span>
+                                    <strong>Generated:</strong> {item.billing?.generatedAt ? new Date(item.billing.generatedAt).toLocaleDateString() : 'N/A'}
+                                  </span>
+                                  <span>
+                                    <strong>Status:</strong> {item.billing?.status || 'N/A'}
+                                  </span>
+                                </div>
+                                <div className="flex items-center space-x-1">
+                                  <div className={`w-1.5 h-1.5 rounded-full ${isFullyPaid ? 'bg-green-400' : 'bg-orange-400'}`}></div>
+                                  <span className={`font-semibold text-xs ${isFullyPaid ? 'text-green-600' : 'text-orange-600'}`}>
+                                    {isFullyPaid ? 'Fully Paid' : 'Outstanding'}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      
+                        {/* Pagination Controls for Partial Payment History */}
+                        <div className="pt-4 border-t border-orange-200">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-4">
+                              <div className="text-sm text-orange-600">
+                                Showing {((currentPartialPage - 1) * partialRecordsPerPage) + 1} to {Math.min(currentPartialPage * partialRecordsPerPage, enhancedPartialBills.length)} of {enhancedPartialBills.length} results
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <span className="text-sm text-orange-600">Show:</span>
+                                <select
+                                  value={partialRecordsPerPage}
+                                  onChange={(e) => handlePartialRecordsPerPageChange(e.target.value)}
+                                  className="px-3 py-1 text-sm border border-orange-300 rounded-lg bg-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                >
+                                  <option value={4}>4</option>
+                                  <option value={5}>5</option>
+                                  <option value={10}>10</option>
+                                  <option value={20}>20</option>
+                                </select>
+                                <span className="text-sm text-orange-600">per page</span>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center space-x-4">
+                              <div className="text-sm text-orange-600">
+                                Page {currentPartialPage} of {Math.ceil(enhancedPartialBills.length / partialRecordsPerPage)}
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <button
+                                  onClick={() => handlePartialPageChange(currentPartialPage - 1)}
+                                  disabled={currentPartialPage === 1}
+                                  className="px-3 py-2 text-sm font-medium text-orange-500 bg-white border border-orange-300 rounded-lg hover:bg-orange-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:text-orange-300"
+                                >
+                                  Previous
+                                </button>
+                                
+                                <button
+                                  onClick={() => handlePartialPageChange(currentPartialPage)}
+                                  className="px-3 py-2 text-sm font-medium bg-purple-600 text-white rounded-lg"
+                                >
+                                  {currentPartialPage}
+                                </button>
+                                
+                                <button
+                                  onClick={() => handlePartialPageChange(currentPartialPage + 1)}
+                                  disabled={currentPartialPage === Math.ceil(enhancedPartialBills.length / partialRecordsPerPage)}
+                                  className="px-3 py-2 text-sm font-medium text-orange-500 bg-white border border-orange-300 rounded-lg hover:bg-orange-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:text-orange-300"
+                                >
+                                  Next
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {enhancedPartialBills.length === 0 && (
+                          <div className="text-center py-8">
+                            <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
+                              <p className="text-gray-600 font-medium">No partial payments found for the selected period</p>
+                              <p className="text-sm text-gray-500 mt-2">All patients paid in full or haven't made any payments yet</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8">
+                      <div className="flex items-center mb-6">
+                        <div className="p-4 bg-gradient-to-br from-gray-400 to-gray-500 rounded-xl shadow-lg mr-6">
+                          <DollarSign className="w-8 h-8 text-white" />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-bold text-gray-700 mb-1">Partial Payment History</h3>
+                          <p className="text-sm text-gray-600">No partial payments found for the selected period</p>
+                        </div>
+                      </div>
+                      <div className="text-center py-8">
+                        <div className="p-4 bg-gray-100 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                          <DollarSign className="w-8 h-8 text-gray-500" />
+                        </div>
+                        <p className="text-gray-600 font-medium">All patients have either paid in full or haven't made any payments yet</p>
+                        <p className="text-sm text-gray-500 mt-2">No partial payment records available</p>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
             {/* Professional Report Summary */}
             <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-10">
               <div className="flex items-center mb-8">
@@ -460,43 +1071,80 @@ const CenterAdminBillingReports = () => {
                 </div>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-10">
-                <div className="text-center p-8 bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl border-2 border-blue-200 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-                  <div className="p-4 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl w-20 h-20 mx-auto mb-6 flex items-center justify-center shadow-lg">
-                    <BarChart3 className="w-10 h-10 text-white" />
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-10">
+                <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border border-blue-200 shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-0.5">
+                  <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg w-12 h-12 mx-auto mb-3 flex items-center justify-center shadow-sm">
+                    <BarChart3 className="w-6 h-6 text-white" />
                   </div>
-                  <div className="text-md md:text-md font-bold text-blue-600 mb-3">{reportsData.stats.totalBills}</div>
-                  <div className="text-base md:text-sm font-bold text-blue-800 mb-2">Total Bills</div>
-                  <div className="text-xs text-blue-600 font-semibold">Generated</div>
+                  <div className="text-lg font-bold text-blue-600 mb-2">{reportsData.stats.totalBills}</div>
+                  <div className="text-sm font-bold text-blue-800 mb-1">Total Bills</div>
+                  <div className="text-xs text-blue-600 font-medium">Generated</div>
                 </div>
-                <div className="text-center p-8 bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-2xl border-2 border-emerald-200 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-                  <div className="p-4 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl w-20 h-20 mx-auto mb-6 flex items-center justify-center shadow-lg">
-                    <User className="w-10 h-10 text-white" />
+                <div className="text-center p-4 bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl border border-emerald-200 shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-0.5">
+                  <div className="p-3 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg w-12 h-12 mx-auto mb-3 flex items-center justify-center shadow-sm">
+                    <User className="w-6 h-6 text-white" />
                   </div>
-                  <div className="text-md md:text-md font-bold text-emerald-600 mb-3">{reportsData.stats.paidBills}</div>
-                  <div className="text-base md:text-sm font-bold text-emerald-800 mb-2">Paid Bills</div>
-                  <div className="text-xs text-emerald-600 font-semibold">
+                  <div className="text-lg font-bold text-emerald-600 mb-2">{reportsData.stats.paidBills}</div>
+                  <div className="text-sm font-bold text-emerald-800 mb-1">Paid Bills</div>
+                  <div className="text-xs text-emerald-600 font-medium">
                     {reportsData.stats.totalBills > 0 ? 
                       `${Math.round((reportsData.stats.paidBills / reportsData.stats.totalBills) * 100)}%` : 
                       '0%'
-                    } Success Rate
+                    } Success
                   </div>
                 </div>
-                <div className="text-center p-8 bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-2xl border-2 border-yellow-200 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-                  <div className="p-4 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-2xl w-20 h-20 mx-auto mb-6 flex items-center justify-center shadow-lg">
-                    <Calendar className="w-10 h-10 text-white" />
+                <div className="text-center p-4 bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl border border-yellow-200 shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-0.5">
+                  <div className="p-3 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg w-12 h-12 mx-auto mb-3 flex items-center justify-center shadow-sm">
+                    <Calendar className="w-6 h-6 text-white" />
                   </div>
-                  <div className="text-md md:text-md font-bold text-yellow-600 mb-3">{reportsData.stats.pendingBills}</div>
-                  <div className="text-base md:text-sm font-bold text-yellow-800 mb-2">Pending Bills</div>
-                  <div className="text-xs text-yellow-600 font-semibold">Awaiting Payment</div>
+                  <div className="text-lg font-bold text-yellow-600 mb-2">{reportsData.stats.pendingBills}</div>
+                  <div className="text-sm font-bold text-yellow-800 mb-1">Pending Bills</div>
+                  <div className="text-xs text-yellow-600 font-medium">Awaiting Payment</div>
                 </div>
-                <div className="text-center p-8 bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl border-2 border-purple-200 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-                  <div className="p-4 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl w-20 h-20 mx-auto mb-6 flex items-center justify-center shadow-lg">
-                    <TrendingUp className="w-10 h-10 text-white" />
+                <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl border border-purple-200 shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-0.5">
+                  <div className="p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg w-12 h-12 mx-auto mb-3 flex items-center justify-center shadow-sm">
+                    <TrendingUp className="w-6 h-6 text-white" />
                   </div>
-                  <div className="text-md md:text-md font-bold text-purple-600 mb-3">₹{reportsData.stats.totalAmount.toLocaleString()}</div>
-                  <div className="text-base md:text-sm font-bold text-purple-800 mb-2">Total Revenue</div>
-                  <div className="text-xs text-purple-600 font-semibold">Center Revenue</div>
+                  <div className="text-lg font-bold text-purple-600 mb-2">₹{reportsData.stats.totalAmount.toLocaleString()}</div>
+                  <div className="text-sm font-bold text-purple-800 mb-1">Total Revenue</div>
+                  <div className="text-xs text-purple-600 font-medium">Center Revenue</div>
+                </div>
+                <div className="text-center p-4 bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl border border-orange-200 shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-0.5">
+                  <div className="p-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg w-12 h-12 mx-auto mb-3 flex items-center justify-center shadow-sm">
+                    <DollarSign className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="text-lg font-bold text-orange-600 mb-2">
+                    {(() => {
+                      const localStoragePartialCount = reportsData.billingData?.filter(item => {
+                        const partialData = getPartialPaymentData(item._id);
+                        const totalAmount = item.billing?.amount || 0;
+                        const backendPaidAmount = item.billing?.paidAmount || 0;
+                        
+                        const actualPaidAmount = partialData.totalPaid > 0 ? partialData.totalPaid : backendPaidAmount;
+                        
+                        // Use Superadmin logic - count bills with partial payment history
+                        return actualPaidAmount > 0 && 
+                               (actualPaidAmount < totalAmount || partialData.totalPaid > 0);
+                      }).length || 0;
+
+                      const statusBasedPartialCount = reportsData.billingData?.filter(item => {
+                        const status = item.billing?.status;
+                        const paidAmount = item.billing?.paidAmount || 0;
+                        const totalAmount = item.billing?.amount || 0;
+                        
+                        // Use Superadmin logic - include bills with partial payments
+                        return (status === 'payment_received' || 
+                                status === 'generated' || 
+                                status === 'paid' ||
+                                status === 'verified' ||
+                                (paidAmount > 0 && paidAmount < totalAmount));
+                      }).length || 0;
+
+                      return Math.max(localStoragePartialCount, statusBasedPartialCount);
+                    })()}
+                  </div>
+                  <div className="text-sm font-bold text-orange-800 mb-1">Partial Bills</div>
+                  <div className="text-xs text-orange-600 font-medium">Partial Payments</div>
                 </div>
               </div>
               
@@ -576,3 +1224,4 @@ const CenterAdminBillingReports = () => {
 };
 
 export default CenterAdminBillingReports;
+
