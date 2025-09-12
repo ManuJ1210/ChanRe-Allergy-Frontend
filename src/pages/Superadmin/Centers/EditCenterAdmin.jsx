@@ -96,7 +96,7 @@ export default function EditCenterAdmin() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-3 sm:p-4 md:p-6">
+      <div className="min-h-screen  p-3 sm:p-4 md:p-6">
         <div className="max-w-4xl mx-auto">
           <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-6 sm:p-8">
             <div className="text-center">
@@ -110,7 +110,7 @@ export default function EditCenterAdmin() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-3 sm:p-4 md:p-6">
+    <div className="min-h-screen  p-3 sm:p-4 md:p-6">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-6 sm:mb-8">
