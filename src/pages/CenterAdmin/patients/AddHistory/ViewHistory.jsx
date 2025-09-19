@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { ArrowLeft, Calendar, FileText, User, CheckCircle, AlertCircle } from "lucide-react";
+import { ArrowLeft, Calendar, FileText, User, CheckCircle, AlertCircle, Edit } from "lucide-react";
 import { fetchHistory } from "../../../../features/centerAdmin/centerAdminThunks";
 
 const ViewHistory = () => {
@@ -114,13 +114,24 @@ const ViewHistory = () => {
           {history.map((historyRecord, index) => (
             <div key={historyRecord._id || index} className="bg-white rounded-xl shadow-sm border border-blue-100">
           <div className="p-6 border-b border-blue-100">
-            <h2 className="text-sm font-semibold text-slate-800 flex items-center">
-              <FileText className="h-5 w-5 mr-2 text-blue-500" />
-                  History Record #{index + 1}
-            </h2>
-            <div className="flex items-center gap-2 text-xs text-blue-500 mt-2">
-              <Calendar className="h-4 w-4" />
-                  {historyRecord.createdAt ? new Date(historyRecord.createdAt).toLocaleDateString() : "N/A"}
+            <div className="flex justify-between items-start">
+              <div>
+                <h2 className="text-sm font-semibold text-slate-800 flex items-center">
+                  <FileText className="h-5 w-5 mr-2 text-blue-500" />
+                      History Record #{index + 1}
+                </h2>
+                <div className="flex items-center gap-2 text-xs text-blue-500 mt-2">
+                  <Calendar className="h-4 w-4" />
+                      {historyRecord.createdAt ? new Date(historyRecord.createdAt).toLocaleDateString() : "N/A"}
+                </div>
+              </div>
+              <button
+                onClick={() => navigate(`/dashboard/centeradmin/patients/edithistory/${patientId}/${historyRecord._id}`)}
+                className="flex items-center gap-2 px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs"
+              >
+                <Edit className="h-3 w-3" />
+                Edit
+              </button>
             </div>
           </div>
 

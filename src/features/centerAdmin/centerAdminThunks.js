@@ -515,6 +515,31 @@ export const addPatientHistory = createAsyncThunk(
   }
 );
 
+// Update patient history (for center admin)
+export const updatePatientHistory = createAsyncThunk(
+  'centerAdmin/updatePatientHistory',
+  async ({ historyId, historyData }, { dispatch }) => {
+    try {
+      const formData = new FormData();
+      const formCopy = { ...historyData };
+      const file = formCopy.reportFile;
+      delete formCopy.reportFile;
+
+      formData.append('formData', JSON.stringify(formCopy));
+      if (file) formData.append('reportFile', file);
+
+      const res = await API.put(`/history/${historyId}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      dispatch(setAddHistorySuccess(true));
+      return res.data;
+    } catch (error) {
+      dispatch(setError(error.response?.data?.message || 'Failed to update patient history'));
+      throw error;
+    }
+  }
+);
+
 // Fetch tests
 export const fetchTests = createAsyncThunk(
   'centerAdmin/fetchTests',

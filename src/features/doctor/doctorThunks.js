@@ -227,6 +227,34 @@ export const addPatientHistory = createAsyncThunk(
   }
 );
 
+// ✅ Update patient history (for doctors)
+export const updatePatientHistory = createAsyncThunk(
+  'doctor/updatePatientHistory',
+  async ({ historyId, historyData }, { rejectWithValue }) => {
+    try {
+      const formData = new FormData();
+      const formCopy = { ...historyData };
+      const file = formCopy.reportFile;
+      delete formCopy.reportFile;
+      formData.append('formData', JSON.stringify(formCopy));
+      if (file) formData.append('reportFile', file);
+      const token = localStorage.getItem('token');
+      const response = await API.put(`/history/${historyId}`, formData, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      toast.success('Patient history updated successfully!');
+      return response.data;
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || 'Failed to update patient history';
+      toast.error(errorMsg);
+      return rejectWithValue(errorMsg);
+    }
+  }
+);
+
 // ✅ Add patient medication (for doctors)
 export const addPatientMedication = createAsyncThunk(
   'doctor/addPatientMedication',

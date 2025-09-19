@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import { fetchPatientHistory } from '../../features/doctor/doctorThunks';
-import { ArrowLeft, FileText, Calendar, User, Activity, Download } from 'lucide-react';
+import { ArrowLeft, FileText, Calendar, User, Activity, Download, Edit } from 'lucide-react';
 import API from "../../services/api";
 
 const ViewHistory = () => {
@@ -83,12 +83,23 @@ const ViewHistory = () => {
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Patient Details
           </button>
-          <h1 className="text-3xl font-bold text-slate-800 mb-2">
-            Medical History Details
-          </h1>
-          <p className="text-slate-600">
-            Complete medical history and examination records
-          </p>
+          <div className="flex justify-between items-start">
+            <div>
+              <h1 className="text-3xl font-bold text-slate-800 mb-2">
+                Medical History Details
+              </h1>
+              <p className="text-slate-600">
+                Complete medical history and examination records
+              </p>
+            </div>
+            <button
+              onClick={() => navigate(`/dashboard/doctor/patients/edithistory/${patientId}/${history._id}`)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Edit className="h-4 w-4" />
+              Edit History
+            </button>
+          </div>
         </div>
 
         {/* History Details */}
