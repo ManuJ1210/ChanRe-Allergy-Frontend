@@ -499,28 +499,13 @@ const CenterAdminBillingReports = () => {
         {/* Reports Content */}
         {!reportsLoading && reportsData && (
           <>
-            {/* Revenue Summary Cards */}
-            <RevenueSummaryCards stats={reportsData.stats} period={selectedPeriod} />
+           
+           
 
-            {/* Charts Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-              {/* Daily Revenue Chart */}
-              <DailyRevenueChart data={reportsData.dailyStats} />
+           
+         
 
-              {/* Monthly Revenue Chart */}
-              <MonthlyRevenueChart data={reportsData.monthlyStats} />
-            </div>
-
-            {/* Doctor Performance Chart */}
-            <div className="mb-8">
-              <DoctorPerformanceChart data={reportsData.doctorStats} />
-            </div>
-
-            {/* Payment Status Chart */}
-            <div className="mb-8">
-              <PaymentStatusChart stats={reportsData.stats} />
-            </div>
-
+           
             {/* Professional Billing Data Table */}
             <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 mb-10 overflow-hidden">
               <div className="p-8 border-b border-gray-200 bg-gradient-to-r from-slate-50 to-gray-50">
@@ -628,25 +613,81 @@ const CenterAdminBillingReports = () => {
                           </div>
                         </td>
                         <td className="px-8 py-6 whitespace-nowrap">
-                          <span className={`inline-flex items-center px-4 py-2 text-xs font-bold rounded-full border ${
-                            item.billing?.status === 'paid' || item.billing?.status === 'verified'
-                              ? 'bg-gradient-to-r from-green-100 to-green-200 text-green-800 border-green-300'
-                              : item.billing?.status === 'generated'
-                              ? 'bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-800 border-yellow-300'
-                              : item.billing?.status === 'cancelled'
-                              ? 'bg-gradient-to-r from-red-100 to-red-200 text-red-800 border-red-300'
-                              : 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 border-gray-300'
-                          }`}>
-                            {item.billing?.status === 'paid' || item.billing?.status === 'verified' ? (
-                              <>Paid</>
-                            ) : item.billing?.status === 'generated' ? (
-                              <>Pending</>
-                            ) : item.billing?.status === 'cancelled' ? (
-                              <>Cancelled</>
-                            ) : (
-                              'Generated'
-                            )}
-                          </span>
+                          {(() => {
+                            // Calculate actual payment status based on amounts (same logic as main Billing page)
+                            const partialData = getPartialPaymentData(item._id);
+                            const totalPaidFromStorage = partialData.totalPaid;
+                            const backendPaidAmount = item.billing?.paidAmount || 0;
+                            const totalAmount = item.billing?.amount || 0;
+                            const status = item.billing?.status;
+                            
+                            // Check if bill is fully paid by status
+                            const isFullyPaidByStatus = status === 'paid' || status === 'verified';
+                            
+                            // Calculate actual paid amount - prioritize localStorage data over backend status
+                            let actualPaidAmount;
+                            if (totalPaidFromStorage > 0) {
+                              // If there are partial payments in localStorage, use that amount
+                              actualPaidAmount = totalPaidFromStorage;
+                            } else if (isFullyPaidByStatus && backendPaidAmount === 0) {
+                              // Only if no localStorage payments and status is paid with 0 backend amount, assume full payment
+                              actualPaidAmount = totalAmount;
+                            } else {
+                              // Use backend amount as fallback
+                              actualPaidAmount = backendPaidAmount;
+                            }
+                            
+                            // Check if this bill was paid in multiple installments
+                            const hasMultiplePayments = partialData.paymentCount > 1;
+                            
+                            // Determine payment status
+                            if (totalAmount > 0) {
+                              if (actualPaidAmount >= totalAmount) {
+                                if (hasMultiplePayments) {
+                                  return (
+                                    <span className="inline-flex items-center px-4 py-2 text-xs font-bold rounded-full border bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 border-blue-300">
+                                      Partially Fully Paid
+                                    </span>
+                                  );
+                                } else {
+                                  return (
+                                    <span className="inline-flex items-center px-4 py-2 text-xs font-bold rounded-full border bg-gradient-to-r from-green-100 to-green-200 text-green-800 border-green-300">
+                                      Fully Paid
+                                    </span>
+                                  );
+                                }
+                              } else if (actualPaidAmount > 0) {
+                                return (
+                                  <span className="inline-flex items-center px-4 py-2 text-xs font-bold rounded-full border bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 border-purple-300">
+                                    Partially Paid
+                                  </span>
+                                );
+                              }
+                            }
+                            
+                            // Fallback to original status logic
+                            return (
+                              <span className={`inline-flex items-center px-4 py-2 text-xs font-bold rounded-full border ${
+                                status === 'paid' || status === 'verified'
+                                  ? 'bg-gradient-to-r from-green-100 to-green-200 text-green-800 border-green-300'
+                                  : status === 'generated'
+                                  ? 'bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-800 border-yellow-300'
+                                  : status === 'cancelled'
+                                  ? 'bg-gradient-to-r from-red-100 to-red-200 text-red-800 border-red-300'
+                                  : 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 border-gray-300'
+                              }`}>
+                                {status === 'paid' || status === 'verified' ? (
+                                  <>Paid</>
+                                ) : status === 'generated' ? (
+                                  <>Generated</>
+                                ) : status === 'cancelled' ? (
+                                  <>Cancelled</>
+                                ) : (
+                                  'Generated'
+                                )}
+                              </span>
+                            );
+                          })()}
                         </td>
                         <td className="px-8 py-6 whitespace-nowrap">
                           <div className="text-xs font-semibold text-gray-900">
@@ -763,6 +804,13 @@ const CenterAdminBillingReports = () => {
 
                   // Get all partial payment keys from localStorage
                   const partialPaymentKeys = Object.keys(localStorage).filter(key => key.startsWith('partial_payment_'));
+                  
+                  // Debug logging for localStorage
+                  console.log('🔍 CenterAdmin Partial Payment Keys:', partialPaymentKeys);
+                  partialPaymentKeys.forEach(key => {
+                    const data = JSON.parse(localStorage.getItem(key) || '[]');
+                    console.log(`🔍 ${key}:`, data);
+                  });
 
                   // Get enhanced billing data with partial payment information (same as Superadmin)
                   const enhancedBillingData = reportsData.billingData?.map(item => {
@@ -785,16 +833,53 @@ const CenterAdminBillingReports = () => {
                     const partialData = getPartialPaymentData(item._id);
                     const totalAmount = item.billing?.amount || 0;
                     const backendPaidAmount = item.billing?.paidAmount || 0;
-                    const status = item.billing?.status;
+                    const totalPaidFromStorage = partialData.totalPaid;
                     
-                    // Calculate actual paid amount (use localStorage if available, otherwise backend)
-                    const actualPaidAmount = partialData.totalPaid > 0 ? partialData.totalPaid : backendPaidAmount;
+                    // Debug logging for Chethan's bill
+                    if (item.patientName === 'Chethan') {
+                      console.log('🔍 Chethan Bill Debug:', {
+                        requestId: item._id,
+                        totalAmount,
+                        backendPaidAmount,
+                        totalPaidFromStorage,
+                        paymentCount: partialData.paymentCount,
+                        payments: partialData.payments,
+                        status: item.billing?.status
+                      });
+                    }
                     
+                    // Check if bill is fully paid by status
+                    const isFullyPaidByStatus = item.billing?.status === 'paid' || 
+                                              item.billing?.status === 'verified';
                     
-                    // Show bills that have partial payments (paid some amount)
-                    // Include both outstanding and completed partial payments for center admin visibility
-                    return actualPaidAmount > 0 && 
-                           (actualPaidAmount < totalAmount || partialData.totalPaid > 0);
+                    // Calculate actual paid amount - prioritize localStorage data over backend status
+                    let actualPaidAmount;
+                    if (totalPaidFromStorage > 0) {
+                      // If there are partial payments in localStorage, use that amount
+                      actualPaidAmount = totalPaidFromStorage;
+                    } else if (isFullyPaidByStatus && backendPaidAmount === 0) {
+                      // Only if no localStorage payments and status is paid with 0 backend amount, assume full payment
+                      actualPaidAmount = totalAmount;
+                    } else {
+                      // Use backend amount as fallback
+                      actualPaidAmount = backendPaidAmount;
+                    }
+                    
+                    // Show bills that have partial payments OR were paid in multiple installments
+                    // This includes both outstanding partial payments AND fully paid bills that were paid in multiple installments
+                    const shouldInclude = (partialData.paymentCount > 1 || (actualPaidAmount > 0 && actualPaidAmount < totalAmount)) && totalAmount > 0;
+                    
+                    // Debug logging for Chethan's bill
+                    if (item.patientName === 'Chethan') {
+                      console.log('🔍 Chethan Bill Filter Result:', {
+                        actualPaidAmount,
+                        shouldInclude,
+                        reason: partialData.paymentCount > 1 ? 'multiple payments' : 
+                               (actualPaidAmount > 0 && actualPaidAmount < totalAmount) ? 'partial payment' : 'not partial'
+                      });
+                    }
+                    
+                    return shouldInclude;
                   });
 
 
@@ -806,13 +891,14 @@ const CenterAdminBillingReports = () => {
                     const totalAmount = item.billing?.amount || 0;
                     
                     
-                    // Check for status that might indicate partial payment
-                    // Include bills with partial payments (both outstanding and completed)
+                    // Show bills that have partial payments OR were paid in multiple installments
+                    // This includes both outstanding partial payments AND fully paid bills that were paid in multiple installments
                     return (status === 'payment_received' || 
                             status === 'generated' || 
                             status === 'paid' ||
-                            status === 'verified' ||
-                            (paidAmount > 0 && paidAmount < totalAmount));
+                            status === 'verified') &&
+                           paidAmount > 0 && 
+                           totalAmount > 0;
                   }) || [];
 
 
@@ -824,9 +910,24 @@ const CenterAdminBillingReports = () => {
                     const partialData = getPartialPaymentData(item._id);
                     const totalAmount = item.billing?.amount || 0;
                     const backendPaidAmount = item.billing?.paidAmount || 0;
+                    const totalPaidFromStorage = partialData.totalPaid;
                     
-                    // Use localStorage data if available, otherwise use backend data
-                    const actualPaidAmount = partialData.totalPaid > 0 ? partialData.totalPaid : backendPaidAmount;
+                    // Check if bill is fully paid by status
+                    const isFullyPaidByStatus = item.billing?.status === 'paid' || 
+                                              item.billing?.status === 'verified';
+                    
+                    // Calculate actual paid amount - prioritize localStorage data over backend status
+                    let actualPaidAmount;
+                    if (totalPaidFromStorage > 0) {
+                      // If there are partial payments in localStorage, use that amount
+                      actualPaidAmount = totalPaidFromStorage;
+                    } else if (isFullyPaidByStatus && backendPaidAmount === 0) {
+                      // Only if no localStorage payments and status is paid with 0 backend amount, assume full payment
+                      actualPaidAmount = totalAmount;
+                    } else {
+                      // Use backend amount as fallback
+                      actualPaidAmount = backendPaidAmount;
+                    }
                     
                     return {
                       ...item,
@@ -843,12 +944,12 @@ const CenterAdminBillingReports = () => {
                   return enhancedPartialBills.length > 0 ? (
                     <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8">
                       <div className="flex items-center mb-6">
-                        <div className="p-4 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg mr-6">
+                        <div className="p-4 bg-gradient-to-br from-slate-500 to-slate-600 rounded-xl shadow-lg mr-6">
                           <DollarSign className="w-8 h-8 text-white" />
                         </div>
                         <div>
-                          <h3 className="text-lg font-bold text-orange-800 mb-1">Partial Payment History</h3>
-                          <p className="text-sm text-orange-700">Patients who made partial payments - complete payment timeline</p>
+                          <h3 className="text-lg font-bold text-slate-800 mb-1">Partial Payment History</h3>
+                          <p className="text-sm text-slate-600">Patients who made multiple payments - includes both outstanding and fully paid bills</p>
                         </div>
                       </div>
                       
@@ -861,13 +962,14 @@ const CenterAdminBillingReports = () => {
                           const paymentPercentage = Math.round((paidAmount / totalAmount) * 100);
                           const partialPayments = item.billing?.partialPayments || [];
                           const isFullyPaid = remainingAmount <= 0;
+                          const hasMultiplePayments = partialPayments.length > 1;
                           
                           return (
-                            <div key={item._id} className="bg-white rounded-lg p-3 border border-orange-200 shadow-sm hover:shadow-md transition-all duration-200">
+                            <div key={item._id} className="bg-white rounded-lg p-3 border border-slate-200 shadow-sm hover:shadow-md transition-all duration-200">
                               <div className="flex items-center justify-between mb-2">
                                 <div className="flex items-center space-x-2">
-                                  <div className="p-1.5 bg-orange-100 rounded-md">
-                                    <FileText className="w-3 h-3 text-orange-600" />
+                                  <div className="p-1.5 bg-slate-100 rounded-md">
+                                    <FileText className="w-3 h-3 text-slate-600" />
                                   </div>
                                   <div>
                                     <div className="text-xs font-bold text-gray-900">
@@ -877,8 +979,10 @@ const CenterAdminBillingReports = () => {
                                   </div>
                                 </div>
                                 <div className="text-right">
-                                  <div className={`text-xs font-bold ${isFullyPaid ? 'text-green-600' : 'text-orange-600'}`}>
-                                    {isFullyPaid ? '100% Paid' : `${paymentPercentage}% Paid`}
+                                  <div className={`text-xs font-bold ${isFullyPaid ? 'text-emerald-600' : 'text-slate-600'}`}>
+                                    {isFullyPaid && hasMultiplePayments ? 'Partially Fully Paid' : 
+                                     isFullyPaid ? '100% Paid' : 
+                                     `${paymentPercentage}% Paid`}
                                   </div>
                                   <div className="text-xs text-gray-500">
                                     {item.centerName || 'N/A'}
@@ -887,17 +991,21 @@ const CenterAdminBillingReports = () => {
                               </div>
                               
                               <div className="grid grid-cols-3 gap-2 mb-2">
-                                <div className="text-center p-1.5 bg-blue-50 rounded-md">
-                                  <div className="text-xs font-bold text-blue-600">₹{totalAmount.toLocaleString()}</div>
-                                  <div className="text-xs text-blue-700">Total</div>
+                                <div className="text-center p-1.5 bg-slate-50 rounded-md">
+                                  <div className="text-xs font-bold text-slate-600">₹{totalAmount.toLocaleString()}</div>
+                                  <div className="text-xs text-slate-700">Total</div>
                                 </div>
-                                <div className="text-center p-1.5 bg-green-50 rounded-md">
-                                  <div className="text-xs font-bold text-green-600">₹{paidAmount.toLocaleString()}</div>
-                                  <div className="text-xs text-green-700">Paid</div>
+                                <div className="text-center p-1.5 bg-emerald-50 rounded-md">
+                                  <div className="text-xs font-bold text-emerald-600">₹{paidAmount.toLocaleString()}</div>
+                                  <div className="text-xs text-emerald-700">Paid</div>
                                 </div>
-                                <div className="text-center p-1.5 bg-red-50 rounded-md">
-                                  <div className="text-xs font-bold text-red-600">₹{remainingAmount.toLocaleString()}</div>
-                                  <div className="text-xs text-red-700">{isFullyPaid ? 'Complete' : 'Remaining'}</div>
+                                <div className="text-center p-1.5 bg-amber-50 rounded-md">
+                                  <div className="text-xs font-bold text-amber-600">₹{remainingAmount.toLocaleString()}</div>
+                                  <div className="text-xs text-amber-700">
+                                    {isFullyPaid && hasMultiplePayments ? 'Partially Fully Paid' : 
+                                     isFullyPaid ? 'Complete' : 
+                                     'Remaining'}
+                                  </div>
                                 </div>
                               </div>
 
@@ -907,10 +1015,10 @@ const CenterAdminBillingReports = () => {
                                   <div className="text-xs font-semibold text-gray-700 mb-1">Payment Timeline:</div>
                                   <div className="space-y-1">
                                     {partialPayments.map((payment, paymentIndex) => (
-                                      <div key={paymentIndex} className="flex items-center justify-between bg-gray-50 rounded-md p-1.5">
+                                      <div key={paymentIndex} className="flex items-center justify-between bg-slate-50 rounded-md p-1.5">
                                         <div className="flex items-center space-x-2">
-                                          <div className="w-4 h-4 bg-green-100 rounded-full flex items-center justify-center">
-                                            <span className="text-xs font-bold text-green-600">{paymentIndex + 1}</span>
+                                          <div className="w-4 h-4 bg-emerald-100 rounded-full flex items-center justify-center">
+                                            <span className="text-xs font-bold text-emerald-600">{paymentIndex + 1}</span>
                                           </div>
                                           <div>
                                             <div className="text-xs font-bold text-gray-900">₹{payment.amount?.toLocaleString()}</div>
@@ -933,7 +1041,7 @@ const CenterAdminBillingReports = () => {
                               {partialPayments.length === 0 && (
                                 <div className="mb-2">
                                   <div className="text-xs font-semibold text-gray-700 mb-1">Payment Info:</div>
-                                  <div className="bg-gray-50 rounded-md p-1.5">
+                                  <div className="bg-slate-50 rounded-md p-1.5">
                                     <div className="flex items-center justify-between">
                                       <div>
                                         <div className="text-xs font-bold text-gray-900">First Payment</div>
@@ -960,9 +1068,11 @@ const CenterAdminBillingReports = () => {
                                   </span>
                                 </div>
                                 <div className="flex items-center space-x-1">
-                                  <div className={`w-1.5 h-1.5 rounded-full ${isFullyPaid ? 'bg-green-400' : 'bg-orange-400'}`}></div>
-                                  <span className={`font-semibold text-xs ${isFullyPaid ? 'text-green-600' : 'text-orange-600'}`}>
-                                    {isFullyPaid ? 'Fully Paid' : 'Outstanding'}
+                                  <div className={`w-1.5 h-1.5 rounded-full ${isFullyPaid ? 'bg-emerald-400' : 'bg-amber-400'}`}></div>
+                                  <span className={`font-semibold text-xs ${isFullyPaid ? 'text-emerald-600' : 'text-amber-600'}`}>
+                                    {isFullyPaid && hasMultiplePayments ? 'Partially Fully Paid' : 
+                                     isFullyPaid ? 'Fully Paid' : 
+                                     'Outstanding'}
                                   </span>
                                 </div>
                               </div>
@@ -971,44 +1081,44 @@ const CenterAdminBillingReports = () => {
                         })}
                       
                         {/* Pagination Controls for Partial Payment History */}
-                        <div className="pt-4 border-t border-orange-200">
+                        <div className="pt-4 border-t border-slate-200">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-4">
-                              <div className="text-sm text-orange-600">
+                              <div className="text-sm text-slate-600">
                                 Showing {((currentPartialPage - 1) * partialRecordsPerPage) + 1} to {Math.min(currentPartialPage * partialRecordsPerPage, enhancedPartialBills.length)} of {enhancedPartialBills.length} results
                               </div>
                               <div className="flex items-center space-x-2">
-                                <span className="text-sm text-orange-600">Show:</span>
+                                <span className="text-sm text-slate-600">Show:</span>
                                 <select
                                   value={partialRecordsPerPage}
                                   onChange={(e) => handlePartialRecordsPerPageChange(e.target.value)}
-                                  className="px-3 py-1 text-sm border border-orange-300 rounded-lg bg-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                  className="px-3 py-1 text-sm border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-slate-500 focus:border-slate-500"
                                 >
                                   <option value={4}>4</option>
                                   <option value={5}>5</option>
                                   <option value={10}>10</option>
                                   <option value={20}>20</option>
                                 </select>
-                                <span className="text-sm text-orange-600">per page</span>
+                                <span className="text-sm text-slate-600">per page</span>
                               </div>
                             </div>
                             
                             <div className="flex items-center space-x-4">
-                              <div className="text-sm text-orange-600">
+                              <div className="text-sm text-slate-600">
                                 Page {currentPartialPage} of {Math.ceil(enhancedPartialBills.length / partialRecordsPerPage)}
                               </div>
                               <div className="flex items-center space-x-2">
                                 <button
                                   onClick={() => handlePartialPageChange(currentPartialPage - 1)}
                                   disabled={currentPartialPage === 1}
-                                  className="px-3 py-2 text-sm font-medium text-orange-500 bg-white border border-orange-300 rounded-lg hover:bg-orange-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:text-orange-300"
+                                  className="px-3 py-2 text-sm font-medium text-slate-500 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:text-slate-300"
                                 >
                                   Previous
                                 </button>
                                 
                                 <button
                                   onClick={() => handlePartialPageChange(currentPartialPage)}
-                                  className="px-3 py-2 text-sm font-medium bg-purple-600 text-white rounded-lg"
+                                  className="px-3 py-2 text-sm font-medium bg-slate-600 text-white rounded-lg"
                                 >
                                   {currentPartialPage}
                                 </button>
@@ -1016,7 +1126,7 @@ const CenterAdminBillingReports = () => {
                                 <button
                                   onClick={() => handlePartialPageChange(currentPartialPage + 1)}
                                   disabled={currentPartialPage === Math.ceil(enhancedPartialBills.length / partialRecordsPerPage)}
-                                  className="px-3 py-2 text-sm font-medium text-orange-500 bg-white border border-orange-300 rounded-lg hover:bg-orange-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:text-orange-300"
+                                  className="px-3 py-2 text-sm font-medium text-slate-500 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:text-slate-300"
                                 >
                                   Next
                                 </button>
@@ -1027,7 +1137,7 @@ const CenterAdminBillingReports = () => {
                         
                         {enhancedPartialBills.length === 0 && (
                           <div className="text-center py-8">
-                            <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
+                            <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
                               <p className="text-gray-600 font-medium">No partial payments found for the selected period</p>
                               <p className="text-sm text-gray-500 mt-2">All patients paid in full or haven't made any payments yet</p>
                             </div>
@@ -1072,80 +1182,117 @@ const CenterAdminBillingReports = () => {
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-10">
-                <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border border-blue-200 shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-0.5">
-                  <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg w-12 h-12 mx-auto mb-3 flex items-center justify-center shadow-sm">
-                    <BarChart3 className="w-6 h-6 text-white" />
-                  </div>
-                  <div className="text-lg font-bold text-blue-600 mb-2">{reportsData.stats.totalBills}</div>
-                  <div className="text-sm font-bold text-blue-800 mb-1">Total Bills</div>
-                  <div className="text-xs text-blue-600 font-medium">Generated</div>
-                </div>
-                <div className="text-center p-4 bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl border border-emerald-200 shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-0.5">
-                  <div className="p-3 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg w-12 h-12 mx-auto mb-3 flex items-center justify-center shadow-sm">
-                    <User className="w-6 h-6 text-white" />
-                  </div>
-                  <div className="text-lg font-bold text-emerald-600 mb-2">{reportsData.stats.paidBills}</div>
-                  <div className="text-sm font-bold text-emerald-800 mb-1">Paid Bills</div>
-                  <div className="text-xs text-emerald-600 font-medium">
-                    {reportsData.stats.totalBills > 0 ? 
-                      `${Math.round((reportsData.stats.paidBills / reportsData.stats.totalBills) * 100)}%` : 
-                      '0%'
-                    } Success
-                  </div>
-                </div>
-                <div className="text-center p-4 bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl border border-yellow-200 shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-0.5">
-                  <div className="p-3 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg w-12 h-12 mx-auto mb-3 flex items-center justify-center shadow-sm">
-                    <Calendar className="w-6 h-6 text-white" />
-                  </div>
-                  <div className="text-lg font-bold text-yellow-600 mb-2">{reportsData.stats.pendingBills}</div>
-                  <div className="text-sm font-bold text-yellow-800 mb-1">Pending Bills</div>
-                  <div className="text-xs text-yellow-600 font-medium">Awaiting Payment</div>
-                </div>
-                <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl border border-purple-200 shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-0.5">
-                  <div className="p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg w-12 h-12 mx-auto mb-3 flex items-center justify-center shadow-sm">
-                    <TrendingUp className="w-6 h-6 text-white" />
-                  </div>
-                  <div className="text-lg font-bold text-purple-600 mb-2">₹{reportsData.stats.totalAmount.toLocaleString()}</div>
-                  <div className="text-sm font-bold text-purple-800 mb-1">Total Revenue</div>
-                  <div className="text-xs text-purple-600 font-medium">Center Revenue</div>
-                </div>
-                <div className="text-center p-4 bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl border border-orange-200 shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-0.5">
-                  <div className="p-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg w-12 h-12 mx-auto mb-3 flex items-center justify-center shadow-sm">
-                    <DollarSign className="w-6 h-6 text-white" />
-                  </div>
-                  <div className="text-lg font-bold text-orange-600 mb-2">
-                    {(() => {
-                      const localStoragePartialCount = reportsData.billingData?.filter(item => {
-                        const partialData = getPartialPaymentData(item._id);
-                        const totalAmount = item.billing?.amount || 0;
-                        const backendPaidAmount = item.billing?.paidAmount || 0;
-                        
-                        const actualPaidAmount = partialData.totalPaid > 0 ? partialData.totalPaid : backendPaidAmount;
-                        
-                        // Use Superadmin logic - count bills with partial payment history
-                        return actualPaidAmount > 0 && 
-                               (actualPaidAmount < totalAmount || partialData.totalPaid > 0);
-                      }).length || 0;
+                {(() => {
+                  // Calculate accurate counts from the actual billing data
+                  const getPartialPaymentData = (requestId) => {
+                    const paymentKey = `partial_payment_${requestId}`;
+                    const payments = JSON.parse(localStorage.getItem(paymentKey) || '[]');
+                    const totalPaid = payments.reduce((sum, payment) => sum + payment.amount, 0);
+                    
+                    return {
+                      payments: payments,
+                      totalPaid: totalPaid,
+                      paymentCount: payments.length
+                    };
+                  };
 
-                      const statusBasedPartialCount = reportsData.billingData?.filter(item => {
-                        const status = item.billing?.status;
-                        const paidAmount = item.billing?.paidAmount || 0;
-                        const totalAmount = item.billing?.amount || 0;
-                        
-                        // Use Superadmin logic - include bills with partial payments
-                        return (status === 'payment_received' || 
-                                status === 'generated' || 
-                                status === 'paid' ||
-                                status === 'verified' ||
-                                (paidAmount > 0 && paidAmount < totalAmount));
-                      }).length || 0;
+                  // Use Set to track unique bills to avoid double counting
+                  const uniqueBills = new Set();
+                  let totalBills = 0;
+                  let paidBills = 0;
+                  let pendingBills = 0;
+                  let partialBills = 0;
+                  let totalRevenue = 0;
 
-                      return Math.max(localStoragePartialCount, statusBasedPartialCount);
-                    })()}
-                  </div>
-                  <div className="text-sm font-bold text-orange-800 mb-1">Partial Bills</div>
-                  <div className="text-xs text-orange-600 font-medium">Partial Payments</div>
-                </div>
+                  reportsData.billingData?.forEach(item => {
+                    // Only count each bill once (by _id)
+                    if (!uniqueBills.has(item._id)) {
+                      uniqueBills.add(item._id);
+                      totalBills += 1;
+                      
+                      const amount = item.billing?.amount || 0;
+                      totalRevenue += amount;
+                      
+                      const partialData = getPartialPaymentData(item._id);
+                      const totalPaidFromStorage = partialData.totalPaid;
+                      const backendPaidAmount = item.billing?.paidAmount || 0;
+                      const status = item.billing?.status;
+                      
+                      // Check if bill is fully paid by status
+                      const isFullyPaidByStatus = status === 'paid' || status === 'verified';
+                      
+                      // Calculate actual paid amount - prioritize localStorage data over backend status
+                      let actualPaidAmount;
+                      if (totalPaidFromStorage > 0) {
+                        actualPaidAmount = totalPaidFromStorage;
+                      } else if (isFullyPaidByStatus && backendPaidAmount === 0) {
+                        actualPaidAmount = amount;
+                      } else {
+                        actualPaidAmount = backendPaidAmount;
+                      }
+                      
+                      // Categorize bills
+                      if (actualPaidAmount >= amount && amount > 0) {
+                        paidBills += 1;
+                      } else if (actualPaidAmount > 0 && actualPaidAmount < amount) {
+                        pendingBills += 1;
+                        partialBills += 1;
+                      } else if (status === 'generated' || status === 'not_generated') {
+                        pendingBills += 1;
+                      }
+                    }
+                  });
+
+                  return (
+                    <>
+                      <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border border-blue-200 shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-0.5">
+                        <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg w-12 h-12 mx-auto mb-3 flex items-center justify-center shadow-sm">
+                          <BarChart3 className="w-6 h-6 text-white" />
+                        </div>
+                        <div className="text-lg font-bold text-blue-600 mb-2">{totalBills}</div>
+                        <div className="text-sm font-bold text-blue-800 mb-1">Total Bills</div>
+                        <div className="text-xs text-blue-600 font-medium">Generated</div>
+                      </div>
+                      <div className="text-center p-4 bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl border border-emerald-200 shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-0.5">
+                        <div className="p-3 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg w-12 h-12 mx-auto mb-3 flex items-center justify-center shadow-sm">
+                          <User className="w-6 h-6 text-white" />
+                        </div>
+                        <div className="text-lg font-bold text-emerald-600 mb-2">{paidBills}</div>
+                        <div className="text-sm font-bold text-emerald-800 mb-1">Paid Bills</div>
+                        <div className="text-xs text-emerald-600 font-medium">
+                          {totalBills > 0 ? 
+                            `${Math.round((paidBills / totalBills) * 100)}%` : 
+                            '0%'
+                          } Success
+                        </div>
+                      </div>
+                      <div className="text-center p-4 bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl border border-yellow-200 shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-0.5">
+                        <div className="p-3 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg w-12 h-12 mx-auto mb-3 flex items-center justify-center shadow-sm">
+                          <Calendar className="w-6 h-6 text-white" />
+                        </div>
+                        <div className="text-lg font-bold text-yellow-600 mb-2">{pendingBills}</div>
+                        <div className="text-sm font-bold text-yellow-800 mb-1">Pending Bills</div>
+                        <div className="text-xs text-yellow-600 font-medium">Awaiting Payment</div>
+                      </div>
+                      <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl border border-purple-200 shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-0.5">
+                        <div className="p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg w-12 h-12 mx-auto mb-3 flex items-center justify-center shadow-sm">
+                          <TrendingUp className="w-6 h-6 text-white" />
+                        </div>
+                        <div className="text-lg font-bold text-purple-600 mb-2">₹{totalRevenue.toLocaleString()}</div>
+                        <div className="text-sm font-bold text-purple-800 mb-1">Total Revenue</div>
+                        <div className="text-xs text-purple-600 font-medium">Center Revenue</div>
+                      </div>
+                      <div className="text-center p-4 bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl border border-orange-200 shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-0.5">
+                        <div className="p-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg w-12 h-12 mx-auto mb-3 flex items-center justify-center shadow-sm">
+                          <DollarSign className="w-6 h-6 text-white" />
+                        </div>
+                        <div className="text-lg font-bold text-orange-600 mb-2">{partialBills}</div>
+                        <div className="text-sm font-bold text-orange-800 mb-1">Partial Bills</div>
+                        <div className="text-xs text-orange-600 font-medium">Partial Payments</div>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
               
               <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-6">

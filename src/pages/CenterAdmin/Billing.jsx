@@ -34,9 +34,6 @@ const CenterAdminBilling = () => {
   const [dateFilter, setDateFilter] = useState('all');
   const [paymentStatusFilter, setPaymentStatusFilter] = useState('all');
   const [filteredData, setFilteredData] = useState([]);
-  const [showVerificationModal, setShowVerificationModal] = useState(false);
-  const [verificationNotes, setVerificationNotes] = useState('');
-  const [selectedBillingForVerification, setSelectedBillingForVerification] = useState(null);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState(null);
   const [localUser, setLocalUser] = useState(null);
@@ -476,24 +473,63 @@ const CenterAdminBilling = () => {
     setFilteredData(filtered);
   }, [billingData, searchTerm, statusFilter, dateFilter, paymentStatusFilter]);
 
-  // Get status badge with partial payment support
-  const getStatusBadge = (status, billing) => {
+  // Get status badge with payment amount logic
+  const getStatusBadge = (status, billing, itemId) => {
     const statusConfig = {
       'not_generated': { color: 'bg-gray-100 text-gray-800', icon: Clock, label: 'Not Generated' },
       'generated': { color: 'bg-blue-100 text-blue-800', icon: FileText, label: 'Generated' },
-      'payment_received': { color: 'bg-yellow-100 text-yellow-800', icon: DollarSign, label: 'Payment Received' },
-      'paid': { color: 'bg-green-100 text-green-800', icon: CheckCircle, label: 'Paid' },
-      'verified': { color: 'bg-purple-100 text-purple-800', icon: Shield, label: 'Verified' }
+      'paid': { color: 'bg-green-100 text-green-800', icon: CheckCircle, label: 'Paid' }
     };
 
-    // Check for partial payment
-    if (billing && billing.paidAmount && billing.paidAmount > 0 && billing.paidAmount < billing.amount) {
-      return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-          <DollarSign className="w-3 h-3 mr-1" />
-          Partially Paid
-        </span>
-      );
+    // Calculate actual payment status based on amounts
+    if (billing && billing.amount > 0) {
+      const partialData = getPartialPaymentData(itemId);
+      const totalPaidFromStorage = partialData.totalPaid;
+      const backendPaidAmount = billing.paidAmount || 0;
+      const totalAmount = billing.amount;
+      const hasMultiplePayments = partialData.paymentCount > 1;
+      
+      // Check if bill is fully paid by status
+      const isFullyPaidByStatus = status === 'paid' || status === 'verified';
+      
+      // Calculate actual paid amount - prioritize localStorage data over backend status
+      let actualPaidAmount;
+      if (totalPaidFromStorage > 0) {
+        // If there are partial payments in localStorage, use that amount
+        actualPaidAmount = totalPaidFromStorage;
+      } else if (isFullyPaidByStatus && backendPaidAmount === 0) {
+        // Only if no localStorage payments and status is paid with 0 backend amount, assume full payment
+        actualPaidAmount = totalAmount;
+      } else {
+        // Use backend amount as fallback
+        actualPaidAmount = backendPaidAmount;
+      }
+      
+      // Determine payment status
+      if (actualPaidAmount >= totalAmount) {
+        if (hasMultiplePayments) {
+          return (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+              <CheckCircle className="w-3 h-3 mr-1" />
+              Partially Fully Paid
+            </span>
+          );
+        } else {
+          return (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+              <CheckCircle className="w-3 h-3 mr-1" />
+              Fully Paid
+            </span>
+          );
+        }
+      } else if (actualPaidAmount > 0) {
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+            <DollarSign className="w-3 h-3 mr-1" />
+            Partially Paid
+          </span>
+        );
+      }
     }
 
     const config = statusConfig[status] || statusConfig['not_generated'];
@@ -528,12 +564,6 @@ const CenterAdminBilling = () => {
     navigate(`/dashboard/centeradmin/billing/${billing._id}`);
   };
 
-  // Open verification modal
-  const openVerificationModal = (billing) => {
-    setSelectedBillingForVerification(billing);
-    setVerificationNotes('');
-    setShowVerificationModal(true);
-  };
 
   // View receipt
   const viewReceipt = (receiptFileName) => {
@@ -592,30 +622,25 @@ const CenterAdminBilling = () => {
     setSelectedReceipt(null);
   };
 
-  // Verify payment
-  const verifyPayment = async () => {
-    if (!selectedBillingForVerification) return;
-
+  // Mark payment as received (direct status update without verification)
+  const markPaymentReceived = async (billing) => {
     resetToastTracking(); // Reset toast tracking for new action
     try {
-              const response = await API.put(`/billing/test-requests/${selectedBillingForVerification._id}/mark-paid`, {
-        verificationNotes: verificationNotes
-      });
+      const response = await API.put(`/billing/test-requests/${billing._id}/mark-paid`);
 
       if (!actionSuccessToastShown.current) {
-        toast.success('Payment verified successfully');
+        toast.success('Payment marked as received');
         actionSuccessToastShown.current = true;
       }
-      setShowVerificationModal(false);
       fetchBillingData(); // Refresh data
     } catch (error) {
-      console.error('Error verifying payment:', error);
+      console.error('Error marking payment as received:', error);
       
       if (!actionErrorToastShown.current) {
         if (error.response?.data?.message) {
           toast.error(error.response.data.message);
         } else {
-          toast.error('Error verifying payment');
+          toast.error('Error updating payment status');
         }
         actionErrorToastShown.current = true;
       }
@@ -627,27 +652,58 @@ const CenterAdminBilling = () => {
     toast.info('Invoice download functionality will be implemented');
   };
 
-  // Calculate totals
+  // Calculate totals with payment amount logic
   const calculateTotals = () => {
-    const totals = filteredData.reduce((acc, item) => {
-      // Safety check: ensure item is valid
-      if (!item || typeof item !== 'object') {
-        return acc;
-      }
-      
+    // Filter to only include items that have billing information
+    const billingItems = filteredData.filter(item => 
+      item && typeof item === 'object' && item.billing && item.billing.status
+    );
+
+    // Use Set to track unique bills to avoid double counting
+    const uniqueBills = new Set();
+
+    const totals = billingItems.reduce((acc, item) => {
       const amount = item.billing?.amount || 0;
-      acc.totalAmount += amount;
-      acc.totalCount += 1;
       
-      if (item.billing?.status === 'paid' || item.billing?.status === 'verified') {
-        acc.paidAmount += amount;
-        acc.paidCount += 1;
-      } else if (item.billing?.status === 'generated') {
-        acc.pendingAmount += amount;
-        acc.pendingCount += 1;
-      } else if (item.billing?.status === 'payment_received') {
-        acc.paymentReceivedAmount += amount;
-        acc.paymentReceivedCount += 1;
+      // Only count each bill once (by _id)
+      if (!uniqueBills.has(item._id)) {
+        uniqueBills.add(item._id);
+        acc.totalCount += 1;
+        acc.totalAmount += amount;
+        
+        if (amount > 0) {
+          const partialData = getPartialPaymentData(item._id);
+          const totalPaidFromStorage = partialData.totalPaid;
+          const backendPaidAmount = item.billing?.paidAmount || 0;
+          
+          // Check if bill is fully paid by status
+          const isFullyPaidByStatus = item.billing?.status === 'paid' || item.billing?.status === 'verified';
+          
+          // Calculate actual paid amount - prioritize localStorage data over backend status
+          let actualPaidAmount;
+          if (totalPaidFromStorage > 0) {
+            // If there are partial payments in localStorage, use that amount
+            actualPaidAmount = totalPaidFromStorage;
+          } else if (isFullyPaidByStatus && backendPaidAmount === 0) {
+            // Only if no localStorage payments and status is paid with 0 backend amount, assume full payment
+            actualPaidAmount = amount;
+          } else {
+            // Use backend amount as fallback
+            actualPaidAmount = backendPaidAmount;
+          }
+          
+          // Categorize based on payment status
+          if (actualPaidAmount >= amount) {
+            acc.paidAmount += amount;
+            acc.paidCount += 1;
+          } else if (actualPaidAmount > 0) {
+            acc.pendingAmount += amount;
+            acc.pendingCount += 1;
+          } else {
+            acc.pendingAmount += amount;
+            acc.pendingCount += 1;
+          }
+        }
       }
       
       return acc;
@@ -657,9 +713,7 @@ const CenterAdminBilling = () => {
       paidAmount: 0, 
       paidCount: 0, 
       pendingAmount: 0, 
-      pendingCount: 0,
-      paymentReceivedAmount: 0,
-      paymentReceivedCount: 0
+      pendingCount: 0 
     });
 
     return totals;
@@ -944,26 +998,26 @@ const CenterAdminBilling = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <div className="bg-white rounded-lg shadow p-6">
               <div className="flex items-center">
-                <div className="p-2 bg-yellow-100 rounded-lg">
-                  <TrendingUp className="w-6 h-6 text-yellow-600" />
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <CheckCircle className="w-6 h-6 text-green-600" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-xs font-medium text-gray-600">Payment Received (Awaiting Verification)</p>
-                  <p className="text-md font-bold text-gray-900">{totals.paymentReceivedCount}</p>
-                  <p className="text-xs text-gray-500">₹{totals.paymentReceivedAmount.toLocaleString()}</p>
+                  <p className="text-xs font-medium text-gray-600">Ready for Lab</p>
+                  <p className="text-md font-bold text-gray-900">{totals.paidCount}</p>
+                  <p className="text-xs text-gray-500">₹{totals.paidAmount.toLocaleString()}</p>
                 </div>
               </div>
             </div>
 
             <div className="bg-white rounded-lg shadow p-6">
               <div className="flex items-center">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <Shield className="w-6 h-6 text-green-600" />
+                <div className="p-2 bg-orange-100 rounded-lg">
+                  <Clock className="w-6 h-6 text-orange-600" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-xs font-medium text-gray-600">Ready for Lab</p>
-                  <p className="text-md font-bold text-gray-900">{totals.paidCount}</p>
-                  <p className="text-xs text-gray-500">₹{totals.paidAmount.toLocaleString()}</p>
+                  <p className="text-xs font-medium text-gray-600">Pending/Partial Payment</p>
+                  <p className="text-md font-bold text-gray-900">{totals.pendingCount}</p>
+                  <p className="text-xs text-gray-500">₹{totals.pendingAmount.toLocaleString()}</p>
                 </div>
               </div>
             </div>
@@ -1017,9 +1071,7 @@ const CenterAdminBilling = () => {
                 <option value="all">All Status</option>
                 <option value="not_generated">Not Generated</option>
                 <option value="generated">Generated</option>
-                <option value="payment_received">Payment Received</option>
                 <option value="paid">Paid</option>
-                <option value="verified">Verified</option>
               </select>
 
               {/* Enhanced Payment Status Filter */}
@@ -1177,33 +1229,49 @@ const CenterAdminBilling = () => {
                                     Total: ₹{(item.billing.amount || 0).toLocaleString()}
                                   </div>
                                   
-                                  {/* Simple remaining amount display */}
+                                  {/* Enhanced payment display */}
                                   {(() => {
                                     const partialData = getPartialPaymentData(item._id);
                                     const totalPaidFromStorage = partialData.totalPaid;
                                     const backendPaidAmount = item.billing.paidAmount || 0;
                                     const totalAmount = item.billing.amount || 0;
+                                    const hasMultiplePayments = partialData.paymentCount > 1;
                                     
                                     // Check if bill is fully paid by status
                                     const isFullyPaidByStatus = item.billing?.status === 'paid' || 
                                                               item.billing?.status === 'verified';
                                     
-                                    // If status indicates paid but paidAmount is 0, assume full amount was paid
+                                    // Calculate actual paid amount - prioritize localStorage data over backend status
                                     let actualPaidAmount;
-                                    if (isFullyPaidByStatus && backendPaidAmount === 0) {
+                                    if (totalPaidFromStorage > 0) {
+                                      // If there are partial payments in localStorage, use that amount
+                                      actualPaidAmount = totalPaidFromStorage;
+                                    } else if (isFullyPaidByStatus && backendPaidAmount === 0) {
+                                      // Only if no localStorage payments and status is paid with 0 backend amount, assume full payment
                                       actualPaidAmount = totalAmount;
                                     } else {
-                                      actualPaidAmount = Math.max(backendPaidAmount, totalPaidFromStorage);
+                                      // Use backend amount as fallback
+                                      actualPaidAmount = backendPaidAmount;
                                     }
                                     
                                     const remainingAmount = totalAmount - actualPaidAmount;
                                     const isFullyPaid = isFullyPaidByStatus || actualPaidAmount >= totalAmount;
                                     
                                     return (
-                                      <div className="text-xs">
+                                      <div className="text-xs space-y-1">
+                                        {actualPaidAmount > 0 && (
+                                          <div className="text-green-600 font-medium">
+                                            Paid: ₹{actualPaidAmount.toLocaleString()}
+                                          </div>
+                                        )}
                                         {!isFullyPaid && remainingAmount > 0 && (
                                           <div className="text-orange-600 font-medium">
                                             Remaining: ₹{remainingAmount.toLocaleString()}
+                                          </div>
+                                        )}
+                                        {hasMultiplePayments && (
+                                          <div className="text-blue-600 font-medium">
+                                            {partialData.paymentCount} payments
                                           </div>
                                         )}
                                       </div>
@@ -1220,7 +1288,7 @@ const CenterAdminBilling = () => {
                             </div>
                           </td>
                           <td className="px-6 py-4">
-                            {getStatusBadge(item.billing?.status || 'not_generated', item.billing)}
+                            {getStatusBadge(item.billing?.status || 'not_generated', item.billing, item._id)}
                           </td>
                           <td className="px-6 py-4">
                             <div className="text-sm text-slate-800">
@@ -1240,28 +1308,53 @@ const CenterAdminBilling = () => {
                                 <Eye className="w-4 h-4" />
                               </button>
                               
-                              {/* Verify Payment Button - Only show for payment_received status */}
-                              {item.billing?.status === 'payment_received' && (
-                                <>
+                              {/* Mark Payment Received Button - Show for bills that are not fully paid */}
+                              {(() => {
+                                const partialData = getPartialPaymentData(item._id);
+                                const totalPaidFromStorage = partialData.totalPaid;
+                                const backendPaidAmount = item.billing?.paidAmount || 0;
+                                const totalAmount = item.billing?.amount || 0;
+                                
+                                // Check if bill is fully paid by status
+                                const isFullyPaidByStatus = item.billing?.status === 'paid' || item.billing?.status === 'verified';
+                                
+                                // Calculate actual paid amount - prioritize localStorage data over backend status
+                                let actualPaidAmount;
+                                if (totalPaidFromStorage > 0) {
+                                  // If there are partial payments in localStorage, use that amount
+                                  actualPaidAmount = totalPaidFromStorage;
+                                } else if (isFullyPaidByStatus && backendPaidAmount === 0) {
+                                  // Only if no localStorage payments and status is paid with 0 backend amount, assume full payment
+                                  actualPaidAmount = totalAmount;
+                                } else {
+                                  // Use backend amount as fallback
+                                  actualPaidAmount = backendPaidAmount;
+                                }
+                                
+                                // Show button if not fully paid (regardless of status)
+                                const isNotFullyPaid = actualPaidAmount < totalAmount;
+                                const hasBillGenerated = item.billing && item.billing.amount > 0;
+                                
+                                return (hasBillGenerated && isNotFullyPaid) ? (
                                   <button
-                                    onClick={() => openVerificationModal(item)}
+                                    onClick={() => markPaymentReceived(item)}
                                     className="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-lg transition-colors duration-200"
-                                    title="Verify Payment"
+                                    title="Add Payment"
                                   >
-                                    <Shield className="w-4 h-4" />
+                                    <DollarSign className="w-4 h-4" />
                                   </button>
-                                  
-                                  {/* Receipt Indicator - Show if receipt is uploaded */}
-                                  {item.billing?.receiptUpload && (
-                                    <button
-                                      onClick={() => viewReceipt(item.billing.receiptUpload)}
-                                      className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors duration-200"
-                                      title="View Receipt"
-                                    >
-                                      <Receipt className="w-4 h-4" />
-                                    </button>
-                                  )}
-                                </>
+                                ) : null;
+                              })()}
+                              
+                              {/* Receipt Indicator - Show if receipt is uploaded */}
+                              {item.billing?.receiptUpload && (
+                                <button
+                                  onClick={() => viewReceipt(item.billing.receiptUpload)}
+                                  className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors duration-200"
+                                  title="View Receipt"
+                                >
+                                  <Receipt className="w-4 h-4" />
+                                </button>
                               )}
                               
                             </div>
@@ -1280,233 +1373,6 @@ const CenterAdminBilling = () => {
         </div>
 
 
-        {/* Payment Verification Modal */}
-        {showVerificationModal && selectedBillingForVerification && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-            <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
-              <div className="mt-3">
-                <div className="flex justify-between items-center mb-4">
-                  <div className="flex items-center space-x-3">
-                    <h3 className="text-sm font-medium text-gray-900">Verify Payment</h3>
-                    {selectedBillingForVerification.billing?.paidAmount && selectedBillingForVerification.billing.paidAmount > 0 && selectedBillingForVerification.billing.paidAmount < selectedBillingForVerification.billing.amount && (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                        <DollarSign className="w-3 h-3 mr-1" />
-                        Partial Payment
-                      </span>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => setShowVerificationModal(false)}
-                    className="text-gray-400 hover:text-gray-600"
-                  >
-                    <span className="sr-only">Close</span>
-                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <div className="flex">
-                      <div className="flex-shrink-0">
-                        <Shield className="h-5 w-5 text-blue-400" />
-                      </div>
-                      <div className="ml-3">
-                        <h3 className="text-xs font-medium text-blue-800">
-                          Payment Verification Required
-                        </h3>
-                        <div className="mt-2 text-xs text-blue-700">
-                          <p>Patient: <strong>{selectedBillingForVerification.patientName}</strong></p>
-                          <p>Test Type: <strong>{selectedBillingForVerification.testType}</strong></p>
-                          <p>Total Amount: <strong>₹{selectedBillingForVerification.billing?.amount?.toLocaleString()}</strong></p>
-                          
-                          {/* Enhanced payment information with partial payment details */}
-                          {(() => {
-                            const partialData = getPartialPaymentData(selectedBillingForVerification._id);
-                            const totalPaidFromStorage = partialData.totalPaid;
-                            const backendPaidAmount = selectedBillingForVerification.billing?.paidAmount || 0;
-                            const actualPaidAmount = Math.max(backendPaidAmount, totalPaidFromStorage);
-                            const remainingAmount = (selectedBillingForVerification.billing?.amount || 0) - actualPaidAmount;
-                            
-                            return (
-                              <>
-                                <p>Paid Amount: <strong className="text-green-600">₹{actualPaidAmount.toLocaleString()}</strong></p>
-                                {remainingAmount > 0 && (
-                                  <p>Remaining Amount: <strong className="text-orange-600">₹{remainingAmount.toLocaleString()}</strong></p>
-                                )}
-                                
-                                {/* Show detailed partial payment information */}
-                                {partialData.paymentCount > 0 && (
-                                  <div className="mt-3 p-3 bg-white rounded border border-blue-300">
-                                    <div className="text-xs font-medium text-blue-800 mb-2">
-                                      Payment History ({partialData.paymentCount} payment{partialData.paymentCount > 1 ? 's' : ''})
-                                    </div>
-                                    <div className="space-y-2">
-                                      {partialData.payments.map((payment, index) => (
-                                        <div key={payment.id || index} className="text-xs bg-blue-50 rounded p-2 border border-blue-200">
-                                          <div className="flex justify-between items-start">
-                                            <div className="flex-1">
-                                              <div className="font-medium text-blue-800">
-                                                Payment #{index + 1} - {payment.method}
-                                              </div>
-                                              <div className="text-blue-700 mt-1">
-                                                Date: {new Date(payment.timestamp).toLocaleString()}
-                                              </div>
-                                              <div className="text-blue-700">
-                                                Transaction ID: {payment.transactionId}
-                                              </div>
-                                              {payment.notes && (
-                                                <div className="text-blue-600 italic mt-1">
-                                                  Notes: "{payment.notes}"
-                                                </div>
-                                              )}
-                                              <div className="text-blue-600 text-xs mt-1">
-                                                Recorded by: {payment.recordedBy || 'Receptionist'}
-                                              </div>
-                                            </div>
-                                            <div className="text-right">
-                                              <div className="text-sm font-bold text-green-600">
-                                                ₹{payment.amount.toLocaleString()}
-                                              </div>
-                                              <div className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${
-                                                payment.status === 'recorded' ? 'bg-blue-100 text-blue-800' :
-                                                payment.status === 'verified' ? 'bg-green-100 text-green-800' :
-                                                'bg-gray-100 text-gray-800'
-                                              }`}>
-                                                {payment.status || 'recorded'}
-                                              </div>
-                                            </div>
-                                          </div>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-                                
-                                {/* Show single payment info if no partial payments */}
-                                {partialData.paymentCount === 0 && (
-                                  <>
-                                    <p>Payment Method: <strong>{selectedBillingForVerification.billing?.paymentMethod || 'Not specified'}</strong></p>
-                                    <p>Transaction ID: <strong>{selectedBillingForVerification.billing?.transactionId}</strong></p>
-                                    <p>Payment Date: <strong>{selectedBillingForVerification.billing?.paidAt ? new Date(selectedBillingForVerification.billing.paidAt).toLocaleDateString() : 'Not specified'}</strong></p>
-                                  </>
-                                )}
-                              </>
-                            );
-                          })()}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Receipt Upload Section */}
-                  {selectedBillingForVerification.billing?.receiptUpload && (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                      <div className="flex">
-                        <div className="flex-shrink-0">
-                          <Receipt className="h-5 w-5 text-green-400" />
-                        </div>
-                        <div className="ml-3">
-                          <h3 className="text-xs font-medium text-green-800">
-                            Receipt Uploaded by Receptionist
-                          </h3>
-                          <div className="mt-2 text-xs text-green-700">
-                            <p>Receipt File: <strong>{selectedBillingForVerification.billing.receiptUpload}</strong></p>
-                            <div className="mt-2">
-                              <button
-                                onClick={() => viewReceipt(selectedBillingForVerification.billing.receiptUpload)}
-                                className="inline-flex items-center px-3 py-1.5 bg-green-100 text-green-700 rounded-md text-xs font-medium hover:bg-green-200 transition-colors duration-200"
-                              >
-                                <Eye className="h-3 w-3 mr-1" />
-                                View Receipt
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Payment Notes Section */}
-                  {selectedBillingForVerification.billing?.notes && (
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                      <div className="flex">
-                        <div className="flex-shrink-0">
-                          <FileText className="h-5 w-5 text-gray-400" />
-                        </div>
-                        <div className="ml-3">
-                          <h3 className="text-xs font-medium text-gray-800">
-                            Payment Notes from Receptionist
-                          </h3>
-                          <div className="mt-2 text-xs text-gray-700">
-                            <p className="whitespace-pre-wrap">{selectedBillingForVerification.billing.notes}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  <div>
-                    <label htmlFor="verificationNotes" className="block text-xs font-medium text-gray-700 mb-2">
-                      Verification Notes (Optional)
-                    </label>
-                    <textarea
-                      id="verificationNotes"
-                      rows={3}
-                      value={verificationNotes}
-                      onChange={(e) => setVerificationNotes(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Add any verification notes or comments..."
-                    />
-                  </div>
-
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                    <div className="flex">
-                      <div className="flex-shrink-0">
-                        <AlertCircle className="h-5 w-5 text-yellow-400" />
-                      </div>
-                      <div className="ml-3">
-                        <h3 className="text-xs font-medium text-yellow-800">
-                          Important
-                        </h3>
-                        <div className="mt-2 text-xs text-yellow-700">
-                          <p>By verifying this payment, you confirm that:</p>
-                          <ul className="list-disc list-inside mt-1">
-                            <li>The payment has been received and verified</li>
-                            {selectedBillingForVerification.billing?.paidAmount && selectedBillingForVerification.billing.paidAmount < selectedBillingForVerification.billing.amount ? (
-                              <li>This is a partial payment - remaining balance will be collected later</li>
-                            ) : (
-                              <li>The full payment has been received</li>
-                            )}
-                            <li>The test request can proceed to lab processing</li>
-                            <li>All payment details are accurate</li>
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-6 flex justify-end space-x-3">
-                  <button
-                    onClick={() => setShowVerificationModal(false)}
-                    className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={verifyPayment}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center"
-                  >
-                    <Shield className="w-4 h-4 mr-2" />
-                    Verify Payment
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Receipt Viewing Modal */}
         {showReceiptModal && selectedReceipt && (
@@ -1539,7 +1405,7 @@ const CenterAdminBilling = () => {
                         <div className="mt-2 text-xs text-blue-700">
                           <p>File Name: <strong>{selectedReceipt}</strong></p>
                           <p>Uploaded by: <strong>Receptionist</strong></p>
-                          <p>Upload Date: <strong>{selectedBillingForVerification?.billing?.paidAt ? new Date(selectedBillingForVerification.billing.paidAt).toLocaleDateString() : 'Not specified'}</strong></p>
+                          <p>Upload Date: <strong>Not specified</strong></p>
                           <p>File Type: <strong>{selectedReceipt?.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/) ? 'Image' : 'PDF'}</strong></p>
                         </div>
                       </div>

@@ -93,6 +93,7 @@ import LabRouteProtection from '../components/LabRouteProtection';
 import CenterAdminDashboard from '../pages/CenterAdmin/Dashboard';
 import CenterAdminBilling from '../pages/CenterAdmin/Billing';
 import CenterAdminBillingReports from '../pages/CenterAdmin/BillingReports';
+import CenterAdminBillingTracker from '../pages/CenterAdmin/BillingTracker';
 import CenterProfile from '../pages/CenterAdmin/CenterProfile';
 import CenterAdminAddPatient from '../pages/CenterAdmin/patients/AddPatient';
 import CenterAdminPatientList from '../pages/CenterAdmin/patients/PatientList';
@@ -148,6 +149,7 @@ import ReceptionistViewGPE from '../pages/Receptionist/FollowUp/GPE/ViewGPE';
 import ReceptionistViewPrescription from '../pages/Receptionist/FollowUp/Prescription/ViewPrescription';
 import ReceptionistLayout from '../pages/Receptionist/ReceptionistLayout';
 import ReceptionistBilling from '../pages/Receptionist/Billing';
+import ReceptionistBillingTracker from '../pages/Receptionist/BillingTracker';
 import AddReceptionistPatient from '../pages/Receptionist/AddPatient';
 import ReceptionistEditPatient from '../pages/Receptionist/EditPatient';
 
@@ -437,6 +439,7 @@ export default function AppRoutes() {
         <Route path="centeradmin/billing" element={<ErrorBoundary><CenterAdminBilling /></ErrorBoundary>} />
         <Route path="centeradmin/billing/:billingId" element={<ErrorBoundary><CenterAdminBillingDetails /></ErrorBoundary>} />
         <Route path="centeradmin/billing-reports" element={<ErrorBoundary><CenterAdminBillingReports /></ErrorBoundary>} />
+        <Route path="centeradmin/billing-tracker" element={<ErrorBoundary><CenterAdminBillingTracker /></ErrorBoundary>} />
         
         {/* Center Admin Followup Routes (lowercase) */}
         <Route path="centeradmin/patients/followup/:id" element={<FollowUp />} />
@@ -469,6 +472,7 @@ export default function AppRoutes() {
         <Route path="receptionist/view-gpe/:id" element={<ReceptionistLayout><ReceptionistViewGPE /></ReceptionistLayout>} />
         <Route path="receptionist/view-prescription/:id" element={<ReceptionistLayout><ReceptionistViewPrescription /></ReceptionistLayout>} />
         <Route path="receptionist/billing" element={<ReceptionistLayout><ReceptionistBilling /></ReceptionistLayout>} />
+        <Route path="receptionist/billing-tracker" element={<ReceptionistLayout><ReceptionistBillingTracker /></ReceptionistLayout>} />
 
         {/* Doctor Routes */}
         <Route path="doctor/dashboard" element={<DoctorDashboard />} />

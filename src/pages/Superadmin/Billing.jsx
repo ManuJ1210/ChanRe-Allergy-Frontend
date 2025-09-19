@@ -178,7 +178,7 @@ const SuperadminBilling = () => {
   }, [actionError, dispatch]);
 
   // Get status badge with partial payment support
-  const getStatusBadge = (status, billing) => {
+  const getStatusBadge = (status, billing, requestId) => {
     const statusConfig = {
       'not_generated': { color: 'bg-gray-100 text-gray-800', icon: Clock, label: 'Not Generated' },
       'generated': { color: 'bg-blue-100 text-blue-800', icon: FileText, label: 'Generated' },
@@ -187,12 +187,49 @@ const SuperadminBilling = () => {
       'verified': { color: 'bg-purple-100 text-purple-800', icon: CheckCircle, label: 'Verified' }
     };
 
-    // Check for partial payment
-    if (billing && billing.paidAmount && billing.paidAmount > 0 && billing.paidAmount < billing.amount) {
+    // Get partial payment data to check for multiple payments
+    const partialData = getPartialPaymentData(requestId);
+    const hasMultiplePayments = partialData.paymentCount > 1;
+    
+    // Check if bill is fully paid
+    const totalAmount = billing?.amount || 0;
+    const backendPaidAmount = billing?.paidAmount || 0;
+    const totalPaidFromStorage = partialData.totalPaid;
+    
+    // Check if bill is fully paid by status
+    const isFullyPaidByStatus = status === 'paid' || status === 'verified';
+    
+    // Calculate actual paid amount - prioritize localStorage data over backend status
+    let actualPaidAmount;
+    if (totalPaidFromStorage > 0) {
+      // If there are partial payments in localStorage, use that amount
+      actualPaidAmount = totalPaidFromStorage;
+    } else if (isFullyPaidByStatus && backendPaidAmount === 0) {
+      // Only if no localStorage payments and status is paid with 0 backend amount, assume full payment
+      actualPaidAmount = totalAmount;
+    } else {
+      // Use backend amount as fallback
+      actualPaidAmount = backendPaidAmount;
+    }
+    
+    const isFullyPaid = isFullyPaidByStatus || actualPaidAmount >= totalAmount;
+    
+    // Check for partial payment (outstanding balance)
+    if (billing && actualPaidAmount > 0 && actualPaidAmount < totalAmount) {
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
           <DollarSign className="w-3 h-3 mr-1" />
           Partially Paid
+        </span>
+      );
+    }
+    
+    // Check for fully paid with multiple payments
+    if (isFullyPaid && hasMultiplePayments) {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+          <CheckCircle className="w-3 h-3 mr-1" />
+          Partially Fully Paid
         </span>
       );
     }
@@ -389,17 +426,31 @@ const SuperadminBilling = () => {
       return item;
     });
 
-    const totals = enhancedData.reduce((acc, item) => {
+    // Filter to only include items that have billing information
+    const billingItems = enhancedData.filter(item => item.billing && item.billing.status);
+
+    // Use Set to track unique bills to avoid double counting
+    const uniqueBills = new Set();
+    
+    const totals = billingItems.reduce((acc, item) => {
       const amount = item.billing?.amount || 0;
-      acc.totalAmount += amount;
-      acc.totalCount += 1;
       
-      if (item.billing?.status === 'paid') {
-        acc.paidAmount += amount;
-        acc.paidCount += 1;
-      } else if (item.billing?.status === 'generated') {
-        acc.pendingAmount += amount;
-        acc.pendingCount += 1;
+      // Only count each bill once (by _id)
+      if (!uniqueBills.has(item._id)) {
+        uniqueBills.add(item._id);
+        acc.totalCount += 1;
+        acc.totalAmount += amount;
+        
+        // Determine the effective status for counting
+        const effectiveStatus = item.billing?.status;
+        
+        if (effectiveStatus === 'paid' || effectiveStatus === 'verified') {
+          acc.paidAmount += amount;
+          acc.paidCount += 1;
+        } else if (effectiveStatus === 'generated' || effectiveStatus === 'partially_paid') {
+          acc.pendingAmount += amount;
+          acc.pendingCount += 1;
+        }
       }
       
       return acc;
@@ -837,33 +888,49 @@ const SuperadminBilling = () => {
                                   Total: ₹{enhancedItem.billing.amount?.toLocaleString()}
                                 </div>
                                 
-                                {/* Minimal payment display */}
+                                {/* Enhanced payment display */}
                                 {(() => {
                                   const partialData = getPartialPaymentData(item._id);
                                   const totalPaidFromStorage = partialData.totalPaid;
                                   const backendPaidAmount = item.billing?.paidAmount || 0;
                                   const totalAmount = item.billing?.amount || 0;
+                                  const hasMultiplePayments = partialData.paymentCount > 1;
                                   
                                   // Check if bill is fully paid by status
                                   const isFullyPaidByStatus = item.billing?.status === 'paid' || 
                                                             item.billing?.status === 'verified';
                                   
-                                  // If status indicates paid but paidAmount is 0, assume full amount was paid
+                                  // Calculate actual paid amount - prioritize localStorage data over backend status
                                   let actualPaidAmount;
-                                  if (isFullyPaidByStatus && backendPaidAmount === 0) {
+                                  if (totalPaidFromStorage > 0) {
+                                    // If there are partial payments in localStorage, use that amount
+                                    actualPaidAmount = totalPaidFromStorage;
+                                  } else if (isFullyPaidByStatus && backendPaidAmount === 0) {
+                                    // Only if no localStorage payments and status is paid with 0 backend amount, assume full payment
                                     actualPaidAmount = totalAmount;
                                   } else {
-                                    actualPaidAmount = Math.max(backendPaidAmount, totalPaidFromStorage);
+                                    // Use backend amount as fallback
+                                    actualPaidAmount = backendPaidAmount;
                                   }
                                   
                                   const remainingAmount = totalAmount - actualPaidAmount;
                                   const isFullyPaid = isFullyPaidByStatus || actualPaidAmount >= totalAmount;
                                   
                                   return (
-                                    <div className="text-xs">
+                                    <div className="text-xs space-y-1">
+                                      {actualPaidAmount > 0 && (
+                                        <div className="text-green-600 font-medium">
+                                          Paid: ₹{actualPaidAmount.toLocaleString()}
+                                        </div>
+                                      )}
                                       {!isFullyPaid && remainingAmount > 0 && (
                                         <div className="text-orange-600 font-medium">
                                           Remaining: ₹{remainingAmount.toLocaleString()}
+                                        </div>
+                                      )}
+                                      {hasMultiplePayments && (
+                                        <div className="text-blue-600 font-medium">
+                                          {partialData.paymentCount} payments
                                         </div>
                                       )}
                                     </div>
@@ -880,7 +947,7 @@ const SuperadminBilling = () => {
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          {getStatusBadge(enhancedItem.billing?.status || 'not_generated', enhancedItem.billing)}
+                          {getStatusBadge(enhancedItem.billing?.status || 'not_generated', enhancedItem.billing, item._id)}
                         </td>
                         <td className="px-6 py-4">
                           <div className="text-sm text-slate-800">

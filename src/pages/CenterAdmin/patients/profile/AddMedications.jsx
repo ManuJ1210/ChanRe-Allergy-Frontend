@@ -10,13 +10,14 @@ export default function AddMedications() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { loading, error, addMedicationSuccess } = useSelector((state) => state.centerAdmin);
+  const { user } = useSelector((state) => state.auth);
   
   const [formData, setFormData] = useState({
     drugName: "",
     dose: "",
     frequency: "",
     duration: "",
-    prescribedBy: "",
+    prescribedBy: user?.name || "",
     prescribedDate: new Date().toISOString().split('T')[0],
     instructions: "",
     patientId: id,
@@ -34,6 +35,12 @@ export default function AddMedications() {
   React.useEffect(() => {
     setFormData(prev => ({ ...prev, patientId: id }));
   }, [id]);
+
+  React.useEffect(() => {
+    if (user?.name && !formData.prescribedBy) {
+      setFormData(prev => ({ ...prev, prescribedBy: user.name }));
+    }
+  }, [user?.name, formData.prescribedBy]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -161,10 +168,9 @@ export default function AddMedications() {
                     type="text"
                     name="prescribedBy"
                     value={formData.prescribedBy}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs"
-                    placeholder="Enter doctor's name"
+                    readOnly
+                    className="w-full px-4 py-3 border border-slate-200 rounded-lg bg-slate-50 text-slate-600 text-xs cursor-not-allowed"
+                    placeholder="Auto-filled with logged-in user"
                   />
                 </div>
 

@@ -131,7 +131,7 @@ const CenterAdminBillingDetails = () => {
   }, [billingData, billingId, navigate]);
 
   // Get status badge
-  const getStatusBadge = (status, billing) => {
+  const getStatusBadge = (status, billing, requestId) => {
     const statusConfig = {
       'not_generated': { color: 'bg-gray-100 text-gray-800', icon: Clock, label: 'Not Generated' },
       'generated': { color: 'bg-blue-100 text-blue-800', icon: FileText, label: 'Generated' },
@@ -140,12 +140,44 @@ const CenterAdminBillingDetails = () => {
       'verified': { color: 'bg-purple-100 text-purple-800', icon: Shield, label: 'Verified' }
     };
 
-    // Check for partial payment
-    if (billing && billing.paidAmount && billing.paidAmount > 0 && billing.paidAmount < billing.amount) {
+    // Get partial payment data to check for multiple payments
+    const partialData = getPartialPaymentData(requestId);
+    const hasMultiplePayments = partialData.paymentCount > 1;
+    
+    // Check if bill is fully paid
+    const totalAmount = billing?.amount || 0;
+    const backendPaidAmount = billing?.paidAmount || 0;
+    const totalPaidFromStorage = partialData.totalPaid;
+    
+    // Check if bill is fully paid by status
+    const isFullyPaidByStatus = status === 'paid' || status === 'verified';
+    
+    // Calculate actual paid amount
+    let actualPaidAmount;
+    if (isFullyPaidByStatus && backendPaidAmount === 0) {
+      actualPaidAmount = totalAmount;
+    } else {
+      actualPaidAmount = Math.max(backendPaidAmount, totalPaidFromStorage);
+    }
+    
+    const isFullyPaid = isFullyPaidByStatus || actualPaidAmount >= totalAmount;
+    
+    // Check for partial payment (outstanding balance)
+    if (billing && actualPaidAmount > 0 && actualPaidAmount < totalAmount) {
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
           <DollarSign className="w-3 h-3 mr-1" />
           Partially Paid
+        </span>
+      );
+    }
+    
+    // Check for fully paid with multiple payments
+    if (isFullyPaid && hasMultiplePayments) {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+          <CheckCircle className="w-3 h-3 mr-1" />
+          Partially Fully Paid
         </span>
       );
     }
@@ -265,16 +297,21 @@ const CenterAdminBillingDetails = () => {
   const isFullyPaidByStatus = billingDetails.billing?.status === 'paid' || 
                             billingDetails.billing?.status === 'verified';
   
-  // If status indicates paid but paidAmount is 0, assume full amount was paid
+  // Calculate actual paid amount - prioritize localStorage data over backend status
   let actualPaidAmount;
-  if (isFullyPaidByStatus && backendPaidAmount === 0) {
+  if (totalPaidFromStorage > 0) {
+    // If there are partial payments in localStorage, use that amount
+    actualPaidAmount = totalPaidFromStorage;
+  } else if (isFullyPaidByStatus && backendPaidAmount === 0) {
+    // Only if no localStorage payments and status is paid with 0 backend amount, assume full payment
     actualPaidAmount = totalAmount;
   } else {
-    actualPaidAmount = Math.max(backendPaidAmount, totalPaidFromStorage);
+    // Use backend amount as fallback
+    actualPaidAmount = backendPaidAmount;
   }
   
   const remainingAmount = totalAmount - actualPaidAmount;
-  const isFullyPaid = isFullyPaidByStatus || actualPaidAmount >= totalAmount;
+  const isFullyPaid = actualPaidAmount >= totalAmount;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
@@ -352,7 +389,7 @@ const CenterAdminBillingDetails = () => {
               </div>
               <div>
                 <label className="text-xs font-medium text-slate-600">Status</label>
-                <div className="mt-1">{getStatusBadge(billingDetails.billing?.status || 'not_generated', billingDetails.billing)}</div>
+                <div className="mt-1">{getStatusBadge(billingDetails.billing?.status || 'not_generated', billingDetails.billing, billingDetails._id)}</div>
               </div>
             </div>
           </div>

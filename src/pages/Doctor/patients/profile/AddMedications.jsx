@@ -10,13 +10,14 @@ export default function AddMedications() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { loading, error, addMedicationSuccess } = useSelector((state) => state.doctor);
+  const { user } = useSelector((state) => state.auth);
   
   const [formData, setFormData] = useState({
     drugName: "",
     dose: "",
     frequency: "",
     duration: "",
-    prescribedBy: "",
+    prescribedBy: user?.name || "",
     prescribedDate: new Date().toISOString().split('T')[0],
     instructions: "",
     patientId: id,
@@ -35,6 +36,12 @@ export default function AddMedications() {
     setFormData(prev => ({ ...prev, patientId: id }));
   }, [id]);
 
+  React.useEffect(() => {
+    if (user?.name && !formData.prescribedBy) {
+      setFormData(prev => ({ ...prev, prescribedBy: user.name }));
+    }
+  }, [user?.name, formData.prescribedBy]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -51,7 +58,7 @@ export default function AddMedications() {
           {/* Header */}
           <div className="mb-8">
             <button
-                              onClick={() => navigate(`/dashboard/CenterAdmin/patients/profile/ViewProfile/${id}`)}
+              onClick={() => navigate(`/dashboard/Doctor/patients/profile/ViewProfile/${id}`)}
               className="flex items-center text-slate-600 hover:text-slate-800 mb-4 transition-colors text-xs"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
@@ -161,10 +168,9 @@ export default function AddMedications() {
                     type="text"
                     name="prescribedBy"
                     value={formData.prescribedBy}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs"
-                    placeholder="Enter doctor's name"
+                    readOnly
+                    className="w-full px-4 py-3 border border-slate-200 rounded-lg bg-slate-50 text-slate-600 text-xs cursor-not-allowed"
+                    placeholder="Auto-filled with logged-in user"
                   />
                 </div>
 
@@ -200,7 +206,7 @@ export default function AddMedications() {
               <div className="flex gap-4 pt-6">
                 <button
                   type="button"
-                  onClick={() => navigate(`/dashboard/CenterAdmin/patients/profile/ViewProfile/${id}`)}
+                  onClick={() => navigate(`/dashboard/Doctor/patients/profile/ViewProfile/${id}`)}
                   className="px-6 py-3 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-2 text-xs"
                 >
                   <ArrowLeft className="h-4 w-4" />

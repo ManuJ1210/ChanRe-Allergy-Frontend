@@ -250,6 +250,7 @@ export default function Sidebar(props) {
                 links={[
                   { to: "/dashboard/centeradmin/billing", label: "Billing Management" },
                   { to: "/dashboard/centeradmin/billing-reports", label: "Billing Reports" },
+                  { to: "/dashboard/centeradmin/billing-tracker", label: "Payment Tracker" },
                 ]}
                 currentPath={location.pathname}
               />
@@ -279,6 +280,12 @@ export default function Sidebar(props) {
                 label="Billing"
                 icon={<FaClipboardList />}
                 isActive={isActive("/dashboard/receptionist/billing")}
+              />
+              <SidebarLink
+                to="/dashboard/receptionist/billing-tracker"
+                label="Payment Tracker"
+                icon={<FaMoneyBillWave />}
+                isActive={isActive("/dashboard/receptionist/billing-tracker")}
               />
             </>
           )}

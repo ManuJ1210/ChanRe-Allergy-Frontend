@@ -292,6 +292,34 @@ export default function TestRequests() {
     }
   };
 
+  // Enhanced function to get payment status for billing-related statuses
+  const getPaymentStatus = (request) => {
+    if (!request.billing) return null;
+    
+    const totalAmount = request.billing.amount || 0;
+    const paidAmount = request.billing.paidAmount || 0;
+    const billingStatus = request.billing.status;
+    
+    // Check if this is a billing-related status
+    if (['Billing_Paid', 'Superadmin_Approved'].includes(request.status)) {
+      if (billingStatus === 'partially_paid' || (paidAmount > 0 && paidAmount < totalAmount)) {
+        return {
+          status: 'Partially Paid',
+          color: 'bg-purple-100 text-purple-800 border-purple-200',
+          icon: <Clock className="h-3 w-3" />
+        };
+      } else if (billingStatus === 'paid' || paidAmount >= totalAmount) {
+        return {
+          status: 'Fully Paid',
+          color: 'bg-green-100 text-green-800 border-green-200',
+          icon: <CheckCircle className="h-3 w-3" />
+        };
+      }
+    }
+    
+    return null;
+  };
+
   const handleViewDetails = (requestId) => {
     navigate(`/dashboard/lab/test-request/${requestId}`);
   };

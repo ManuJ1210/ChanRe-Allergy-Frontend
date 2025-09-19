@@ -917,31 +917,41 @@ function ReceptionistBilling() {
                                   <FileText className="h-3 w-3 mr-1" /> View/Edit Bill
                                 </button>
                                 
-                                {/* Show payment button for all billing generated bills */}
+                                {/* Show payment button for bills with remaining balance */}
                                 {(() => {
+                                  const partialData = getPartialPaymentData(req._id);
+                                  const totalPaidFromStorage = partialData.totalPaid;
+                                  const backendPaidAmount = req.billing?.paidAmount || 0;
                                   const totalAmount = req.billing?.amount || 0;
-                                  const paidAmount = req.billing?.paidAmount || 0;
-                                  const remainingAmount = totalAmount - paidAmount;
                                   
+                                  // Check if bill is fully paid by status
+                                  const isFullyPaidByStatus = req.billing?.status === 'paid' || 
+                                                            req.billing?.status === 'verified' ||
+                                                            req.status === 'Report_Sent';
                                   
-                                  // Always show payment button for billing generated bills
-                                  // This allows you to record payments even if amounts seem wrong
-                                  return (
+                                  // Calculate actual paid amount
+                                  let actualPaidAmount;
+                                  if (isFullyPaidByStatus && backendPaidAmount === 0) {
+                                    actualPaidAmount = totalAmount;
+                                  } else {
+                                    actualPaidAmount = Math.max(backendPaidAmount, totalPaidFromStorage);
+                                  }
+                                  
+                                  const remainingAmount = totalAmount - actualPaidAmount;
+                                  const hasRemainingBalance = remainingAmount > 0;
+                                  
+                                  // Show payment button if there's remaining balance
+                                  return hasRemainingBalance ? (
                                     <button 
                                       onClick={() => openPaymentModal(req)} 
                                       className={`inline-flex items-center px-3 py-2 rounded-lg text-xs font-medium transition-colors duration-200 shadow-sm ${
-                                        remainingAmount > 0
-                                          ? (paidAmount > 0 ? 'bg-purple-600 text-white hover:bg-purple-700' : 'bg-emerald-600 text-white hover:bg-emerald-700')
-                                          : 'bg-blue-600 text-white hover:bg-blue-700'
+                                        actualPaidAmount > 0 ? 'bg-purple-600 text-white hover:bg-purple-700' : 'bg-emerald-600 text-white hover:bg-emerald-700'
                                       }`}
                                     >
                                       <CheckCircle className="h-3 w-3 mr-1" /> 
-                                      {remainingAmount > 0 
-                                        ? (paidAmount > 0 ? 'Add Payment' : 'Record Payment')
-                                        : 'View Payment'
-                                      }
+                                      {actualPaidAmount > 0 ? 'Add Payment' : 'Record Payment'}
                                     </button>
-                                  );
+                                  ) : null;
                                 })()}
                                 
                                 <button 
@@ -960,6 +970,41 @@ function ReceptionistBilling() {
                                 >
                                   <FileText className="h-3 w-3 mr-1" /> View Invoice
                                 </button>
+                                
+                                {/* Show payment button for bills with remaining balance */}
+                                {(() => {
+                                  const partialData = getPartialPaymentData(req._id);
+                                  const totalPaidFromStorage = partialData.totalPaid;
+                                  const backendPaidAmount = req.billing?.paidAmount || 0;
+                                  const totalAmount = req.billing?.amount || 0;
+                                  
+                                  // Check if bill is fully paid by status
+                                  const isFullyPaidByStatus = req.billing?.status === 'paid' || 
+                                                            req.billing?.status === 'verified' ||
+                                                            req.status === 'Report_Sent';
+                                  
+                                  // Calculate actual paid amount
+                                  let actualPaidAmount;
+                                  if (isFullyPaidByStatus && backendPaidAmount === 0) {
+                                    actualPaidAmount = totalAmount;
+                                  } else {
+                                    actualPaidAmount = Math.max(backendPaidAmount, totalPaidFromStorage);
+                                  }
+                                  
+                                  const remainingAmount = totalAmount - actualPaidAmount;
+                                  const hasRemainingBalance = remainingAmount > 0;
+                                  
+                                  // Show payment button if there's remaining balance
+                                  return hasRemainingBalance ? (
+                                    <button 
+                                      onClick={() => openPaymentModal(req)} 
+                                      className="inline-flex items-center px-3 py-2 bg-purple-600 text-white rounded-lg text-xs font-medium hover:bg-purple-700 transition-colors duration-200 shadow-sm"
+                                    >
+                                      <CheckCircle className="h-3 w-3 mr-1" /> Add Payment
+                                    </button>
+                                  ) : null;
+                                })()}
+                                
                                 <button 
                                   onClick={() => handleDownloadInvoice(req._id)} 
                                   className="inline-flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors duration-200 shadow-sm"
@@ -976,6 +1021,41 @@ function ReceptionistBilling() {
                                 >
                                   <FileText className="h-3 w-3 mr-1" /> View Invoice
                                 </button>
+                                
+                                {/* Show payment button for bills with remaining balance */}
+                                {(() => {
+                                  const partialData = getPartialPaymentData(req._id);
+                                  const totalPaidFromStorage = partialData.totalPaid;
+                                  const backendPaidAmount = req.billing?.paidAmount || 0;
+                                  const totalAmount = req.billing?.amount || 0;
+                                  
+                                  // Check if bill is fully paid by status
+                                  const isFullyPaidByStatus = req.billing?.status === 'paid' || 
+                                                            req.billing?.status === 'verified' ||
+                                                            req.status === 'Report_Sent';
+                                  
+                                  // Calculate actual paid amount
+                                  let actualPaidAmount;
+                                  if (isFullyPaidByStatus && backendPaidAmount === 0) {
+                                    actualPaidAmount = totalAmount;
+                                  } else {
+                                    actualPaidAmount = Math.max(backendPaidAmount, totalPaidFromStorage);
+                                  }
+                                  
+                                  const remainingAmount = totalAmount - actualPaidAmount;
+                                  const hasRemainingBalance = remainingAmount > 0;
+                                  
+                                  // Show payment button if there's remaining balance
+                                  return hasRemainingBalance ? (
+                                    <button 
+                                      onClick={() => openPaymentModal(req)} 
+                                      className="inline-flex items-center px-3 py-2 bg-purple-600 text-white rounded-lg text-xs font-medium hover:bg-purple-700 transition-colors duration-200 shadow-sm"
+                                    >
+                                      <CheckCircle className="h-3 w-3 mr-1" /> Add Payment
+                                    </button>
+                                  ) : null;
+                                })()}
+                                
                                 <button 
                                   onClick={() => handleDownloadInvoice(req._id)} 
                                   className="inline-flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors duration-200 shadow-sm"
@@ -992,6 +1072,41 @@ function ReceptionistBilling() {
                                 >
                                   <FileText className="h-3 w-3 mr-1" /> View Invoice
                                 </button>
+                                
+                                {/* Show payment button for bills with remaining balance */}
+                                {(() => {
+                                  const partialData = getPartialPaymentData(req._id);
+                                  const totalPaidFromStorage = partialData.totalPaid;
+                                  const backendPaidAmount = req.billing?.paidAmount || 0;
+                                  const totalAmount = req.billing?.amount || 0;
+                                  
+                                  // Check if bill is fully paid by status
+                                  const isFullyPaidByStatus = req.billing?.status === 'paid' || 
+                                                            req.billing?.status === 'verified' ||
+                                                            req.status === 'Report_Sent';
+                                  
+                                  // Calculate actual paid amount
+                                  let actualPaidAmount;
+                                  if (isFullyPaidByStatus && backendPaidAmount === 0) {
+                                    actualPaidAmount = totalAmount;
+                                  } else {
+                                    actualPaidAmount = Math.max(backendPaidAmount, totalPaidFromStorage);
+                                  }
+                                  
+                                  const remainingAmount = totalAmount - actualPaidAmount;
+                                  const hasRemainingBalance = remainingAmount > 0;
+                                  
+                                  // Show payment button if there's remaining balance
+                                  return hasRemainingBalance ? (
+                                    <button 
+                                      onClick={() => openPaymentModal(req)} 
+                                      className="inline-flex items-center px-3 py-2 bg-purple-600 text-white rounded-lg text-xs font-medium hover:bg-purple-700 transition-colors duration-200 shadow-sm"
+                                    >
+                                      <CheckCircle className="h-3 w-3 mr-1" /> Add Payment
+                                    </button>
+                                  ) : null;
+                                })()}
+                                
                                 <button 
                                   onClick={() => handleDownloadInvoice(req._id)} 
                                   className="inline-flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors duration-200 shadow-sm"
