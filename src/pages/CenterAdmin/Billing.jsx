@@ -170,12 +170,26 @@ const CenterAdminBilling = () => {
         return;
       }
       
+      // Extract center ID with proper validation
+      let centerId = null;
+      
       // Try different possible properties for center ID
-      let centerId = localUser?.centerId || localUser?.center?.id || localUser?.centerId || localUser?.center_id;
+      if (localUser?.centerId) {
+        centerId = localUser.centerId;
+      } else if (localUser?.center?.id) {
+        centerId = localUser.center.id;
+      } else if (localUser?.center_id) {
+        centerId = localUser.center_id;
+      }
       
       // If centerId is an object, extract the _id property
       if (centerId && typeof centerId === 'object' && centerId._id) {
         centerId = centerId._id;
+      }
+      
+      // Ensure centerId is a string
+      if (centerId) {
+        centerId = String(centerId);
       }
       
       if (!centerId) {
@@ -184,7 +198,7 @@ const CenterAdminBilling = () => {
         return;
       }
       
-             const response = await API.get(`/billing/center`);
+      const response = await API.get(`/billing/center`);
       
       // Ensure we have an array of billing requests
       if (response.data && Array.isArray(response.data.billingRequests)) {
@@ -264,12 +278,26 @@ const CenterAdminBilling = () => {
         setLocalUser(safeUser);
       }
       
+      // Extract center ID with proper validation
+      let centerId = null;
+      
       // Try different possible properties for center ID
-      let centerId = localUser?.centerId || localUser?.center?.id || localUser?.centerId || localUser?.center_id;
+      if (localUser?.centerId) {
+        centerId = localUser.centerId;
+      } else if (localUser?.center?.id) {
+        centerId = localUser.center.id;
+      } else if (localUser?.center_id) {
+        centerId = localUser.center_id;
+      }
       
       // If centerId is an object, extract the _id property
       if (centerId && typeof centerId === 'object' && centerId._id) {
         centerId = centerId._id;
+      }
+      
+      // Ensure centerId is a string
+      if (centerId) {
+        centerId = String(centerId);
       }
       
       if (centerId) {

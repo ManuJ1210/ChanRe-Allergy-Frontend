@@ -82,10 +82,26 @@ const CenterAdminBillingTracker = () => {
         return;
       }
       
-      let centerId = localUser?.centerId || localUser?.center?.id || localUser?.centerId || localUser?.center_id;
+      // Extract center ID with proper validation
+      let centerId = null;
       
+      // Try different possible properties for center ID
+      if (localUser?.centerId) {
+        centerId = localUser.centerId;
+      } else if (localUser?.center?.id) {
+        centerId = localUser.center.id;
+      } else if (localUser?.center_id) {
+        centerId = localUser.center_id;
+      }
+      
+      // If centerId is an object, extract the _id property
       if (centerId && typeof centerId === 'object' && centerId._id) {
         centerId = centerId._id;
+      }
+      
+      // Ensure centerId is a string
+      if (centerId) {
+        centerId = String(centerId);
       }
       
       if (!centerId) {
@@ -138,10 +154,26 @@ const CenterAdminBillingTracker = () => {
         setLocalUser(safeUser);
       }
       
-      let centerId = localUser?.centerId || localUser?.center?.id || localUser?.centerId || localUser?.center_id;
+      // Extract center ID with proper validation
+      let centerId = null;
       
+      // Try different possible properties for center ID
+      if (localUser?.centerId) {
+        centerId = localUser.centerId;
+      } else if (localUser?.center?.id) {
+        centerId = localUser.center.id;
+      } else if (localUser?.center_id) {
+        centerId = localUser.center_id;
+      }
+      
+      // If centerId is an object, extract the _id property
       if (centerId && typeof centerId === 'object' && centerId._id) {
         centerId = centerId._id;
+      }
+      
+      // Ensure centerId is a string
+      if (centerId) {
+        centerId = String(centerId);
       }
       
       if (centerId) {

@@ -21,29 +21,20 @@ export const testAPIConnection = async () => {
 
 API.interceptors.request.use((config) => {
   try {
-    const storedUser = localStorage.getItem('user');
-    const storedToken = localStorage.getItem('token');
-    
-    let token = null;
-    
-    if (storedUser) {
-      const user = JSON.parse(storedUser);
-      
-      // Check if token is in user object
-      if (user?.token) {
-        token = user.token;
-      }
-    }
-    
-    // If no token in user object, check separate token storage
-    if (!token && storedToken) {
-      token = storedToken;
-    }
-    
-
+    // Simplified token extraction - prioritize localStorage token
+    const token = localStorage.getItem('token');
     
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      // Fallback: check user object for token
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        const user = JSON.parse(storedUser);
+        if (user?.token) {
+          config.headers.Authorization = `Bearer ${user.token}`;
+        }
+      }
     }
   } catch (err) {
     console.error('Error in request interceptor:', err);
@@ -60,8 +51,17 @@ API.interceptors.response.use(
   (error) => {
     // Handle specific error cases
     if (error.response?.status === 401) {
+      // Clear stored authentication data
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
       // Optionally redirect to login
       // window.location.href = '/login';
+    } else if (error.response?.status === 403) {
+      console.error('Access denied:', error.response.data?.message || 'Forbidden');
+    } else if (error.response?.status >= 500) {
+      console.error('Server error:', error.response.data?.message || 'Internal server error');
+    } else if (!error.response) {
+      console.error('Network error:', error.message || 'Unable to connect to server');
     }
     
     return Promise.reject(error);
