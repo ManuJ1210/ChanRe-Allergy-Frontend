@@ -323,7 +323,7 @@ const AddPatient = () => {
 
                 <div>
                   <label className="block text-xs font-medium text-slate-700 mb-2">
-                    Address
+                    Address *
                   </label>
                   <textarea
                     name="address"
@@ -337,6 +337,7 @@ const AddPatient = () => {
                         ? 'border-red-300 bg-red-50' 
                         : 'border-slate-200'
                     }`}
+                    required
                   ></textarea>
                   {touched.address && errors.address && (
                     <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
