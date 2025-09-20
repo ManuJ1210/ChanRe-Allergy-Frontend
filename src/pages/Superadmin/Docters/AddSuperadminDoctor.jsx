@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { Eye, EyeOff, UserCheck, ArrowLeft, Plus, X } from 'lucide-react';
+import { Eye, EyeOff, UserCheck, ArrowLeft, Plus, X, AlertCircle } from 'lucide-react';
 import { addSuperAdminDoctor, clearError, clearSuccess } from '../../../features/superadmin/superAdminDoctorSlice';
+import { validateDoctorForm, hasFormErrors } from '../../../utils/formValidation';
 
 const AddSuperadminDoctor = () => {
   const navigate = useNavigate();
@@ -26,10 +27,28 @@ const AddSuperadminDoctor = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [newSpecialization, setNewSpecialization] = useState('');
+  const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    
+    // Mark field as touched
+    setTouched({ ...touched, [name]: true });
+    
+    // Validate the field
+    const validationErrors = validateDoctorForm({ ...formData, [name]: value });
+    setErrors({ ...errors, [name]: validationErrors[name] });
+  };
+
+  const handleBlur = (e) => {
+    const { name } = e.target;
+    setTouched({ ...touched, [name]: true });
+    
+    // Validate the field
+    const validationErrors = validateDoctorForm(formData);
+    setErrors({ ...errors, [name]: validationErrors[name] });
   };
 
   const handleAddSpecialization = () => {
@@ -51,6 +70,23 @@ const AddSuperadminDoctor = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Mark all fields as touched
+    const allTouched = {};
+    Object.keys(formData).forEach(key => {
+      allTouched[key] = true;
+    });
+    setTouched(allTouched);
+    
+    // Validate the entire form
+    const validationErrors = validateDoctorForm(formData);
+    setErrors(validationErrors);
+    
+    // Check if there are any errors
+    if (hasFormErrors(validationErrors)) {
+      return; // Don't submit if there are validation errors
+    }
+    
     dispatch(clearError());
     dispatch(clearSuccess());
     
@@ -133,10 +169,21 @@ const AddSuperadminDoctor = () => {
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   required
-                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs"
+                  className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs ${
+                    touched.name && errors.name 
+                      ? 'border-red-300 bg-red-50' 
+                      : 'border-slate-200'
+                  }`}
                   placeholder="Enter full name"
                 />
+                {touched.name && errors.name && (
+                  <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {errors.name}
+                  </p>
+                )}
               </div>
 
               {/* Mobile Number */}
@@ -149,10 +196,21 @@ const AddSuperadminDoctor = () => {
                   name="mobile"
                   value={formData.mobile}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   required
-                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs"
+                  className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs ${
+                    touched.mobile && errors.mobile 
+                      ? 'border-red-300 bg-red-50' 
+                      : 'border-slate-200'
+                  }`}
                   placeholder="Enter mobile number"
                 />
+                {touched.mobile && errors.mobile && (
+                  <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {errors.mobile}
+                  </p>
+                )}
               </div>
 
               {/* Email Address */}
@@ -165,10 +223,21 @@ const AddSuperadminDoctor = () => {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   required
-                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs"
+                  className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs ${
+                    touched.email && errors.email 
+                      ? 'border-red-300 bg-red-50' 
+                      : 'border-slate-200'
+                  }`}
                   placeholder="Enter email address"
                 />
+                {touched.email && errors.email && (
+                  <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {errors.email}
+                  </p>
+                )}
               </div>
 
               {/* Username */}
@@ -181,10 +250,21 @@ const AddSuperadminDoctor = () => {
                   name="username"
                   value={formData.username}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   required
-                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs"
+                  className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs ${
+                    touched.username && errors.username 
+                      ? 'border-red-300 bg-red-50' 
+                      : 'border-slate-200'
+                  }`}
                   placeholder="Enter username"
                 />
+                {touched.username && errors.username && (
+                  <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {errors.username}
+                  </p>
+                )}
               </div>
 
               {/* Password */}
@@ -198,8 +278,13 @@ const AddSuperadminDoctor = () => {
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     required
-                    className="w-full px-3 sm:px-4 py-2 sm:py-3 pr-12 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs"
+                    className={`w-full px-3 sm:px-4 py-2 sm:py-3 pr-12 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs ${
+                      touched.password && errors.password 
+                        ? 'border-red-300 bg-red-50' 
+                        : 'border-slate-200'
+                    }`}
                     placeholder="Enter password"
                   />
                   <button
@@ -210,6 +295,12 @@ const AddSuperadminDoctor = () => {
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
+                {touched.password && errors.password && (
+                  <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {errors.password}
+                  </p>
+                )}
               </div>
 
               {/* Qualification */}
@@ -237,9 +328,20 @@ const AddSuperadminDoctor = () => {
                   name="designation"
                   value={formData.designation}
                   onChange={handleChange}
-                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs"
+                  onBlur={handleBlur}
+                  className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs ${
+                    touched.designation && errors.designation 
+                      ? 'border-red-300 bg-red-50' 
+                      : 'border-slate-200'
+                  }`}
                   placeholder="Enter designation"
                 />
+                {touched.designation && errors.designation && (
+                  <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {errors.designation}
+                  </p>
+                )}
               </div>
 
               {/* KMC Number */}
@@ -349,17 +451,32 @@ const AddSuperadminDoctor = () => {
                 name="bio"
                 value={formData.bio}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 rows="3"
-                className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs resize-none"
+                className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs resize-none ${
+                  touched.bio && errors.bio 
+                    ? 'border-red-300 bg-red-50' 
+                    : 'border-slate-200'
+                }`}
                 placeholder="Enter doctor bio"
               />
+              {touched.bio && errors.bio && (
+                <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  {errors.bio}
+                </p>
+              )}
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4 sm:pt-6">
               <button
                 type="submit"
-                disabled={loading}
-                className="flex-1 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white py-2 sm:py-3 px-4 sm:px-6 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 text-xs"
+                disabled={loading || hasFormErrors(errors)}
+                className={`flex-1 py-2 sm:py-3 px-4 sm:px-6 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 text-xs ${
+                  loading || hasFormErrors(errors)
+                    ? 'bg-gray-400 text-white cursor-not-allowed'
+                    : 'bg-blue-500 hover:bg-blue-600 text-white'
+                }`}
               >
                 {loading ? (
                   <>

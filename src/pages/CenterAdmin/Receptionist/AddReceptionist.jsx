@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, UserCheck, ArrowLeft, Save } from 'lucide-react';
+import { Eye, EyeOff, UserCheck, ArrowLeft, Save, AlertCircle } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { addCenterAdminReceptionist, clearError, clearSuccess } from '../../../features/centerAdmin/centerAdminReceptionistSlice';
+import { validateReceptionistForm, hasFormErrors } from '../../../utils/formValidation';
 
 const AddReceptionist = () => {
   const navigate = useNavigate();
@@ -26,6 +27,8 @@ const AddReceptionist = () => {
     role: 'receptionist',
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
 
   useEffect(() => {
     if (success) {
@@ -67,10 +70,43 @@ const AddReceptionist = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    
+    // Mark field as touched
+    setTouched({ ...touched, [name]: true });
+    
+    // Validate the field
+    const validationErrors = validateReceptionistForm({ ...formData, [name]: value });
+    setErrors({ ...errors, [name]: validationErrors[name] });
+  };
+
+  const handleBlur = (e) => {
+    const { name } = e.target;
+    setTouched({ ...touched, [name]: true });
+    
+    // Validate the field
+    const validationErrors = validateReceptionistForm(formData);
+    setErrors({ ...errors, [name]: validationErrors[name] });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Mark all fields as touched
+    const allTouched = {};
+    Object.keys(formData).forEach(key => {
+      allTouched[key] = true;
+    });
+    setTouched(allTouched);
+    
+    // Validate the entire form
+    const validationErrors = validateReceptionistForm(formData);
+    setErrors(validationErrors);
+    
+    // Check if there are any errors
+    if (hasFormErrors(validationErrors)) {
+      return; // Don't submit if there are validation errors
+    }
+    
     if (!centerId) {
       toast.error('No center ID found. Please log in again as a center admin.', {
         position: "top-right",
@@ -155,10 +191,21 @@ const AddReceptionist = () => {
                     name="name"
                     value={formData.name}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     required
-                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs ${
+                      touched.name && errors.name 
+                        ? 'border-red-300 bg-red-50' 
+                        : 'border-slate-200'
+                    }`}
                     placeholder="Enter full name"
                   />
+                  {touched.name && errors.name && (
+                    <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {errors.name}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -170,10 +217,21 @@ const AddReceptionist = () => {
                     name="mobile"
                     value={formData.mobile}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     required
-                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs ${
+                      touched.mobile && errors.mobile 
+                        ? 'border-red-300 bg-red-50' 
+                        : 'border-slate-200'
+                    }`}
                     placeholder="Enter mobile number"
                   />
+                  {touched.mobile && errors.mobile && (
+                    <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {errors.mobile}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -185,10 +243,21 @@ const AddReceptionist = () => {
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     required
-                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs ${
+                      touched.email && errors.email 
+                        ? 'border-red-300 bg-red-50' 
+                        : 'border-slate-200'
+                    }`}
                     placeholder="Enter email address"
                   />
+                  {touched.email && errors.email && (
+                    <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {errors.email}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -200,10 +269,21 @@ const AddReceptionist = () => {
                     name="username"
                     value={formData.username}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     required
-                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs ${
+                      touched.username && errors.username 
+                        ? 'border-red-300 bg-red-50' 
+                        : 'border-slate-200'
+                    }`}
                     placeholder="Enter username"
                   />
+                  {touched.username && errors.username && (
+                    <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {errors.username}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -216,8 +296,13 @@ const AddReceptionist = () => {
                       name="password"
                       value={formData.password}
                       onChange={handleChange}
+                      onBlur={handleBlur}
                       required
-                      className="w-full px-4 py-3 pr-12 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs"
+                      className={`w-full px-4 py-3 pr-12 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs ${
+                        touched.password && errors.password 
+                          ? 'border-red-300 bg-red-50' 
+                          : 'border-slate-200'
+                      }`}
                       placeholder="Enter password"
                     />
                     <button
@@ -228,6 +313,12 @@ const AddReceptionist = () => {
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
+                  {touched.password && errors.password && (
+                    <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {errors.password}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -292,8 +383,12 @@ const AddReceptionist = () => {
               </button>
               <button
                 type="submit"
-                disabled={loading}
-                className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2 text-xs"
+                disabled={loading || hasFormErrors(errors)}
+                className={`px-6 py-3 rounded-lg transition-colors flex items-center gap-2 text-xs ${
+                  loading || hasFormErrors(errors)
+                    ? 'bg-gray-400 text-white cursor-not-allowed'
+                    : 'bg-blue-500 hover:bg-blue-600 text-white'
+                }`}
               >
                 {loading ? (
                   <>

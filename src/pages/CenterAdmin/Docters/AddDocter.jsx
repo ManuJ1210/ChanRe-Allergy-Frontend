@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, UserCheck, ArrowLeft, Save, Building, User, Mail, Phone, GraduationCap, Award, Stethoscope, Calendar, FileText } from 'lucide-react';
+import { Eye, EyeOff, UserCheck, ArrowLeft, Save, Building, User, Mail, Phone, GraduationCap, Award, Stethoscope, Calendar, FileText, AlertCircle } from 'lucide-react';
 import { addCenterAdminDoctor, clearError, clearSuccess } from '../../../features/centerAdmin/centerAdminDoctorSlice';
 import API from '../../../services/api';
 import { toast } from 'react-toastify';
+import { validateDoctorForm, hasFormErrors } from '../../../utils/formValidation';
 
 const AddDocter = () => {
   const navigate = useNavigate();
@@ -50,6 +51,8 @@ const AddDocter = () => {
     name: "Loading...",
     code: "Loading..."
   });
+  const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
 
   // Fetch center information and auto-populate hospital name
   useEffect(() => {
@@ -161,6 +164,22 @@ const AddDocter = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    
+    // Mark field as touched
+    setTouched({ ...touched, [name]: true });
+    
+    // Validate the field
+    const validationErrors = validateDoctorForm({ ...formData, [name]: value });
+    setErrors({ ...errors, [name]: validationErrors[name] });
+  };
+
+  const handleBlur = (e) => {
+    const { name } = e.target;
+    setTouched({ ...touched, [name]: true });
+    
+    // Validate the field
+    const validationErrors = validateDoctorForm(formData);
+    setErrors({ ...errors, [name]: validationErrors[name] });
   };
 
   const handleAddSpecialization = () => {
@@ -182,6 +201,23 @@ const AddDocter = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Mark all fields as touched
+    const allTouched = {};
+    Object.keys(formData).forEach(key => {
+      allTouched[key] = true;
+    });
+    setTouched(allTouched);
+    
+    // Validate the entire form
+    const validationErrors = validateDoctorForm(formData);
+    setErrors(validationErrors);
+    
+    // Check if there are any errors
+    if (hasFormErrors(validationErrors)) {
+      return; // Don't submit if there are validation errors
+    }
+    
     let centerId = getCenterId();
     
     // If no centerId, try to get it from the center we created
@@ -290,10 +326,21 @@ const AddDocter = () => {
                     name="name"
                     value={formData.name}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     required
-                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-xs"
+                    className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-xs ${
+                      touched.name && errors.name 
+                        ? 'border-red-300 bg-red-50' 
+                        : 'border-slate-200'
+                    }`}
                     placeholder="Enter full name"
                   />
+                  {touched.name && errors.name && (
+                    <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {errors.name}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -305,10 +352,21 @@ const AddDocter = () => {
                     name="phone"
                     value={formData.phone}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     required
-                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-xs"
+                    className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-xs ${
+                      touched.phone && errors.phone 
+                        ? 'border-red-300 bg-red-50' 
+                        : 'border-slate-200'
+                    }`}
                     placeholder="Enter phone number"
                   />
+                  {touched.phone && errors.phone && (
+                    <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {errors.phone}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -320,10 +378,21 @@ const AddDocter = () => {
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     required
-                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-xs"
+                    className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-xs ${
+                      touched.email && errors.email 
+                        ? 'border-red-300 bg-red-50' 
+                        : 'border-slate-200'
+                    }`}
                     placeholder="Enter email address"
                   />
+                  {touched.email && errors.email && (
+                    <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {errors.email}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -335,10 +404,21 @@ const AddDocter = () => {
                     name="username"
                     value={formData.username}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     required
-                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-xs"
+                    className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-xs ${
+                      touched.username && errors.username 
+                        ? 'border-red-300 bg-red-50' 
+                        : 'border-slate-200'
+                    }`}
                     placeholder="Enter username"
                   />
+                  {touched.username && errors.username && (
+                    <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {errors.username}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -351,8 +431,13 @@ const AddDocter = () => {
                       name="password"
                       value={formData.password}
                       onChange={handleChange}
+                      onBlur={handleBlur}
                       required
-                      className="w-full px-3 sm:px-4 py-2.5 sm:py-3 pr-12 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-xs"
+                      className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 pr-12 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-xs ${
+                        touched.password && errors.password 
+                          ? 'border-red-300 bg-red-50' 
+                          : 'border-slate-200'
+                      }`}
                       placeholder="Enter password"
                     />
                     <button
@@ -363,6 +448,12 @@ const AddDocter = () => {
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
+                  {touched.password && errors.password && (
+                    <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {errors.password}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -543,8 +634,12 @@ const AddDocter = () => {
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4 sm:pt-6 border-t border-slate-200">
               <button
                 type="submit"
-                disabled={loading}
-                className="flex-1 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 disabled:from-blue-300 disabled:to-indigo-400 text-white py-2.5 sm:py-3 px-6 rounded-xl font-medium transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:transform-none text-xs"
+                disabled={loading || hasFormErrors(errors)}
+                className={`flex-1 py-2.5 sm:py-3 px-6 rounded-xl font-medium transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:transform-none text-xs ${
+                  loading || hasFormErrors(errors)
+                    ? 'bg-gray-400 text-white cursor-not-allowed'
+                    : 'bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white'
+                }`}
               >
                 {loading ? (
                   <>

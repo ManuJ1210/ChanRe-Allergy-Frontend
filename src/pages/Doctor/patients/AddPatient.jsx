@@ -327,6 +327,21 @@ const AddPatient = () => {
                         placeholder="Center code will be auto-filled"
                       />
                     </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">
+                        UH ID (Auto-generated)
+                      </label>
+                      <input
+                        type="text"
+                        value={`${centerInfo.code || 'Loading'}001`}
+                        readOnly
+                        className="w-full px-4 py-3 border border-slate-200 rounded-lg bg-blue-50 text-blue-700 cursor-not-allowed text-xs font-medium"
+                        placeholder="UH ID will be auto-generated"
+                      />
+                      <p className="text-xs text-slate-500 mt-1">
+                        Format: Center Code + Serial Number (e.g., 223344001)
+                      </p>
+                    </div>
                   </div>
                   <input
                     type="hidden"

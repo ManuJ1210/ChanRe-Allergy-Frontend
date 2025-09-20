@@ -6,6 +6,7 @@ import { resetReceptionistState } from "../../features/receptionist/receptionist
 import ReceptionistLayout from './ReceptionistLayout';
 import API from "../../services/api";
 import { User, Save, ArrowLeft, CheckCircle, AlertCircle, Mail, Phone, MapPin, Calendar, UserCheck, Building2, Building } from "lucide-react";
+import { validatePatientForm, hasFormErrors } from "../../utils/formValidation";
 
 export default function AddPatient() {
   const navigate = useNavigate();
@@ -30,6 +31,8 @@ export default function AddPatient() {
     name: "",
     code: ""
   });
+  const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
 
   // Get center ID from user
   const getCenterId = () => {
@@ -129,11 +132,45 @@ export default function AddPatient() {
   };
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+    
+    // Mark field as touched
+    setTouched({ ...touched, [name]: true });
+    
+    // Validate the field
+    const validationErrors = validatePatientForm({ ...formData, [name]: value });
+    setErrors({ ...errors, [name]: validationErrors[name] });
+  };
+
+  const handleBlur = (e) => {
+    const { name } = e.target;
+    setTouched({ ...touched, [name]: true });
+    
+    // Validate the field
+    const validationErrors = validatePatientForm(formData);
+    setErrors({ ...errors, [name]: validationErrors[name] });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Mark all fields as touched
+    const allTouched = {};
+    Object.keys(formData).forEach(key => {
+      allTouched[key] = true;
+    });
+    setTouched(allTouched);
+    
+    // Validate the entire form
+    const validationErrors = validatePatientForm(formData);
+    setErrors(validationErrors);
+    
+    // Check if there are any errors
+    if (hasFormErrors(validationErrors)) {
+      return; // Don't submit if there are validation errors
+    }
+    
     dispatch(createReceptionistPatient(formData));
   };
 
@@ -196,10 +233,21 @@ export default function AddPatient() {
                     name="name"
                     value={formData.name}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     required
-                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-sm"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-sm ${
+                      touched.name && errors.name 
+                        ? 'border-red-300 bg-red-50' 
+                        : 'border-slate-200'
+                    }`}
                     placeholder="Enter patient's full name"
                   />
+                  {touched.name && errors.name && (
+                    <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {errors.name}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -212,12 +260,23 @@ export default function AddPatient() {
                     name="age"
                     value={formData.age}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     required
                     min="0"
                     max="150"
-                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-sm"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-sm ${
+                      touched.age && errors.age 
+                        ? 'border-red-300 bg-red-50' 
+                        : 'border-slate-200'
+                    }`}
                     placeholder="Enter age"
                   />
+                  {touched.age && errors.age && (
+                    <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {errors.age}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -229,14 +288,25 @@ export default function AddPatient() {
                     name="gender"
                     value={formData.gender}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     required
-                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-sm"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-sm ${
+                      touched.gender && errors.gender 
+                        ? 'border-red-300 bg-red-50' 
+                        : 'border-slate-200'
+                    }`}
                   >
                     <option value="">Select gender</option>
                     <option value="male">Male</option>
                     <option value="female">Female</option>
                     <option value="other">Other</option>
                   </select>
+                  {touched.gender && errors.gender && (
+                    <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {errors.gender}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -249,10 +319,21 @@ export default function AddPatient() {
                     name="contact"
                     value={formData.contact}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     required
-                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-sm"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-sm ${
+                      touched.contact && errors.contact 
+                        ? 'border-red-300 bg-red-50' 
+                        : 'border-slate-200'
+                    }`}
                     placeholder="Enter contact number"
                   />
+                  {touched.contact && errors.contact && (
+                    <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {errors.contact}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -265,9 +346,20 @@ export default function AddPatient() {
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-sm"
+                    onBlur={handleBlur}
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-sm ${
+                      touched.email && errors.email 
+                        ? 'border-red-300 bg-red-50' 
+                        : 'border-slate-200'
+                    }`}
                     placeholder="Enter email address"
                   />
+                  {touched.email && errors.email && (
+                    <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {errors.email}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -299,6 +391,21 @@ export default function AddPatient() {
                         className="w-full px-4 py-3 border border-slate-200 rounded-lg bg-slate-50 text-slate-700 cursor-not-allowed text-sm"
                         placeholder="Center code will be auto-filled"
                       />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">
+                        UH ID (Auto-generated)
+                      </label>
+                      <input
+                        type="text"
+                        value={`${centerInfo.code || 'Loading'}001`}
+                        readOnly
+                        className="w-full px-4 py-3 border border-slate-200 rounded-lg bg-blue-50 text-blue-700 cursor-not-allowed text-sm font-medium"
+                        placeholder="UH ID will be auto-generated"
+                      />
+                      <p className="text-xs text-slate-500 mt-1">
+                        Format: Center Code + Serial Number (e.g., 223344001)
+                      </p>
                     </div>
                   </div>
                   <input
@@ -344,11 +451,22 @@ export default function AddPatient() {
                   name="address"
                   value={formData.address}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   required
                   rows={3}
-                  className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-sm  "
+                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-sm ${
+                    touched.address && errors.address 
+                      ? 'border-red-300 bg-red-50' 
+                      : 'border-slate-200'
+                  }`}
                   placeholder="Enter complete address"
                 />
+                {touched.address && errors.address && (
+                  <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {errors.address}
+                  </p>
+                )}
               </div>
 
               <div className="flex gap-4 pt-6">
@@ -362,8 +480,12 @@ export default function AddPatient() {
                 </button>
                 <button
                   type="submit"
-                  disabled={loading}
-                  className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                  disabled={loading || hasFormErrors(errors)}
+                  className={`px-6 py-3 rounded-lg transition-colors flex items-center gap-2 ${
+                    loading || hasFormErrors(errors)
+                      ? 'bg-gray-400 text-white cursor-not-allowed'
+                      : 'bg-blue-500 text-white hover:bg-blue-600'
+                  }`}
                 >
                   {loading ? (
                     <>

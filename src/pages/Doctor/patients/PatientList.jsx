@@ -48,7 +48,7 @@ export default function PatientList() {
       patient?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       patient?.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       patient?.contact?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      patient?.centerCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      patient?.uhId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       patient?.assignedDoctor?.name?.toLowerCase().includes(searchTerm.toLowerCase())
     );
     setFilteredPatients(filtered);
@@ -135,7 +135,7 @@ export default function PatientList() {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Search patients by name, email, phone..."
+                  placeholder="Search patients by name, email, phone, UH ID..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 sm:py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
@@ -269,7 +269,7 @@ export default function PatientList() {
                       </div>
                       <div className="flex items-center gap-2 bg-white p-2 rounded-lg border border-slate-200">
                         <MapPin className="h-4 w-4 text-purple-500" />
-                        <span className="text-slate-700 text-xs font-medium">{patient?.centerCode || 'Not assigned'}</span>
+                        <span className="text-slate-700 text-xs font-medium">UH ID: {patient?.uhId || 'N/A'}</span>
                       </div>
                     </div>
                     
@@ -361,7 +361,7 @@ export default function PatientList() {
                         Age/Gender
                       </th>
                       <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                        Center Code
+                        UH ID
                       </th>
                       <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                         Assigned Doctor
@@ -416,7 +416,7 @@ export default function PatientList() {
                         <td className="px-6 py-4">
                           <div className="flex items-center text-xs text-slate-600">
                             <MapPin className="h-3 w-3 mr-2" />
-                            {patient?.centerCode || 'Not assigned'}
+                            {patient?.uhId || 'N/A'}
                           </div>
                         </td>
                         <td className="px-6 py-4">

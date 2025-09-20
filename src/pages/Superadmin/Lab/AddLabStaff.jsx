@@ -6,6 +6,7 @@ import { resetSuperadminState } from '../../../features/superadmin/superadminSli
 import { ArrowLeft, Save, UserCheck, AlertCircle, Microscope } from 'lucide-react';
 import API from '../../../services/api';
 import { toast } from 'react-toastify';
+import { validateLabStaffForm, hasFormErrors } from '../../../utils/formValidation';
 
 export default function AddLabStaff() {
   const navigate = useNavigate();
@@ -20,6 +21,8 @@ export default function AddLabStaff() {
     confirmPassword: ''
   });
   const { loading, error, addLabStaffSuccess } = useSelector((state) => state.superadmin);
+  const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
 
   useEffect(() => {
     if (addLabStaffSuccess) {
@@ -35,24 +38,46 @@ export default function AddLabStaff() {
       ...prev,
       [name]: value
     }));
+    
+    // Mark field as touched
+    setTouched({ ...touched, [name]: true });
+    
+    // Validate the field
+    const validationErrors = validateLabStaffForm({ ...formData, [name]: value });
+    setErrors({ ...errors, [name]: validationErrors[name] });
+  };
+
+  const handleBlur = (e) => {
+    const { name } = e.target;
+    setTouched({ ...touched, [name]: true });
+    
+    // Validate the field
+    const validationErrors = validateLabStaffForm(formData);
+    setErrors({ ...errors, [name]: validationErrors[name] });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validation
-    if (!formData.staffName || !formData.email || !formData.phone) {
-      toast.error('Please fill in all required fields');
-      return;
+    // Mark all fields as touched
+    const allTouched = {};
+    Object.keys(formData).forEach(key => {
+      allTouched[key] = true;
+    });
+    setTouched(allTouched);
+
+    // Validate the entire form
+    const validationErrors = validateLabStaffForm(formData);
+    setErrors(validationErrors);
+
+    // Check if there are any errors
+    if (hasFormErrors(validationErrors)) {
+      return; // Don't submit if there are validation errors
     }
 
+    // Additional password confirmation validation
     if (formData.password !== formData.confirmPassword) {
-      toast.error('Passwords do not match');
-      return;
-    }
-
-    if (formData.password.length < 6) {
-      toast.error('Password must be at least 6 characters long');
+      setErrors({ ...validationErrors, confirmPassword: 'Passwords do not match' });
       return;
     }
 
@@ -134,10 +159,21 @@ export default function AddLabStaff() {
                     name="staffName"
                     value={formData.staffName}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     required
-                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-sm sm:text-base"
+                    className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-sm sm:text-base ${
+                      touched.staffName && errors.staffName 
+                        ? 'border-red-300 bg-red-50' 
+                        : 'border-slate-200'
+                    }`}
                     placeholder="Enter staff name"
                   />
+                  {touched.staffName && errors.staffName && (
+                    <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {errors.staffName}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -149,10 +185,21 @@ export default function AddLabStaff() {
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     required
-                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-sm sm:text-base"
+                    className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-sm sm:text-base ${
+                      touched.email && errors.email 
+                        ? 'border-red-300 bg-red-50' 
+                        : 'border-slate-200'
+                    }`}
                     placeholder="Enter email address"
                   />
+                  {touched.email && errors.email && (
+                    <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {errors.email}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -164,10 +211,21 @@ export default function AddLabStaff() {
                     name="phone"
                     value={formData.phone}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     required
-                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-sm sm:text-base"
+                    className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-sm sm:text-base ${
+                      touched.phone && errors.phone 
+                        ? 'border-red-300 bg-red-50' 
+                        : 'border-slate-200'
+                    }`}
                     placeholder="Enter phone number"
                   />
+                  {touched.phone && errors.phone && (
+                    <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {errors.phone}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -202,11 +260,22 @@ export default function AddLabStaff() {
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     required
                     minLength={6}
-                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-sm sm:text-base"
+                    className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-sm sm:text-base ${
+                      touched.password && errors.password 
+                        ? 'border-red-300 bg-red-50' 
+                        : 'border-slate-200'
+                    }`}
                     placeholder="Enter password (min 6 characters)"
                   />
+                  {touched.password && errors.password && (
+                    <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {errors.password}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -218,10 +287,21 @@ export default function AddLabStaff() {
                     name="confirmPassword"
                     value={formData.confirmPassword}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     required
-                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-sm sm:text-base"
+                    className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-sm sm:text-base ${
+                      touched.confirmPassword && errors.confirmPassword 
+                        ? 'border-red-300 bg-red-50' 
+                        : 'border-slate-200'
+                    }`}
                     placeholder="Confirm password"
                   />
+                  {touched.confirmPassword && errors.confirmPassword && (
+                    <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {errors.confirmPassword}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -238,8 +318,12 @@ export default function AddLabStaff() {
               </button>
               <button
                 type="submit"
-                disabled={loading}
-                className="px-4 sm:px-6 py-2 sm:py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 text-sm sm:text-base w-full sm:w-auto"
+                disabled={loading || hasFormErrors(errors)}
+                className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm sm:text-base w-full sm:w-auto ${
+                  loading || hasFormErrors(errors)
+                    ? 'bg-gray-400 text-white cursor-not-allowed'
+                    : 'bg-blue-500 hover:bg-blue-600 text-white'
+                }`}
               >
                 {loading ? (
                   <>
