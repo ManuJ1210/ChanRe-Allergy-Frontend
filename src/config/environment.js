@@ -10,7 +10,7 @@ export const isProduction = !isDevelopment;
 // API base URL logic - Use local API in development, production API in production
 const getApiBaseUrl = () => {
   if (isDevelopment) {
-    // Use local API in development (production API is currently down with 502 errors)
+    // Use local API in development
     return 'http://localhost:5000/api';
   } else {
     // Use production API in production
@@ -69,6 +69,45 @@ export const getFullApiUrl = (endpoint) => {
   return `${baseUrl}/${cleanEndpoint}`;
 };
 
+// API Health Check
+export const checkApiHealth = async () => {
+  try {
+    const response = await fetch(`${API_CONFIG.BASE_URL}/health`);
+    if (response.ok) {
+      const data = await response.json();
+      console.log('✅ API Health Check:', data);
+      return { status: 'healthy', data };
+    } else {
+      console.error('❌ API Health Check Failed:', response.status, response.statusText);
+      return { status: 'unhealthy', error: response.statusText };
+    }
+  } catch (error) {
+    console.error('❌ API Health Check Error:', error.message);
+    return { status: 'error', error: error.message };
+  }
+};
+
+// Production API Status Check
+export const checkProductionApiStatus = async () => {
+  if (isDevelopment) {
+    console.log('🔍 Checking production API status...');
+    try {
+      const response = await fetch('https://api.chanreallergyclinic.com/api/health');
+      if (response.ok) {
+        console.log('✅ Production API is accessible');
+        return true;
+      } else {
+        console.warn('⚠️ Production API returned:', response.status, response.statusText);
+        return false;
+      }
+    } catch (error) {
+      console.warn('⚠️ Production API check failed:', error.message);
+      return false;
+    }
+  }
+  return true;
+};
+
 export default {
   isDevelopment,
   isProduction,
@@ -77,4 +116,6 @@ export default {
   DEBUG_CONFIG,
   debugLog,
   getFullApiUrl,
+  checkApiHealth,
+  checkProductionApiStatus,
 };
