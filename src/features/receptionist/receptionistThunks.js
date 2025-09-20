@@ -52,7 +52,7 @@ export const generateReceptionistBill = createAsyncThunk(
   'receptionist/generateBill',
   async ({ requestId, payload }, { rejectWithValue }) => {
     try {
-      const res = await API.put(`/test-requests/${requestId}/generate-bill`, payload);
+      const res = await API.put(`/billing/test-requests/${requestId}/generate`, payload);
       return res.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to generate bill');
@@ -65,7 +65,7 @@ export const markReceptionistBillPaid = createAsyncThunk(
   'receptionist/markBillPaid',
   async ({ requestId, paymentNotes, paymentMethod, transactionId, receiptUpload }, { rejectWithValue }) => {
     try {
-      const res = await API.put(`/test-requests/${requestId}/mark-bill-paid`, { 
+      const res = await API.put(`/billing/test-requests/${requestId}/mark-paid`, { 
         paymentNotes, 
         paymentMethod, 
         transactionId, 
