@@ -1,12 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { toast } from 'react-toastify';
 import { 
   getAllSessions, 
   getSessionStats, 
   logoutSession, 
-  forceLogoutUserSessions 
+  forceLogoutUserSessions,
+  bulkLogoutSessions,
+  logoutAllSessions
 } from '../../../features/session/sessionThunks';
 import API from '../../../services/api';
+import Pagination from '../../../components/Pagination';
 import { 
   ComputerDesktopIcon, 
   DevicePhoneMobileIcon, 
@@ -27,6 +31,14 @@ const ActiveSessions = () => {
   const [selectedRole, setSelectedRole] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [centers, setCenters] = useState([]);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
+  
+  // Bulk selection state
+  const [selectedSessions, setSelectedSessions] = useState([]);
+  const [selectAll, setSelectAll] = useState(false);
 
   useEffect(() => {
     dispatch(getAllSessions());
@@ -37,6 +49,7 @@ const ActiveSessions = () => {
   const fetchCenters = async () => {
     try {
       const response = await API.get('/centers');
+      console.log('Centers response:', response.data); // Debug log
       setCenters(response.data);
     } catch (error) {
       console.error('Error fetching centers:', error);
@@ -53,6 +66,51 @@ const ActiveSessions = () => {
   const handleForceLogoutUser = async (userId, userName) => {
     if (window.confirm(`Are you sure you want to force logout ALL sessions for ${userName}?`)) {
       await dispatch(forceLogoutUserSessions(userId));
+      dispatch(getAllSessions()); // Refresh the list
+    }
+  };
+
+  const handleSelectAll = () => {
+    if (selectAll) {
+      setSelectedSessions([]);
+      setSelectAll(false);
+    } else {
+      const allSessionIds = paginatedSessions.map(session => session.sessionId);
+      setSelectedSessions(allSessionIds);
+      setSelectAll(true);
+    }
+  };
+
+  const handleSelectSession = (sessionId) => {
+    if (selectedSessions.includes(sessionId)) {
+      setSelectedSessions(selectedSessions.filter(id => id !== sessionId));
+      setSelectAll(false);
+    } else {
+      const newSelected = [...selectedSessions, sessionId];
+      setSelectedSessions(newSelected);
+      setSelectAll(newSelected.length === paginatedSessions.length);
+    }
+  };
+
+  const handleBulkLogout = async () => {
+    if (selectedSessions.length === 0) {
+      toast.error('Please select sessions to logout');
+      return;
+    }
+    
+    if (window.confirm(`Are you sure you want to logout ${selectedSessions.length} selected sessions?`)) {
+      await dispatch(bulkLogoutSessions(selectedSessions));
+      setSelectedSessions([]);
+      setSelectAll(false);
+      dispatch(getAllSessions()); // Refresh the list
+    }
+  };
+
+  const handleLogoutAll = async () => {
+    if (window.confirm('Are you sure you want to logout ALL active sessions? This will log out every user from the system.')) {
+      await dispatch(logoutAllSessions());
+      setSelectedSessions([]);
+      setSelectAll(false);
       dispatch(getAllSessions()); // Refresh the list
     }
   };
@@ -117,6 +175,30 @@ const ActiveSessions = () => {
     return matchesSearch && matchesCenter && matchesRole;
   });
 
+  // Pagination calculations
+  const totalItems = filteredSessions.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedSessions = filteredSessions.slice(startIndex, endIndex);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+    setSelectedSessions([]);
+    setSelectAll(false);
+  }, [selectedCenter, selectedRole, searchTerm]);
+
+  // Pagination handlers
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // Reset to first page
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -134,11 +216,29 @@ const ActiveSessions = () => {
             <h1 className="text-2xl font-bold text-gray-900">Active Sessions</h1>
             <p className="text-gray-600">Monitor all active user sessions across the system</p>
           </div>
-          <div className="flex items-center space-x-2">
-            <CheckCircleIcon className="h-6 w-6 text-green-500" />
-            <span className="text-sm font-medium text-gray-700">
-              {allSessions.length} Active Sessions
-            </span>
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <CheckCircleIcon className="h-6 w-6 text-green-500" />
+              <span className="text-sm font-medium text-gray-700">
+                {allSessions.length} Active Sessions
+              </span>
+            </div>
+            <div className="flex items-center space-x-2">
+              {selectedSessions.length > 0 && (
+                <button
+                  onClick={handleBulkLogout}
+                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                >
+                  Logout Selected ({selectedSessions.length})
+                </button>
+              )}
+              <button
+                onClick={handleLogoutAll}
+                className="px-4 py-2 bg-red-800 text-white rounded-md hover:bg-red-900 focus:outline-none focus:ring-2 focus:ring-red-500"
+              >
+                Logout All
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -220,7 +320,7 @@ const ActiveSessions = () => {
               <option value="all">All Centers</option>
               {centers.map(center => (
                 <option key={center._id} value={center._id}>
-                  {center.name}
+                  {center.centername || center.name}
                 </option>
               ))}
             </select>
@@ -261,7 +361,7 @@ const ActiveSessions = () => {
       <div className="bg-white shadow rounded-lg overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200">
           <h3 className="text-lg font-medium text-gray-900">
-            Active Sessions ({filteredSessions.length})
+            Active Sessions ({totalItems})
           </h3>
         </div>
         
@@ -269,6 +369,14 @@ const ActiveSessions = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <input
+                    type="checkbox"
+                    checked={selectAll}
+                    onChange={handleSelectAll}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   User
                 </th>
@@ -296,8 +404,16 @@ const ActiveSessions = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredSessions.map((session) => (
+              {paginatedSessions.map((session) => (
                 <tr key={session._id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <input
+                      type="checkbox"
+                      checked={selectedSessions.includes(session.sessionId)}
+                      onChange={() => handleSelectSession(session.sessionId)}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="flex-shrink-0 h-10 w-10">
@@ -347,8 +463,22 @@ const ActiveSessions = () => {
                     <div className="flex items-center">
                       <GlobeAltIcon className="h-4 w-4 text-gray-400 mr-1" />
                       <div>
-                        <div className="text-sm text-gray-900">{session.locationInfo?.city || 'Unknown'}</div>
-                        <div className="text-sm text-gray-500">{session.locationInfo?.country || 'Unknown'}</div>
+                        <div className="text-sm text-gray-900">
+                          {session.locationInfo?.city || 'Unknown City'}
+                          {session.locationInfo?.region && session.locationInfo.region !== 'Unknown' && 
+                           session.locationInfo.region !== 'Local' && 
+                           `, ${session.locationInfo.region}`}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {session.locationInfo?.country || 'Unknown Country'}
+                          {session.locationInfo?.ip && (
+                            <span className="text-xs text-gray-400 ml-1">
+                              ({session.locationInfo.ip.includes('Public:') ? 
+                                session.locationInfo.ip.split('Public: ')[1] : 
+                                session.locationInfo.ip})
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </td>
@@ -391,7 +521,7 @@ const ActiveSessions = () => {
           </table>
         </div>
         
-        {filteredSessions.length === 0 && (
+        {paginatedSessions.length === 0 && (
           <div className="text-center py-12">
             <UserIcon className="mx-auto h-12 w-12 text-gray-400" />
             <h3 className="mt-2 text-sm font-medium text-gray-900">No sessions found</h3>
@@ -401,6 +531,18 @@ const ActiveSessions = () => {
           </div>
         )}
       </div>
+
+      {/* Pagination */}
+      {totalItems > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={itemsPerPage}
+          onPageChange={handlePageChange}
+          onItemsPerPageChange={handleItemsPerPageChange}
+        />
+      )}
     </div>
   );
 };

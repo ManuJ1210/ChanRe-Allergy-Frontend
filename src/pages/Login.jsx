@@ -91,15 +91,6 @@ export default function Login() {
           required
         />
 
-        <div className="text-right">
-          <button
-            type="button"
-            onClick={() => navigate('/forgot-password')}
-            className="text-sm text-blue-500 hover:underline font-medium"
-          >
-            Forgot Password?
-          </button>
-        </div>
 
         {error && <p className="text-red-600 text-sm text-center font-medium">{error}</p>}
 

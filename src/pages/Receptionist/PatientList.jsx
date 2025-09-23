@@ -16,7 +16,10 @@ import {
   UserCheck,
   MapPin,
   Edit,
-  Clock
+  Clock,
+  UserPlus,
+  RefreshCw,
+  CalendarDays
 } from 'lucide-react';
 import API from '../../services/api';
 import { formatRemainingTime } from '../../utils/patientPermissions';
@@ -25,6 +28,9 @@ export default function ReceptionistPatientList() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { patients, loading, error } = useSelector((state) => state.receptionist);
+  
+  console.log('Redux state:', { patients, loading, error });
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredPatients, setFilteredPatients] = useState([]);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -32,6 +38,19 @@ export default function ReceptionistPatientList() {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [recordsPerPage, setRecordsPerPage] = useState(4);
+
+  // Reassign doctor modal state
+  const [showReassignModal, setShowReassignModal] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState(null);
+  const [doctors, setDoctors] = useState([]);
+  const [selectedDoctor, setSelectedDoctor] = useState('');
+  const [reassignReason, setReassignReason] = useState('');
+  const [reassignLoading, setReassignLoading] = useState(false);
+
+  // Revisit modal state
+  const [showRevisitModal, setShowRevisitModal] = useState(false);
+  const [revisitReason, setRevisitReason] = useState('');
+  const [revisitLoading, setRevisitLoading] = useState(false);
 
   // Function to check if patient can be edited (within 24 hours of creation)
   const canEditPatient = (patient) => {
@@ -62,8 +81,101 @@ export default function ReceptionistPatientList() {
 
 
   useEffect(() => {
+    console.log('Fetching receptionist patients...');
     dispatch(fetchReceptionistPatients());
+    fetchDoctors();
   }, [dispatch]);
+
+  const fetchDoctors = async () => {
+    try {
+      const response = await API.get('/doctors');
+      setDoctors(response.data);
+    } catch (error) {
+      console.error('Error fetching doctors:', error);
+      toast.error('Failed to load doctors');
+    }
+  };
+
+  const handleReassignDoctor = (patient) => {
+    setSelectedPatient(patient);
+    setSelectedDoctor(patient.assignedDoctor?._id || '');
+    setReassignReason('');
+    setShowReassignModal(true);
+  };
+
+  const handleRevisitPatient = (patient) => {
+    setSelectedPatient(patient);
+    setRevisitReason('');
+    setShowRevisitModal(true);
+  };
+
+  const confirmReassignDoctor = async () => {
+    if (!selectedDoctor) {
+      toast.error('Please select a doctor');
+      return;
+    }
+
+    setReassignLoading(true);
+    try {
+      console.log('🚀 Reassigning doctor for patient:', selectedPatient.name);
+      console.log('👤 Previous doctor:', selectedPatient.assignedDoctor?.name);
+      console.log('👤 New doctor ID:', selectedDoctor);
+      
+      const response = await API.put(`/patients/${selectedPatient._id}/reassign-doctor`, {
+        doctorId: selectedDoctor,
+        reason: reassignReason
+      });
+      
+      console.log('📋 Reassignment API response:', response.data);
+      
+      toast.success('Doctor reassigned successfully. Please proceed with consultation billing.');
+      setShowReassignModal(false);
+      
+      // Refresh patient data to get updated assigned doctor information
+      console.log('🔄 Refreshing patient data after reassignment...');
+      await dispatch(fetchReceptionistPatients());
+      
+      // Wait a moment for the data to be updated
+      setTimeout(() => {
+        // Redirect to consultation billing page for the reassigned patient
+        navigate('/dashboard/receptionist/consultation-billing', {
+          state: { 
+            reassigned: true, 
+            patientId: selectedPatient._id,
+            patientName: selectedPatient.name,
+            previousDoctor: selectedPatient.assignedDoctor?.name,
+            newDoctor: doctors.find(d => d._id === selectedDoctor)?.name,
+            reason: reassignReason
+          }
+        });
+      }, 500); // Small delay to ensure data is refreshed
+      
+    } catch (error) {
+      console.error('❌ Error reassigning doctor:', error);
+      console.error('❌ Error details:', error.response?.data);
+      toast.error('Failed to reassign doctor');
+    } finally {
+      setReassignLoading(false);
+    }
+  };
+
+  const confirmRevisit = async () => {
+    setRevisitLoading(true);
+    try {
+      await API.post(`/patients/${selectedPatient._id}/record-revisit`, {
+        revisitReason: revisitReason
+      });
+      
+      toast.success('Patient revisit recorded successfully');
+      setShowRevisitModal(false);
+      dispatch(fetchReceptionistPatients()); // Refresh the list
+    } catch (error) {
+      console.error('Error recording revisit:', error);
+      toast.error('Failed to record revisit');
+    } finally {
+      setRevisitLoading(false);
+    }
+  };
 
   // Update current time every minute for countdown
   useEffect(() => {
@@ -75,6 +187,10 @@ export default function ReceptionistPatientList() {
   }, []);
 
   useEffect(() => {
+    console.log('Patients data:', patients);
+    console.log('Search term:', searchTerm);
+    console.log('Filtered patients:', filteredPatients);
+    
     const filtered = patients.filter(patient =>
       patient.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       patient.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -82,6 +198,7 @@ export default function ReceptionistPatientList() {
       patient.address?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       patient.uhId?.toLowerCase().includes(searchTerm.toLowerCase())
     );
+    console.log('Filtered result:', filtered);
     setFilteredPatients(filtered);
   }, [patients, searchTerm]);
 
@@ -250,12 +367,15 @@ export default function ReceptionistPatientList() {
                       Age & Gender
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                      Registration Date
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                       Assigned Doctor
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                       Address
                     </th>
-                                         <th className="px-6 py-4 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
                        Edit Time Remaining
                      </th>
                     <th className="px-6 py-4 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
@@ -266,7 +386,7 @@ export default function ReceptionistPatientList() {
                 <tbody className="bg-white divide-y divide-slate-200">
                   {filteredPatients.length === 0 ? (
                     <tr>
-                      <td colSpan="6" className="px-6 py-12 text-center">
+                      <td colSpan="8" className="px-6 py-12 text-center">
                         <Users className="h-12 w-12 text-slate-400 mx-auto mb-4" />
                         <h3 className="text-xs font-medium text-slate-600 mb-2">No Patients Found</h3>
                         <p className="text-slate-500 mb-4">
@@ -322,6 +442,19 @@ export default function ReceptionistPatientList() {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center text-xs text-slate-900">
+                            <CalendarDays className="h-3 w-3 mr-2 text-slate-400" />
+                            <div>
+                              <div className="font-medium">
+                                {new Date(patient.createdAt).toLocaleDateString()}
+                              </div>
+                              <div className="text-slate-500 text-xs">
+                                {new Date(patient.createdAt).toLocaleTimeString()}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center text-sm text-slate-900">
                             <UserCheck className="h-3 w-3 mr-2 text-slate-400" />
                             {patient.assignedDoctor?.name || (
@@ -348,37 +481,55 @@ export default function ReceptionistPatientList() {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-center text-xs font-medium">
-                          <div className="flex items-center justify-center gap-2">
+                          <div className="flex items-center justify-center gap-1 flex-wrap">
                             {patient._id ? (
                               <>
                                 <button
                                   onClick={() => navigate(`/dashboard/receptionist/profile/${patient._id}`)}
-                                  className="bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 px-3 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+                                  className="bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 px-2 py-1 rounded-lg font-medium transition-colors flex items-center gap-1"
                                   title="View patient profile"
                                 >
-                                  <Eye className="h-4 w-4" />
-                                  View Profile
+                                  <Eye className="h-3 w-3" />
+                                  View
+                                </button>
+                                
+                                <button
+                                  onClick={() => handleReassignDoctor(patient)}
+                                  className="bg-purple-50 hover:bg-purple-100 text-purple-600 hover:text-purple-700 px-2 py-1 rounded-lg font-medium transition-colors flex items-center gap-1"
+                                  title="Reassign doctor"
+                                >
+                                  <UserPlus className="h-3 w-3" />
+                                  Reassign
+                                </button>
+
+                                <button
+                                  onClick={() => handleRevisitPatient(patient)}
+                                  className="bg-orange-50 hover:bg-orange-100 text-orange-600 hover:text-orange-700 px-2 py-1 rounded-lg font-medium transition-colors flex items-center gap-1"
+                                  title="Record revisit"
+                                >
+                                  <RefreshCw className="h-3 w-3" />
+                                  Revisit
                                 </button>
                                 
                                 {canEditPatient(patient) ? (
                                   <button
                                     onClick={() => navigate(`/dashboard/receptionist/edit-patient/${patient._id}`)}
-                                    className="bg-green-50 hover:bg-green-100 text-green-600 hover:text-green-700 px-3 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+                                    className="bg-green-50 hover:bg-green-100 text-green-600 hover:text-green-700 px-2 py-1 rounded-lg font-medium transition-colors flex items-center gap-1"
                                     title="Edit patient"
                                   >
-                                    <Edit className="h-4 w-4" />
+                                    <Edit className="h-3 w-3" />
                                     Edit
                                   </button>
                                 ) : (
-                                  <div className="bg-gray-50 text-gray-500 px-3 py-2 rounded-lg font-medium flex items-center gap-2" title="Edit expired">
-                                    <Clock className="h-4 w-4" />
-                                    Edit Expired
+                                  <div className="bg-gray-50 text-gray-500 px-2 py-1 rounded-lg font-medium flex items-center gap-1" title="Edit expired">
+                                    <Clock className="h-3 w-3" />
+                                    Expired
                                   </div>
                                 )}
                               </>
                             ) : (
-                              <span className="text-slate-400 px-3 py-2 rounded-lg bg-slate-50 flex items-center gap-2">
-                                <Eye className="h-4 w-4" />
+                              <span className="text-slate-400 px-2 py-1 rounded-lg bg-slate-50 flex items-center gap-1">
+                                <Eye className="h-3 w-3" />
                                 No Access
                               </span>
                             )}
@@ -448,6 +599,110 @@ export default function ReceptionistPatientList() {
                </div>
              </div>
            )}
+
+          {/* Reassign Doctor Modal */}
+          {showReassignModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+                <h3 className="text-lg font-semibold mb-4">Reassign Doctor</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Patient: {selectedPatient?.name}
+                    </label>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Select Doctor *
+                    </label>
+                    <select
+                      value={selectedDoctor}
+                      onChange={(e) => setSelectedDoctor(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="">Select a doctor</option>
+                      {doctors.map((doctor) => (
+                        <option key={doctor._id} value={doctor._id}>
+                          Dr. {doctor.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Reason (Optional)
+                    </label>
+                    <textarea
+                      value={reassignReason}
+                      onChange={(e) => setReassignReason(e.target.value)}
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Enter reason for reassignment..."
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-3 mt-6">
+                  <button
+                    onClick={() => setShowReassignModal(false)}
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmReassignDoctor}
+                    disabled={reassignLoading || !selectedDoctor}
+                    className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {reassignLoading ? 'Reassigning...' : 'Reassign Doctor'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Record Revisit Modal */}
+          {showRevisitModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+                <h3 className="text-lg font-semibold mb-4">Record Patient Revisit</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Patient: {selectedPatient?.name}
+                    </label>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Revisit Reason *
+                    </label>
+                    <textarea
+                      value={revisitReason}
+                      onChange={(e) => setRevisitReason(e.target.value)}
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Enter reason for revisit..."
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-3 mt-6">
+                  <button
+                    onClick={() => setShowRevisitModal(false)}
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmRevisit}
+                    disabled={revisitLoading || !revisitReason.trim()}
+                    className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {revisitLoading ? 'Recording...' : 'Record Revisit'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
             </ReceptionistLayout>

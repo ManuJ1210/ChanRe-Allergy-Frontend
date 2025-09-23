@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FaEye, FaEyeSlash } from 'react-icons/fa';
+import { FaEye, FaEyeSlash, FaArrowLeft } from 'react-icons/fa';
 import API from '../services/api';
 import { useNavigate } from 'react-router-dom';
 
@@ -48,6 +48,16 @@ export default function ForgotPassword() {
                 onSubmit={handleSubmit}
                 className="w-full max-w-md bg-white p-8 rounded-3xl shadow-2xl space-y-7 border border-blue-100"
             >
+                {/* Back Button */}
+                <button
+                    type="button"
+                    onClick={() => navigate(-1)}
+                    className="flex items-center gap-2 text-blue-500 hover:text-blue-600 transition-colors mb-2"
+                >
+                    <FaArrowLeft className="text-sm" />
+                    <span className="text-sm font-medium">Back</span>
+                </button>
+
                 <h2 className="text-2xl font-extrabold text-center text-blue-500 mb-2 tracking-tight">
                     Forgot Password
                 </h2>

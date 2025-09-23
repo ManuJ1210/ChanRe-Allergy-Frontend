@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { fetchAssignedPatients, fetchTestRequests, fetchDoctorNotifications } from '../../features/doctor/doctorThunks';
 import API from '../../services/api';
-import { User, Users, FileText, Clock, AlertCircle, CheckCircle, RefreshCw, Bell } from 'lucide-react';
+import { User, Users, FileText, Clock, AlertCircle, CheckCircle, RefreshCw, Bell, Calendar, TrendingUp } from 'lucide-react';
 
 const DoctorDashboard = () => {
   const dispatch = useDispatch();
@@ -23,13 +23,73 @@ const DoctorDashboard = () => {
   const [stats, setStats] = useState({
     totalPatients: 0,
     pendingTests: 0,
-    completedTests: 0
+    completedTests: 0,
+    recentPatients: 0,
+    waitingForConsultationFee: 0
   });
 
   const fetchStats = async () => {
     try {
       const response = await API.get('/dashboard/doctor/stats');
-      setStats(response.data);
+      const baseStats = response.data;
+      
+      // Calculate recent patients (assigned today and paid consultation fee)
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      console.log('🔍 Debug Recent Patients Calculation:');
+      console.log('Today:', today.toDateString());
+      console.log('Total assigned patients:', assignedPatients.length);
+      
+      const recentPatients = assignedPatients.filter(patient => {
+        if (!patient.assignedAt) {
+          console.log(`❌ Patient ${patient.name}: No assignedAt date`);
+          return false;
+        }
+        
+        // Check if patient has paid consultation fee
+        const hasConsultationFee = patient.billing && patient.billing.some(bill => 
+          bill.type === 'consultation' || bill.description?.toLowerCase().includes('consultation')
+        );
+        const hasPaidConsultationFee = hasConsultationFee && patient.billing.some(bill => 
+          (bill.type === 'consultation' || bill.description?.toLowerCase().includes('consultation')) && 
+          (bill.status === 'paid' || bill.status === 'completed')
+        );
+        
+        const assignedDate = new Date(patient.assignedAt);
+        assignedDate.setHours(0, 0, 0, 0);
+        
+        const isToday = assignedDate.getTime() === today.getTime();
+        
+        console.log(`📋 Patient ${patient.name}:`);
+        console.log(`  - Assigned Date: ${assignedDate.toDateString()}`);
+        console.log(`  - Is Today: ${isToday}`);
+        console.log(`  - Has Consultation Fee: ${hasConsultationFee}`);
+        console.log(`  - Has Paid Consultation Fee: ${hasPaidConsultationFee}`);
+        console.log(`  - Billing:`, patient.billing);
+        
+        return isToday && hasPaidConsultationFee;
+      }).length;
+      
+      console.log('✅ Recent patients count:', recentPatients);
+      
+      // Calculate patients waiting for consultation fee payment
+      const waitingForConsultationFee = assignedPatients.filter(patient => {
+        const hasConsultationFee = patient.billing && patient.billing.some(bill => 
+          bill.type === 'consultation' || bill.description?.toLowerCase().includes('consultation')
+        );
+        const hasPaidConsultationFee = hasConsultationFee && patient.billing.some(bill => 
+          (bill.type === 'consultation' || bill.description?.toLowerCase().includes('consultation')) && 
+          (bill.status === 'paid' || bill.status === 'completed')
+        );
+        return !hasPaidConsultationFee;
+      }).length;
+      
+      setStats({
+        ...baseStats,
+        recentPatients,
+        waitingForConsultationFee
+      });
     } catch (error) {
     }
   };
@@ -38,8 +98,14 @@ const DoctorDashboard = () => {
     dispatch(fetchAssignedPatients());
     dispatch(fetchTestRequests());
     dispatch(fetchDoctorNotifications());
-    fetchStats();
   }, [dispatch]);
+
+  // Update stats when assignedPatients changes
+  useEffect(() => {
+    if (assignedPatients.length >= 0) {
+      fetchStats();
+    }
+  }, [assignedPatients]);
 
   // Refresh data when component becomes visible
   useEffect(() => {
@@ -137,8 +203,25 @@ const DoctorDashboard = () => {
           </div>
         </div>
 
+        {/* Consultation Fee Notification */}
+        {stats.waitingForConsultationFee > 0 && (
+          <div className="mb-6 bg-orange-50 border border-orange-200 rounded-lg p-4">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="h-5 w-5 text-orange-600" />
+              <div>
+                <h3 className="text-sm font-medium text-orange-800">
+                  {stats.waitingForConsultationFee} Patient{stats.waitingForConsultationFee > 1 ? 's' : ''} Waiting for Consultation Fee Payment
+                </h3>
+                <p className="text-xs text-orange-700 mt-1">
+                  These patients need to pay consultation fees before you can view them. Please contact the receptionist.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           <div className="bg-white rounded-xl p-6 shadow-sm border border-blue-100">
             <div className="flex items-center justify-between">
               <div>
@@ -146,6 +229,18 @@ const DoctorDashboard = () => {
                 <p className="text-xl font-bold text-slate-800">{stats.totalPatients}</p>
               </div>
               <Users className="h-8 w-8 text-blue-500" />
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-orange-100 cursor-pointer hover:shadow-md transition-shadow"
+               onClick={() => navigate('/dashboard/doctor/recently-assigned-patients')}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-slate-600 text-sm font-medium">Recent Patients</p>
+                <p className="text-2xl font-bold text-slate-800">{stats.recentPatients}</p>
+                <p className="text-xs text-orange-600 mt-1">Assigned today</p>
+              </div>
+              <TrendingUp className="h-8 w-8 text-orange-500" />
             </div>
           </div>
 
@@ -184,7 +279,7 @@ const DoctorDashboard = () => {
         <div className="bg-white rounded-xl shadow-sm border border-blue-100 mb-6">
           <div className="p-6">
             <h3 className="text-lg font-semibold text-slate-800 mb-4">Quick Actions</h3>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <button
                 onClick={() => navigate('/dashboard/doctor/patients/add-patient')}
                 className="flex items-center justify-center p-4 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors"
@@ -197,8 +292,16 @@ const DoctorDashboard = () => {
                 onClick={() => navigate('/dashboard/doctor/patients')}
                 className="flex items-center justify-center p-4 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
               >
-                <User className="h-6 w-6 text-blue-600 mr-3" />
+                <Users className="h-6 w-6 text-blue-600 mr-3" />
                 <span className="font-medium text-blue-800">Manage Patients</span>
+              </button>
+
+              <button
+                onClick={() => navigate('/dashboard/doctor/recently-assigned-patients')}
+                className="flex items-center justify-center p-4 bg-orange-50 border border-orange-200 rounded-lg hover:bg-orange-100 transition-colors"
+              >
+                <TrendingUp className="h-6 w-6 text-orange-600 mr-3" />
+                <span className="font-medium text-orange-800">Recent Patients</span>
               </button>
               
               <button
@@ -251,7 +354,34 @@ const DoctorDashboard = () => {
             {activeTab === 'patients' ? (
               <div>
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold text-slate-800">Assigned Patients</h3>
+                  <div className="flex items-center gap-3">
+                    <h3 className="text-lg font-semibold text-slate-800">Assigned Patients</h3>
+                    {stats.recentPatients > 0 ? (
+                      <div className="flex items-center gap-2">
+                        <span className="bg-orange-100 text-orange-800 text-xs font-medium px-2 py-1 rounded-full">
+                          {stats.recentPatients} new today
+                        </span>
+                        <button
+                          onClick={() => navigate('/dashboard/doctor/recently-assigned-patients')}
+                          className="text-orange-600 hover:text-orange-700 text-sm font-medium underline"
+                        >
+                          View recent patients
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <span className="text-slate-500 text-xs">
+                          No new patients today
+                        </span>
+                        <button
+                          onClick={() => navigate('/dashboard/doctor/recently-assigned-patients')}
+                          className="text-blue-600 hover:text-blue-700 text-sm font-medium underline"
+                        >
+                          View all patients
+                        </button>
+                      </div>
+                    )}
+                  </div>
                   {patientsLoading && <p className="text-slate-500">Loading...</p>}
                 </div>
 

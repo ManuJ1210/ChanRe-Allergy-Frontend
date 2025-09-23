@@ -150,25 +150,32 @@ const AddPatient = () => {
     fetchCenterInfo();
   }, [dispatch, user]);
 
+  // Validate form whenever formData changes
+  useEffect(() => {
+    const validationErrors = validatePatientForm(formData);
+    setErrors(validationErrors);
+  }, [formData]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    const newFormData = { ...formData, [name]: value };
+    setFormData(newFormData);
     
     // Mark field as touched
     setTouched({ ...touched, [name]: true });
     
-    // Validate the field
-    const validationErrors = validatePatientForm({ ...formData, [name]: value });
-    setErrors({ ...errors, [name]: validationErrors[name] });
+    // Validate the entire form
+    const validationErrors = validatePatientForm(newFormData);
+    setErrors(validationErrors);
   };
 
   const handleBlur = (e) => {
     const { name } = e.target;
     setTouched({ ...touched, [name]: true });
     
-    // Validate the field
+    // Validate the entire form
     const validationErrors = validatePatientForm(formData);
-    setErrors({ ...errors, [name]: validationErrors[name] });
+    setErrors(validationErrors);
   };
 
   const handleSubmit = (e) => {
@@ -354,7 +361,7 @@ const AddPatient = () => {
                 
                 <div>
                   <label className="block text-xs font-medium text-slate-700 mb-2">
-                    Contact Number
+                    Contact Number *
                   </label>
                   <input
                     type="text"
@@ -362,12 +369,13 @@ const AddPatient = () => {
                     value={formData.contact}
                     onChange={handleChange}
                     onBlur={handleBlur}
-                    placeholder="Enter contact number"
+                    placeholder="Enter 10-digit phone number"
                     className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs ${
                       touched.contact && errors.contact 
                         ? 'border-red-300 bg-red-50' 
                         : 'border-slate-200'
                     }`}
+                    required
                   />
                   {touched.contact && errors.contact && (
                     <p className="mt-1 text-xs text-red-600 flex items-center gap-1">

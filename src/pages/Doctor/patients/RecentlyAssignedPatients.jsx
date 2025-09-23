@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchAssignedPatients } from "../../../features/doctor/doctorThunks";
 import { useNavigate } from "react-router-dom";
+import { fetchAssignedPatients } from "../../../features/doctor/doctorThunks";
 import { canDoctorEditPatient, formatRemainingTime } from "../../../utils/patientPermissions";
 import { toast } from "react-toastify";
+import { markPatientAsViewed } from "../../../services/api";
 import { 
   Users, 
   Search, 
-  Plus, 
   Eye, 
   Edit, 
   Mail,
@@ -15,33 +15,26 @@ import {
   User,
   Calendar,
   MapPin,
-  ArrowLeft,
-  ArrowRight,
   Clock,
-  Lock,
   Filter,
-  X,
-  ChevronDown,
-  DollarSign
+  CalendarDays,
+  TrendingUp,
+  RefreshCw,
+  CheckCircle,
+  DollarSign,
+  Lock
 } from 'lucide-react';
-import API from '../../../services/api';
 
-export default function PatientList() {
+export default function RecentlyAssignedPatients() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const [selectedPatient, setSelectedPatient] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredPatients, setFilteredPatients] = useState([]);
+  const [dateFilter, setDateFilter] = useState('today'); // today, last7days, last30days
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [recordsPerPage, setRecordsPerPage] = useState(4);
-  
-  // Sub-search states
-  const [subSearchTerm, setSubSearchTerm] = useState('');
-  const [showSubSearch, setShowSubSearch] = useState(false);
-  const [finalFilteredPatients, setFinalFilteredPatients] = useState([]);
-  const [searchField, setSearchField] = useState('all'); // all, name, email, phone, uhId, address
+  const [recordsPerPage, setRecordsPerPage] = useState(10);
 
   const { assignedPatients = [], loading } = useSelector((state) => state.doctor);
   const { user } = useSelector((state) => state.auth);
@@ -50,71 +43,52 @@ export default function PatientList() {
     dispatch(fetchAssignedPatients());
   }, [dispatch]);
 
-  // Filter patients based on search term (show all assigned patients)
+  // Filter patients based on assignment date and search term
   useEffect(() => {
-    const filtered = (assignedPatients || []).filter(patient => {
-      // Apply search filter only
-      const matchesSearch = !searchTerm || 
-        patient?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        patient?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        patient?.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        patient?.contact?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        patient?.uhId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        patient?.assignedDoctor?.name?.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      return matchesSearch;
-    });
-    setFilteredPatients(filtered);
-    
-    // Show sub-search if we have results and a search term
-    setShowSubSearch(filtered.length > 0 && searchTerm.trim() !== '');
-  }, [searchTerm, assignedPatients]);
+    const now = new Date();
+    let filtered = [];
 
-  // Apply sub-search filter on the already filtered patients
-  useEffect(() => {
-    if (!showSubSearch || subSearchTerm.trim() === '') {
-      setFinalFilteredPatients(filteredPatients);
-      return;
-    }
-
-    const subFiltered = filteredPatients.filter(patient => {
-      const term = subSearchTerm.toLowerCase();
+    // Filter by assignment date and viewed status (show all assigned patients)
+    filtered = (assignedPatients || []).filter(patient => {
+      if (!patient.assignedAt) return false; // Only show patients with assignment date
+      if (patient.viewedByDoctor) return false; // Only show unviewed patients
       
-      switch (searchField) {
-        case 'name':
-          return patient?.name?.toLowerCase().includes(term);
-        case 'email':
-          return patient?.email?.toLowerCase().includes(term);
-        case 'phone':
-          return patient?.phone?.toLowerCase().includes(term) || 
-                 patient?.contact?.toLowerCase().includes(term);
-        case 'uhId':
-          return patient?.uhId?.toLowerCase().includes(term);
-        case 'address':
-          return patient?.address?.toLowerCase().includes(term);
-        case 'doctor':
-          return patient?.assignedDoctor?.name?.toLowerCase().includes(term);
-        default: // 'all'
-          return patient?.name?.toLowerCase().includes(term) ||
-                 patient?.email?.toLowerCase().includes(term) ||
-                 patient?.phone?.toLowerCase().includes(term) ||
-                 patient?.contact?.toLowerCase().includes(term) ||
-                 patient?.uhId?.toLowerCase().includes(term) ||
-                 patient?.address?.toLowerCase().includes(term) ||
-                 patient?.assignedDoctor?.name?.toLowerCase().includes(term);
+      const assignedDate = new Date(patient.assignedAt);
+      
+      switch (dateFilter) {
+        case 'today':
+          return assignedDate.toDateString() === now.toDateString();
+        case 'last7days':
+          const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          return assignedDate >= sevenDaysAgo && assignedDate <= now;
+        case 'last30days':
+          const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          return assignedDate >= thirtyDaysAgo && assignedDate <= now;
+        default:
+          return true;
       }
     });
-    
-    setFinalFilteredPatients(subFiltered);
-    setCurrentPage(1); // Reset to first page when sub-search changes
-  }, [filteredPatients, subSearchTerm, searchField, showSubSearch]);
 
-  // Doctors typically can't delete patients - this functionality is removed
+    // Filter by search term
+    filtered = filtered.filter(patient =>
+      patient?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      patient?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      patient?.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      patient?.contact?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      patient?.uhId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      patient?.assignedDoctor?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    // Sort by most recently assigned first
+    filtered.sort((a, b) => new Date(b.assignedAt) - new Date(a.assignedAt));
+
+    setFilteredPatients(filtered);
+  }, [searchTerm, assignedPatients, dateFilter]);
 
   const getGenderStats = () => {
-    const maleCount = (assignedPatients || []).filter(p => p?.gender === 'male').length;
-    const femaleCount = (assignedPatients || []).filter(p => p?.gender === 'female').length;
-    const otherCount = (assignedPatients || []).filter(p => p?.gender === 'other').length;
+    const maleCount = filteredPatients.filter(p => p?.gender === 'male').length;
+    const femaleCount = filteredPatients.filter(p => p?.gender === 'female').length;
+    const otherCount = filteredPatients.filter(p => p?.gender === 'other').length;
     return { maleCount, femaleCount, otherCount };
   };
 
@@ -122,13 +96,13 @@ export default function PatientList() {
 
   // Pagination functions
   const getTotalPages = () => {
-    return Math.ceil(finalFilteredPatients.length / recordsPerPage);
+    return Math.ceil(filteredPatients.length / recordsPerPage);
   };
 
   const getCurrentData = () => {
     const startIndex = (currentPage - 1) * recordsPerPage;
     const endIndex = startIndex + recordsPerPage;
-    return finalFilteredPatients.slice(startIndex, endIndex);
+    return filteredPatients.slice(startIndex, endIndex);
   };
 
   const handlePageChange = (page) => {
@@ -137,55 +111,33 @@ export default function PatientList() {
 
   const handleRecordsPerPageChange = (value) => {
     setRecordsPerPage(parseInt(value));
-    setCurrentPage(1); // Reset to first page
-  };
-
-  // Clear search functions
-  const clearAllSearches = () => {
-    setSearchTerm('');
-    setSubSearchTerm('');
-    setShowSubSearch(false);
-    setSearchField('all');
     setCurrentPage(1);
   };
 
-  const clearSubSearch = () => {
-    setSubSearchTerm('');
-    setSearchField('all');
-  };
-
-  // Handle viewing a patient - just navigate without marking as viewed
-  const handleViewPatient = (patientId) => {
-    navigate(`/dashboard/Doctor/patients/profile/ViewProfile/${patientId}`);
-  };
-
-  // Reset pagination when search term changes
+  // Reset pagination when search term or filter changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm]);
+  }, [searchTerm, dateFilter]);
 
-  // Handle assigning doctor to patient
-  const handleAssignDoctor = async (patientId) => {
-    if (!user || !user._id || !patientId) {
-      toast.error('Unable to assign doctor. Please try again.');
-      return;
+  const getDateFilterLabel = () => {
+    switch (dateFilter) {
+      case 'today': return 'Today';
+      case 'last7days': return 'Last 7 Days';
+      case 'last30days': return 'Last 30 Days';
+      default: return 'All';
     }
+  };
 
-    try {
-      const response = await API.put(`/patients/${patientId}`, {
-        assignedDoctor: user._id
-      });
-
-      if (response.status === 200) {
-        toast.success('Successfully assigned as doctor to this patient!');
-        // Refresh patient list
-        dispatch(fetchAssignedPatients());
-      } else {
-        toast.error(response.data?.message || 'Failed to assign doctor');
-      }
-    } catch (error) {
-      toast.error('Failed to assign doctor. Please try again.');
-    }
+  const formatAssignmentDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
   };
 
   // Function to get consultation fee status display
@@ -254,112 +206,77 @@ export default function PatientList() {
     }
   };
 
+  // Handle viewing a patient - just navigate without marking as viewed
+  const handleViewPatient = (patientId) => {
+    navigate(`/dashboard/Doctor/patients/profile/ViewProfile/${patientId}`);
+  };
+
+  // Handle marking patient as viewed
+  const handleMarkAsViewed = async (patientId) => {
+    try {
+      await markPatientAsViewed(patientId);
+      toast.success('Patient marked as viewed');
+      
+      // Refresh the patient list to update the view
+      dispatch(fetchAssignedPatients());
+      
+    } catch (error) {
+      console.error('Error marking patient as viewed:', error);
+      toast.error('Failed to mark patient as viewed. Please try again.');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-2 sm:p-3 md:p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-6 sm:mb-8">
           <h1 className="text-md font-bold text-slate-800 mb-2 text-center sm:text-left">
-            Patient List
+            Recently Assigned Patients
           </h1>
           <p className="text-slate-600 text-xs text-center sm:text-left">
-            View and manage your assigned patients
+            View unviewed patients assigned to you recently with date filtering options
           </p>
         </div>
 
-        {/* Search and Add Button */}
+        {/* Search and Filter Controls */}
         <div className="bg-white rounded-xl shadow-sm border border-blue-100 mb-6">
           <div className="p-4 sm:p-6">
-            <div className="space-y-4">
-              {/* Primary Search */}
-              <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-                <div className="relative flex-1 max-w-md w-full">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-                  <input
-                    type="text"
-                    placeholder="Search patients by name, email, phone, UH ID..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-10 py-2 sm:py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
-                  />
-                  {searchTerm && (
-                    <button
-                      onClick={clearAllSearches}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  )}
+            <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
+              <div className="relative flex-1 max-w-md w-full">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search patients by name, email, phone, UH ID..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 sm:py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
+                />
+              </div>
+              
+              <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+                <div className="relative">
+                  <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <select
+                    value={dateFilter}
+                    onChange={(e) => setDateFilter(e.target.value)}
+                    className="pl-10 pr-4 py-2 sm:py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs bg-white"
+                  >
+                    <option value="today">Today</option>
+                    <option value="last7days">Last 7 Days</option>
+                    <option value="last30days">Last 30 Days</option>
+                  </select>
                 </div>
+                
                 <button
-                  onClick={() => navigate('/dashboard/Doctor/patients/AddPatient')}
-                  className="bg-blue-500 hover:bg-blue-600 text-white px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2 w-full sm:w-auto justify-center text-xs"
+                  onClick={() => dispatch(fetchAssignedPatients())}
+                  disabled={loading}
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 disabled:opacity-50 text-xs"
                 >
-                  <Plus className="h-4 w-4" />
-                  Add Patient
+                  <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                  Refresh
                 </button>
               </div>
-
-              {/* Sub-search (appears when primary search has results) */}
-              {showSubSearch && (
-                <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Filter className="h-4 w-4 text-blue-600" />
-                    <span className="text-sm font-medium text-blue-800">
-                      Refine search in {filteredPatients.length} results
-                    </span>
-                    <button
-                      onClick={() => setShowSubSearch(false)}
-                      className="ml-auto text-blue-400 hover:text-blue-600"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                  
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <div className="flex-1">
-                      <select
-                        value={searchField}
-                        onChange={(e) => setSearchField(e.target.value)}
-                        className="w-full px-3 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs bg-white"
-                      >
-                        <option value="all">All Fields</option>
-                        <option value="name">Name</option>
-                        <option value="email">Email</option>
-                        <option value="phone">Phone</option>
-                        <option value="uhId">UH ID</option>
-                        <option value="address">Address</option>
-                        <option value="doctor">Assigned Doctor</option>
-                      </select>
-                    </div>
-                    
-                    <div className="relative flex-1">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-blue-400" />
-                      <input
-                        type="text"
-                        placeholder={`Search in ${searchField === 'all' ? 'all fields' : searchField}...`}
-                        value={subSearchTerm}
-                        onChange={(e) => setSubSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-10 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs bg-white"
-                      />
-                      {subSearchTerm && (
-                        <button
-                          onClick={clearSubSearch}
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-blue-400 hover:text-blue-600"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  
-                  {subSearchTerm && (
-                    <div className="mt-2 text-xs text-blue-600">
-                      Found {finalFilteredPatients.length} results in {filteredPatients.length} primary results
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -369,10 +286,19 @@ export default function PatientList() {
           <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-blue-100">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-slate-600 text-xs font-medium">Total Patients</p>
-                <p className="text-sm font-bold text-slate-800">{(assignedPatients || []).length}</p>
+                <p className="text-slate-600 text-xs font-medium">Total Assigned</p>
+                <p className="text-sm font-bold text-slate-800">{filteredPatients.length}</p>
               </div>
-              <Users className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500" />
+              <TrendingUp className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500" />
+            </div>
+          </div>
+          <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-blue-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-slate-600 text-xs font-medium">Filter Period</p>
+                <p className="text-sm font-bold text-slate-800">{getDateFilterLabel()}</p>
+              </div>
+              <CalendarDays className="h-6 w-6 sm:h-8 sm:w-8 text-green-500" />
             </div>
           </div>
           <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-blue-100">
@@ -393,23 +319,12 @@ export default function PatientList() {
               <User className="h-6 w-6 sm:h-8 sm:w-8 text-pink-500" />
             </div>
           </div>
-          <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-blue-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-slate-600 text-xs font-medium">With Email</p>
-                <p className="text-sm font-bold text-slate-800">
-                  {(assignedPatients || []).filter(p => p?.email).length}
-                </p>
-              </div>
-              <Mail className="h-6 w-6 sm:h-8 sm:w-8 text-green-500" />
-            </div>
-          </div>
           <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-blue-100 sm:col-span-2 lg:col-span-1">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-slate-600 text-xs font-medium">With Phone</p>
+                <p className="text-slate-600 text-xs font-medium">With Contact</p>
                 <p className="text-sm font-bold text-slate-800">
-                  {(assignedPatients || []).filter(p => p?.phone || p?.contact).length}
+                  {filteredPatients.filter(p => p?.phone || p?.contact || p?.email).length}
                 </p>
               </div>
               <Phone className="h-6 w-6 sm:h-8 sm:w-8 text-orange-500" />
@@ -422,15 +337,10 @@ export default function PatientList() {
           <div className="p-4 sm:p-6 border-b border-blue-100">
             <h2 className="text-sm font-semibold text-slate-800 flex items-center justify-center sm:justify-start">
               <Users className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-blue-500" />
-              Patients List
+              Unviewed Recently Assigned Patients - {getDateFilterLabel()}
             </h2>
             <p className="text-slate-600 mt-1 text-xs text-center sm:text-left">
-              {finalFilteredPatients.length} of {(assignedPatients || []).length} patients
-              {showSubSearch && subSearchTerm && (
-                <span className="text-blue-600 ml-2">
-                  (filtered from {filteredPatients.length} results)
-                </span>
-              )}
+              {filteredPatients.length} unviewed patients assigned in the selected period
             </p>
           </div>
           
@@ -441,15 +351,11 @@ export default function PatientList() {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
                 <p className="text-slate-600 text-xs">Loading patients...</p>
               </div>
-            ) : finalFilteredPatients.length === 0 ? (
+            ) : filteredPatients.length === 0 ? (
               <div className="text-center py-8">
                 <Users className="h-12 w-12 text-slate-400 mx-auto mb-4" />
                 <p className="text-slate-500 text-xs">
-                  {searchTerm ? (
-                    subSearchTerm ? 
-                      'No patients found matching your refined search.' : 
-                      'No patients found matching your search.'
-                  ) : 'No patients found.'}
+                  {searchTerm ? 'No unviewed patients found matching your search.' : `No unviewed patients assigned ${getDateFilterLabel().toLowerCase()}.`}
                 </p>
               </div>
             ) : (
@@ -495,9 +401,9 @@ export default function PatientList() {
                     </div>
                     
                     <div className="flex items-center gap-2 bg-white p-2 rounded-lg border border-slate-200">
-                      <Users className="h-4 w-4 text-orange-500" />
+                      <Calendar className="h-4 w-4 text-green-500" />
                       <span className="text-slate-700 text-xs font-medium">
-                        Dr. {patient?.assignedDoctor?.name || 'Not assigned'}
+                        Assigned: {patient?.assignedAt ? formatAssignmentDate(patient.assignedAt) : 'N/A'}
                       </span>
                     </div>
                     
@@ -559,6 +465,19 @@ export default function PatientList() {
                           );
                         }
                       })()}
+                      <button
+                        onClick={() => {
+                          if (patient?._id) {
+                            handleMarkAsViewed(patient._id);
+                          } else {
+                            alert('Patient ID not found. Please refresh the page and try again.');
+                          }
+                        }}
+                        className="flex-1 bg-orange-50 hover:bg-orange-100 text-orange-700 px-3 py-2 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-2"
+                      >
+                        <CheckCircle className="h-4 w-4" />
+                        Mark Viewed
+                      </button>
                       {canDoctorEditPatient(patient, user).canEdit ? (
                         <button
                           onClick={() => navigate(`/dashboard/Doctor/patients/EditPatient/${patient?._id}`)}
@@ -577,7 +496,6 @@ export default function PatientList() {
                           Edit
                         </button>
                       )}
-                      {/* Delete button removed - doctors can't delete patients */}
                     </div>
                   </div>
                   );
@@ -593,15 +511,11 @@ export default function PatientList() {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
                 <p className="text-slate-600 text-xs">Loading patients...</p>
               </div>
-            ) : finalFilteredPatients.length === 0 ? (
+            ) : filteredPatients.length === 0 ? (
               <div className="text-center py-8">
                 <Users className="h-12 w-12 text-slate-400 mx-auto mb-4" />
                 <p className="text-slate-500 text-xs">
-                  {searchTerm ? (
-                    subSearchTerm ? 
-                      'No patients found matching your refined search.' : 
-                      'No patients found matching your search.'
-                  ) : 'No patients found.'}
+                  {searchTerm ? 'No unviewed patients found matching your search.' : `No unviewed patients assigned ${getDateFilterLabel().toLowerCase()}.`}
                 </p>
               </div>
             ) : (
@@ -622,7 +536,7 @@ export default function PatientList() {
                         UH ID
                       </th>
                       <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                        Assigned Doctor
+                        Assigned Date
                       </th>
                       <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                         Consultation Fee
@@ -682,18 +596,10 @@ export default function PatientList() {
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-2">
+                            <Calendar className="h-3 w-3 text-green-500" />
                             <span className="text-xs text-slate-600">
-                              {patient?.assignedDoctor?.name || 'Not assigned'}
+                              {patient?.assignedAt ? formatAssignmentDate(patient.assignedAt) : 'N/A'}
                             </span>
-                            {!patient?.assignedDoctor && user && (
-                              <button
-                                onClick={() => handleAssignDoctor(patient._id)}
-                                className="text-xs bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded transition-colors"
-                                title="Assign yourself to this patient"
-                              >
-                                Assign Me
-                              </button>
-                            )}
                           </div>
                         </td>
                         <td className="px-6 py-4">
@@ -752,6 +658,19 @@ export default function PatientList() {
                                 );
                               }
                             })()}
+                            <button
+                              onClick={() => {
+                                if (patient?._id) {
+                                  handleMarkAsViewed(patient._id);
+                                } else {
+                                  alert('Patient ID not found. Please refresh the page and try again.');
+                                }
+                              }}
+                              className="text-orange-600 hover:text-orange-700 p-1 rounded transition-colors"
+                              title="Mark as Viewed"
+                            >
+                              <CheckCircle className="h-4 w-4" />
+                            </button>
                             {canDoctorEditPatient(patient, user).canEdit ? (
                               <button
                                 onClick={() => navigate(`/dashboard/Doctor/patients/EditPatient/${patient?._id}`)}
@@ -769,7 +688,6 @@ export default function PatientList() {
                                 <Clock className="h-4 w-4" />
                               </button>
                             )}
-                            {/* Delete button removed - doctors can't delete patients */}
                           </div>
                         </td>
                       </tr>
@@ -782,12 +700,12 @@ export default function PatientList() {
           </div>
           
           {/* Pagination Controls */}
-          {finalFilteredPatients.length > 0 && (
+          {filteredPatients.length > 0 && (
             <div className="px-8 py-6 bg-gradient-to-r from-gray-50 to-gray-100 border-t border-gray-200">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
                   <div className="text-sm text-gray-600">
-                    Showing {((currentPage - 1) * recordsPerPage) + 1} to {Math.min(currentPage * recordsPerPage, finalFilteredPatients.length)} of {finalFilteredPatients.length} results
+                    Showing {((currentPage - 1) * recordsPerPage) + 1} to {Math.min(currentPage * recordsPerPage, filteredPatients.length)} of {filteredPatients.length} results
                   </div>
                   <div className="flex items-center space-x-2">
                     <span className="text-sm text-gray-600">Show:</span>
@@ -796,10 +714,10 @@ export default function PatientList() {
                       onChange={(e) => handleRecordsPerPageChange(e.target.value)}
                       className="px-3 py-1 text-sm border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
-                      <option value={4}>4</option>
                       <option value={5}>5</option>
                       <option value={10}>10</option>
                       <option value={20}>20</option>
+                      <option value={50}>50</option>
                     </select>
                     <span className="text-sm text-gray-600">per page</span>
                   </div>

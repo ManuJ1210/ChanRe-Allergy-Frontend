@@ -177,9 +177,15 @@ const receptionistSlice = createSlice({
       state.patients.push(action.payload);
     },
     updatePatient: (state, action) => {
+      console.log('Redux updatePatient called with:', action.payload);
       const index = state.patients.findIndex(p => p._id === action.payload._id);
+      console.log('Found patient at index:', index);
       if (index !== -1) {
+        console.log('Updating patient at index', index);
         state.patients[index] = action.payload;
+        console.log('Patient updated successfully');
+      } else {
+        console.log('Patient not found in Redux store');
       }
     },
     deletePatient: (state, action) => {

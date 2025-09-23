@@ -102,6 +102,8 @@ export const fetchReceptionistPatients = createAsyncThunk(
       
       // Extract patients from response (handle both array and paginated response)
       const patients = res.data.patients || res.data;
+      console.log('API response:', res.data);
+      console.log('Extracted patients:', patients);
       dispatch(setPatients(patients));
       
       // Calculate stats

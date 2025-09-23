@@ -729,7 +729,7 @@ const ViewProfile = () => {
                           <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Prescribed By</th>
                           <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Date Prescribed</th>
                           <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Adverse Effect</th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Notes</th>
+                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Instructions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-200">
@@ -747,7 +747,7 @@ const ViewProfile = () => {
                               {med.createdAt ? new Date(med.createdAt).toLocaleDateString() : 'N/A'}
                             </td>
                             <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-600">{med.adverseEvent || 'None'}</td>
-                            <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-600">{med.notes || 'N/A'}</td>
+                            <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-600">{med.instructions || 'N/A'}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -1092,7 +1092,7 @@ const ViewProfile = () => {
                           <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Prescribed By</th>
                           <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Date Prescribed</th>
                           <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Adverse Effect</th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Notes</th>
+                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Instructions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-200">
@@ -1110,7 +1110,7 @@ const ViewProfile = () => {
                               {med.createdAt ? new Date(med.createdAt).toLocaleDateString() : 'N/A'}
                             </td>
                             <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-600">{med.adverseEvent || 'None'}</td>
-                            <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-600">{med.notes || 'N/A'}</td>
+                            <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-600">{med.instructions || 'N/A'}</td>
                           </tr>
                         ))}
                       </tbody>

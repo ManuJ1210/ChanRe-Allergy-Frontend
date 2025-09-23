@@ -17,7 +17,10 @@ import {
   MapPin,
   ArrowLeft,
   ArrowRight,
-  Clock
+  Clock,
+  Filter,
+  X,
+  ChevronDown
 } from 'lucide-react';
 import { formatRemainingTime } from '../../../utils/patientPermissions';
 
@@ -29,6 +32,12 @@ export default function PatientList() {
   const [filteredPatients, setFilteredPatients] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(7);
+  
+  // Sub-search states
+  const [subSearchTerm, setSubSearchTerm] = useState('');
+  const [showSubSearch, setShowSubSearch] = useState(false);
+  const [finalFilteredPatients, setFinalFilteredPatients] = useState([]);
+  const [searchField, setSearchField] = useState('all'); // all, name, email, phone, uhId, address
 
   const { patients = [], getLoading } = useSelector((state) => state.patient);
 
@@ -36,7 +45,7 @@ export default function PatientList() {
     dispatch(getPatients());
   }, [dispatch]);
 
-  // Filter patients based on search term
+  // Filter patients based on search term (primary search)
   useEffect(() => {
     const filtered = (patients || []).filter(patient =>
       patient?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -49,13 +58,55 @@ export default function PatientList() {
     );
     setFilteredPatients(filtered);
     setCurrentPage(1); // Reset to first page when search changes
+    
+    // Show sub-search if we have results and a search term
+    setShowSubSearch(filtered.length > 0 && searchTerm.trim() !== '');
   }, [searchTerm, patients]);
 
-  // Calculate pagination
-  const totalPages = Math.ceil(filteredPatients.length / itemsPerPage);
+  // Apply sub-search filter on the already filtered patients
+  useEffect(() => {
+    if (!showSubSearch || subSearchTerm.trim() === '') {
+      setFinalFilteredPatients(filteredPatients);
+      return;
+    }
+
+    const subFiltered = filteredPatients.filter(patient => {
+      const term = subSearchTerm.toLowerCase();
+      
+      switch (searchField) {
+        case 'name':
+          return patient?.name?.toLowerCase().includes(term);
+        case 'email':
+          return patient?.email?.toLowerCase().includes(term);
+        case 'phone':
+          return patient?.phone?.toLowerCase().includes(term) || 
+                 patient?.contact?.toLowerCase().includes(term);
+        case 'uhId':
+          return patient?.uhId?.toLowerCase().includes(term);
+        case 'address':
+          return patient?.address?.toLowerCase().includes(term);
+        case 'doctor':
+          return patient?.assignedDoctor?.name?.toLowerCase().includes(term);
+        default: // 'all'
+          return patient?.name?.toLowerCase().includes(term) ||
+                 patient?.email?.toLowerCase().includes(term) ||
+                 patient?.phone?.toLowerCase().includes(term) ||
+                 patient?.contact?.toLowerCase().includes(term) ||
+                 patient?.uhId?.toLowerCase().includes(term) ||
+                 patient?.address?.toLowerCase().includes(term) ||
+                 patient?.assignedDoctor?.name?.toLowerCase().includes(term);
+      }
+    });
+    
+    setFinalFilteredPatients(subFiltered);
+    setCurrentPage(1); // Reset to first page when sub-search changes
+  }, [filteredPatients, subSearchTerm, searchField, showSubSearch]);
+
+  // Calculate pagination based on final filtered patients
+  const totalPages = Math.ceil(finalFilteredPatients.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentPatients = filteredPatients.slice(startIndex, endIndex);
+  const currentPatients = finalFilteredPatients.slice(startIndex, endIndex);
 
   // Pagination handlers
   const handlePageChange = (page) => {
@@ -77,6 +128,20 @@ export default function PatientList() {
   const handleItemsPerPageChange = (newItemsPerPage) => {
     setItemsPerPage(newItemsPerPage);
     setCurrentPage(1); // Reset to first page when changing items per page
+  };
+
+  // Clear search functions
+  const clearAllSearches = () => {
+    setSearchTerm('');
+    setSubSearchTerm('');
+    setShowSubSearch(false);
+    setSearchField('all');
+    setCurrentPage(1);
+  };
+
+  const clearSubSearch = () => {
+    setSubSearchTerm('');
+    setSearchField('all');
   };
 
   const handleDelete = (id) => {
@@ -111,24 +176,96 @@ export default function PatientList() {
         {/* Search and Add Button */}
         <div className="bg-white rounded-xl shadow-sm border border-blue-100 mb-6">
           <div className="p-4 sm:p-6">
-            <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-              <div className="relative flex-1 max-w-md w-full">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Search patients by name, email, phone, address, UH ID..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 sm:py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
-                />
+            <div className="space-y-4">
+              {/* Primary Search */}
+              <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+                <div className="relative flex-1 max-w-md w-full">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Search patients by name, email, phone, address, UH ID..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-10 py-2 sm:py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
+                  />
+                  {searchTerm && (
+                    <button
+                      onClick={clearAllSearches}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+                <button
+                  onClick={() => navigate('/dashboard/CenterAdmin/patients/AddPatient')}
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2 w-full sm:w-auto justify-center text-xs"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add Patient
+                </button>
               </div>
-              <button
-                onClick={() => navigate('/dashboard/CenterAdmin/patients/AddPatient')}
-                className="bg-blue-500 hover:bg-blue-600 text-white px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2 w-full sm:w-auto justify-center text-xs"
-              >
-                <Plus className="h-4 w-4" />
-                Add Patient
-              </button>
+
+              {/* Sub-search (appears when primary search has results) */}
+              {showSubSearch && (
+                <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Filter className="h-4 w-4 text-blue-600" />
+                    <span className="text-sm font-medium text-blue-800">
+                      Refine search in {filteredPatients.length} results
+                    </span>
+                    <button
+                      onClick={() => setShowSubSearch(false)}
+                      className="ml-auto text-blue-400 hover:text-blue-600"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                  
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="flex-1">
+                      <select
+                        value={searchField}
+                        onChange={(e) => setSearchField(e.target.value)}
+                        className="w-full px-3 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs bg-white"
+                      >
+                        <option value="all">All Fields</option>
+                        <option value="name">Name</option>
+                        <option value="email">Email</option>
+                        <option value="phone">Phone</option>
+                        <option value="uhId">UH ID</option>
+                        <option value="address">Address</option>
+                        <option value="doctor">Assigned Doctor</option>
+                      </select>
+                    </div>
+                    
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-blue-400" />
+                      <input
+                        type="text"
+                        placeholder={`Search in ${searchField === 'all' ? 'all fields' : searchField}...`}
+                        value={subSearchTerm}
+                        onChange={(e) => setSubSearchTerm(e.target.value)}
+                        className="w-full pl-10 pr-10 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs bg-white"
+                      />
+                      {subSearchTerm && (
+                        <button
+                          onClick={clearSubSearch}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-blue-400 hover:text-blue-600"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {subSearchTerm && (
+                    <div className="mt-2 text-xs text-blue-600">
+                      Found {finalFilteredPatients.length} results in {filteredPatients.length} primary results
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -187,14 +324,14 @@ export default function PatientList() {
         </div>
 
         {/* Pagination Controls */}
-        {filteredPatients.length > 0 && (
+        {finalFilteredPatients.length > 0 && (
           <div className="bg-white rounded-xl shadow-sm border border-blue-100 mb-6">
             <div className="p-4 sm:p-6">
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                 {/* Left side - Results info and items per page */}
                 <div className="flex flex-col sm:flex-row items-center gap-4">
                   <div className="text-xs text-slate-600">
-                    Showing {startIndex + 1} to {Math.min(endIndex, filteredPatients.length)} of {filteredPatients.length} results
+                    Showing {startIndex + 1} to {Math.min(endIndex, finalFilteredPatients.length)} of {finalFilteredPatients.length} results
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-slate-600">Show:</span>
@@ -264,7 +401,12 @@ export default function PatientList() {
               Patients List
             </h2>
             <p className="text-slate-600 mt-1 text-xs text-center sm:text-left">
-              {filteredPatients.length} of {(patients || []).length} patients
+              {finalFilteredPatients.length} of {(patients || []).length} patients
+              {showSubSearch && subSearchTerm && (
+                <span className="text-blue-600 ml-2">
+                  (filtered from {filteredPatients.length} results)
+                </span>
+              )}
             </p>
           </div>
           
@@ -275,11 +417,15 @@ export default function PatientList() {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
                 <p className="text-slate-600 text-xs">Loading patients...</p>
               </div>
-            ) : filteredPatients.length === 0 ? (
+            ) : finalFilteredPatients.length === 0 ? (
               <div className="text-center py-8">
                 <Users className="h-12 w-12 text-slate-400 mx-auto mb-4" />
                 <p className="text-slate-500 text-xs">
-                  {searchTerm ? 'No patients found matching your search.' : 'No patients found.'}
+                  {searchTerm ? (
+                    subSearchTerm ? 
+                      'No patients found matching your refined search.' : 
+                      'No patients found matching your search.'
+                  ) : 'No patients found.'}
                 </p>
               </div>
             ) : (
@@ -387,11 +533,15 @@ export default function PatientList() {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
                 <p className="text-slate-600 text-xs">Loading patients...</p>
               </div>
-            ) : filteredPatients.length === 0 ? (
+            ) : finalFilteredPatients.length === 0 ? (
               <div className="text-center py-8">
                 <Users className="h-12 w-12 text-slate-400 mx-auto mb-4" />
                 <p className="text-slate-500 text-xs">
-                  {searchTerm ? 'No patients found matching your search.' : 'No patients found.'}
+                  {searchTerm ? (
+                    subSearchTerm ? 
+                      'No patients found matching your refined search.' : 
+                      'No patients found matching your search.'
+                  ) : 'No patients found.'}
                 </p>
               </div>
             ) : (

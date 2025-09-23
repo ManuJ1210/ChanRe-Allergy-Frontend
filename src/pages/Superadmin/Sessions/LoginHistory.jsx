@@ -1,6 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { toast } from 'react-toastify';
 import API from '../../../services/api';
+import Pagination from '../../../components/Pagination';
+import { 
+  deleteLoginHistory,
+  bulkDeleteLoginHistory,
+  deleteAllLoginHistory
+} from '../../../features/loginHistory/loginHistoryThunks';
 import { 
   ComputerDesktopIcon, 
   DevicePhoneMobileIcon, 
@@ -11,10 +18,12 @@ import {
   BuildingOfficeIcon,
   CalendarIcon,
   CheckCircleIcon,
-  XCircleIcon
+  XCircleIcon,
+  TrashIcon
 } from '@heroicons/react/24/outline';
 
 const LoginHistory = () => {
+  const dispatch = useDispatch();
   const [loginHistory, setLoginHistory] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -23,6 +32,15 @@ const LoginHistory = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [centers, setCenters] = useState([]);
   const [dateRange, setDateRange] = useState('7'); // Last 7 days
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
+  
+  // Bulk selection state
+  const [selectedRecords, setSelectedRecords] = useState([]);
+  const [selectAll, setSelectAll] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchLoginHistory();
@@ -35,7 +53,8 @@ const LoginHistory = () => {
       const response = await API.get('/login-history/recent', {
         params: { limit: 200 }
       });
-      setLoginHistory(response.data.recentLogins);
+      console.log('Login history response:', response.data); // Debug log
+      setLoginHistory(response.data.recentLogins || []);
     } catch (error) {
       console.error('Error fetching login history:', error);
       setError('Failed to fetch login history');
@@ -47,9 +66,70 @@ const LoginHistory = () => {
   const fetchCenters = async () => {
     try {
       const response = await API.get('/centers');
+      console.log('Centers response:', response.data); // Debug log
       setCenters(response.data);
     } catch (error) {
       console.error('Error fetching centers:', error);
+    }
+  };
+
+  const handleDeleteRecord = async (recordId) => {
+    if (window.confirm('Are you sure you want to delete this login history record?')) {
+      setDeleting(true);
+      try {
+        await dispatch(deleteLoginHistory(recordId));
+        fetchLoginHistory(); // Refresh the list
+      } catch (error) {
+        console.error('Error deleting record:', error);
+        toast.error('Failed to delete record');
+      } finally {
+        setDeleting(false);
+      }
+    }
+  };
+
+  const handleSelectAll = () => {
+    if (selectAll) {
+      setSelectedRecords([]);
+      setSelectAll(false);
+    } else {
+      const allRecordIds = paginatedHistory.map(record => record._id);
+      setSelectedRecords(allRecordIds);
+      setSelectAll(true);
+    }
+  };
+
+  const handleSelectRecord = (recordId) => {
+    if (selectedRecords.includes(recordId)) {
+      setSelectedRecords(selectedRecords.filter(id => id !== recordId));
+      setSelectAll(false);
+    } else {
+      const newSelected = [...selectedRecords, recordId];
+      setSelectedRecords(newSelected);
+      setSelectAll(newSelected.length === paginatedHistory.length);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedRecords.length === 0) {
+      toast.error('Please select records to delete');
+      return;
+    }
+    
+    if (window.confirm(`Are you sure you want to delete ${selectedRecords.length} selected login history records?`)) {
+      await dispatch(bulkDeleteLoginHistory(selectedRecords));
+      setSelectedRecords([]);
+      setSelectAll(false);
+      fetchLoginHistory(); // Refresh the list
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    if (window.confirm('Are you sure you want to delete ALL login history records? This action cannot be undone.')) {
+      await dispatch(deleteAllLoginHistory());
+      setSelectedRecords([]);
+      setSelectAll(false);
+      fetchLoginHistory(); // Refresh the list
     }
   };
 
@@ -97,7 +177,7 @@ const LoginHistory = () => {
   };
 
   const formatDuration = (minutes) => {
-    if (!minutes) return 'N/A';
+    if (!minutes || minutes === null || minutes === undefined) return 'Active Session';
     if (minutes < 60) return `${minutes}m`;
     const hours = Math.floor(minutes / 60);
     const remainingMinutes = minutes % 60;
@@ -128,6 +208,30 @@ const LoginHistory = () => {
     return matchesSearch && matchesCenter && matchesRole && matchesDateRange;
   });
 
+  // Pagination calculations
+  const totalItems = filteredHistory.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedHistory = filteredHistory.slice(startIndex, endIndex);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+    setSelectedRecords([]);
+    setSelectAll(false);
+  }, [selectedCenter, selectedRole, searchTerm, dateRange]);
+
+  // Pagination handlers
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // Reset to first page
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -145,11 +249,29 @@ const LoginHistory = () => {
             <h1 className="text-2xl font-bold text-gray-900">Login History</h1>
             <p className="text-gray-600">Track all user login activities across the system</p>
           </div>
-          <div className="flex items-center space-x-2">
-            <CalendarIcon className="h-6 w-6 text-blue-500" />
-            <span className="text-sm font-medium text-gray-700">
-              {filteredHistory.length} Login Records
-            </span>
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <CalendarIcon className="h-6 w-6 text-blue-500" />
+              <span className="text-sm font-medium text-gray-700">
+                {totalItems} Login Records
+              </span>
+            </div>
+            <div className="flex items-center space-x-2">
+              {selectedRecords.length > 0 && (
+                <button
+                  onClick={handleBulkDelete}
+                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                >
+                  Delete Selected ({selectedRecords.length})
+                </button>
+              )}
+              <button
+                onClick={handleDeleteAll}
+                className="px-4 py-2 bg-red-800 text-white rounded-md hover:bg-red-900 focus:outline-none focus:ring-2 focus:ring-red-500"
+              >
+                Delete All
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -178,7 +300,7 @@ const LoginHistory = () => {
               <option value="all">All Centers</option>
               {centers.map(center => (
                 <option key={center._id} value={center._id}>
-                  {center.name}
+                  {center.centername || center.name}
                 </option>
               ))}
             </select>
@@ -234,7 +356,7 @@ const LoginHistory = () => {
       <div className="bg-white shadow rounded-lg overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200">
           <h3 className="text-lg font-medium text-gray-900">
-            Login History ({filteredHistory.length})
+            Login History ({totalItems})
           </h3>
         </div>
         
@@ -242,6 +364,14 @@ const LoginHistory = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <input
+                    type="checkbox"
+                    checked={selectAll}
+                    onChange={handleSelectAll}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   User
                 </th>
@@ -266,11 +396,22 @@ const LoginHistory = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredHistory.map((login) => (
+              {paginatedHistory.map((login) => (
                 <tr key={login._id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <input
+                      type="checkbox"
+                      checked={selectedRecords.includes(login._id)}
+                      onChange={() => handleSelectRecord(login._id)}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="flex-shrink-0 h-10 w-10">
@@ -282,10 +423,10 @@ const LoginHistory = () => {
                       </div>
                       <div className="ml-4">
                         <div className="text-sm font-medium text-gray-900">
-                          {login.userId?.name || 'Unknown'}
+                          {login.userId?.name || 'Unknown User'}
                         </div>
                         <div className="text-sm text-gray-500">
-                          {login.userId?.username || login.userId?.email}
+                          {login.userId?.username || login.userId?.email || 'No contact info'}
                         </div>
                       </div>
                     </div>
@@ -299,7 +440,7 @@ const LoginHistory = () => {
                   
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     <div>
-                      <div className="font-medium">{login.centerId?.name || 'N/A'}</div>
+                      <div className="font-medium">{login.centerId?.name || 'No Center'}</div>
                       {login.centerId?.code && (
                         <div className="text-gray-500 text-xs">Code: {login.centerId.code}</div>
                       )}
@@ -310,8 +451,8 @@ const LoginHistory = () => {
                     <div className="flex items-center">
                       {getDeviceIcon(login.deviceInfo?.device)}
                       <div className="ml-2">
-                        <div className="text-sm text-gray-900">{login.deviceInfo?.device}</div>
-                        <div className="text-sm text-gray-500">{login.deviceInfo?.browser}</div>
+                        <div className="text-sm text-gray-900">{login.deviceInfo?.device || 'Unknown'}</div>
+                        <div className="text-sm text-gray-500">{login.deviceInfo?.browser || 'Unknown Browser'}</div>
                       </div>
                     </div>
                   </td>
@@ -320,8 +461,22 @@ const LoginHistory = () => {
                     <div className="flex items-center">
                       <GlobeAltIcon className="h-4 w-4 text-gray-400 mr-1" />
                       <div>
-                        <div className="text-sm text-gray-900">{login.locationInfo?.city || 'Unknown'}</div>
-                        <div className="text-sm text-gray-500">{login.locationInfo?.country || 'Unknown'}</div>
+                        <div className="text-sm text-gray-900">
+                          {login.locationInfo?.city || 'Unknown City'}
+                          {login.locationInfo?.region && login.locationInfo.region !== 'Unknown' && 
+                           login.locationInfo.region !== 'Local' && 
+                           `, ${login.locationInfo.region}`}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {login.locationInfo?.country || 'Unknown Country'}
+                          {login.locationInfo?.ip && (
+                            <span className="text-xs text-gray-400 ml-1">
+                              ({login.locationInfo.ip.includes('Public:') ? 
+                                login.locationInfo.ip.split('Public: ')[1] : 
+                                login.locationInfo.ip})
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </td>
@@ -354,13 +509,24 @@ const LoginHistory = () => {
                       </span>
                     </div>
                   </td>
+                  
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <button
+                      onClick={() => handleDeleteRecord(login._id)}
+                      disabled={deleting}
+                      className="text-red-600 hover:text-red-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Delete this login history record"
+                    >
+                      <TrashIcon className="h-4 w-4" />
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
         
-        {filteredHistory.length === 0 && (
+        {paginatedHistory.length === 0 && (
           <div className="text-center py-12">
             <UserIcon className="mx-auto h-12 w-12 text-gray-400" />
             <h3 className="mt-2 text-sm font-medium text-gray-900">No login history found</h3>
@@ -370,6 +536,18 @@ const LoginHistory = () => {
           </div>
         )}
       </div>
+
+      {/* Pagination */}
+      {totalItems > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={itemsPerPage}
+          onPageChange={handlePageChange}
+          onItemsPerPageChange={handleItemsPerPageChange}
+        />
+      )}
     </div>
   );
 };

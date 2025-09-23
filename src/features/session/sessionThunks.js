@@ -118,6 +118,38 @@ export const forceLogoutUserSessions = createAsyncThunk(
   }
 );
 
+// Bulk logout selected sessions
+export const bulkLogoutSessions = createAsyncThunk(
+  'session/bulkLogoutSessions',
+  async (sessionIds, { rejectWithValue }) => {
+    try {
+      const response = await API.put('/sessions/bulk-logout', { sessionIds });
+      toast.success(`Logged out ${response.data.loggedOutSessions} sessions`);
+      return response.data;
+    } catch (error) {
+      console.error('Error bulk logging out sessions:', error);
+      toast.error('Failed to bulk logout sessions');
+      return rejectWithValue(error.response?.data?.message || 'Failed to bulk logout sessions');
+    }
+  }
+);
+
+// Logout all active sessions
+export const logoutAllSessions = createAsyncThunk(
+  'session/logoutAllSessions',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await API.put('/sessions/logout-all');
+      toast.success(`Logged out all ${response.data.loggedOutSessions} sessions`);
+      return response.data;
+    } catch (error) {
+      console.error('Error logging out all sessions:', error);
+      toast.error('Failed to logout all sessions');
+      return rejectWithValue(error.response?.data?.message || 'Failed to logout all sessions');
+    }
+  }
+);
+
 // Utility function to get device info for session creation
 export const getDeviceInfo = () => {
   const userAgent = navigator.userAgent;

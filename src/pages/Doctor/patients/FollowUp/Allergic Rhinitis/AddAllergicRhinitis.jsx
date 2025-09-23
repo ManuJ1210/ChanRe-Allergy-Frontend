@@ -20,7 +20,7 @@ const AddAllergicRhinitis = () => {
       runningNose: 0,
       congestion: 0,
       itchyNose: 0,
-      postNasalDrop: 0
+      postNasalDrip: 0
     },
     nonNasalSymptoms: {
       eyeSymptoms: 0,

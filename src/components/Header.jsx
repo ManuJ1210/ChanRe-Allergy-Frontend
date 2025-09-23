@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaSearch, FaUserCircle, FaSignOutAlt, FaUser, FaTimes } from 'react-icons/fa';
+import { FaSearch, FaUserCircle, FaSignOutAlt, FaUser, FaTimes, FaKey } from 'react-icons/fa';
 import { useSelector, useDispatch } from 'react-redux';
 import { logout } from '../features/auth/authSlice';
 import API from '../services/api';
@@ -307,6 +307,15 @@ export default function Header({ onHamburgerClick }) {
                 }}
               >
                 <FaUser /> View Profile
+              </button>
+              <button
+                className="flex items-center gap-2 px-4 py-2 w-full text-xs hover:bg-blue-50 text-slate-700"
+                onClick={() => {
+                  navigate('/forgot-password');
+                  setDropdownOpen(false);
+                }}
+              >
+                <FaKey /> Forgot Password
               </button>
               <button
                 className="flex items-center gap-2 px-4 py-2 w-full text-xs text-red-600 hover:bg-blue-50"

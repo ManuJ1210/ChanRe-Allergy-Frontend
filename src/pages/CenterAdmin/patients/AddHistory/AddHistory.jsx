@@ -281,7 +281,7 @@ export default function AddHistory() {
                     { name: 'breathingProblems', label: 'Other Breathing Problems - Shortness of Breath' },
                     { name: 'hivesSwelling', label: 'Hives or Swelling (urticarial angioedema)' },
                     { name: 'sinusTrouble', label: 'Sinus Trouble - Frequent Colds' },
-                    { name: 'eczemaRashes', label: 'Eczema or other rashes (Poison Oak, Etc.)' },
+                    { name: 'eczemaRashes', label: 'Eczema or other rashes ' },
                     { name: 'foodAllergies', label: 'Food Allergies' },
                     { name: 'arthriticDiseases', label: 'Arthritic Diseases' },
                     { name: 'immuneDefect', label: 'Immune Defect (frequent or recurrent infections)' },
@@ -449,7 +449,7 @@ export default function AddHistory() {
                     { name: 'hospitalAdmission', label: 'Admission to hospital' },
                     { name: 'gpAttendances', label: 'GP attendances' },
                     { name: 'aeAttendances', label: 'A&E attendances' },
-                    { name: 'ituAdmissions', label: 'Any ITU admissions in the past?' }
+                    { name: 'ituAdmissions', label: 'Any ICU admissions in the past?' }
                   ].map((event) => (
                     <div key={event.name} className="bg-slate-50 rounded-lg border border-slate-200 p-4">
                       <div className="mb-3">
@@ -500,10 +500,74 @@ export default function AddHistory() {
                     </div>
                   ))}
                   
+                  {/* Special case for cough/wheeze frequency - text input instead of yes/no */}
+                  <div className="bg-slate-50 rounded-lg border border-slate-200 p-4">
+                    <div className="mb-3">
+                      <span className="text-sm text-slate-700 font-medium">How many times are cough/wheeze present in a week</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 items-center">
+                      <div className="text-center">
+                        <label className="block text-sm font-medium text-slate-700 mb-2">Number of times per week</label>
+                        <input
+                          type="text"
+                          name="coughWheezeFrequency"
+                          value={formData.coughWheezeFrequency || ''}
+                          onChange={handleChange}
+                          placeholder="Enter frequency"
+                          className="w-32 px-3 py-2 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm transition-all duration-200 hover:border-gray-400"
+                        />
+                      </div>
+                      <div className="text-center">
+                        <label className="block text-sm font-medium text-slate-700 mb-2">Duration (Months)</label>
+                        <input
+                          type="number"
+                          name="coughWheezeFrequencyDuration"
+                          value={formData.coughWheezeFrequencyDuration || ''}
+                          onChange={handleChange}
+                          placeholder="0"
+                          min="0"
+                          step="1"
+                          className="w-24 px-3 py-2 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm transition-all duration-200 hover:border-gray-400"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Special case for night cough frequency - text input instead of yes/no */}
+                  <div className="bg-slate-50 rounded-lg border border-slate-200 p-4">
+                    <div className="mb-3">
+                      <span className="text-sm text-slate-700 font-medium">Coughing at night how often does this wake the person</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 items-center">
+                      <div className="text-center">
+                        <label className="block text-sm font-medium text-slate-700 mb-2">No of times</label>
+                        <input
+                          type="text"
+                          name="nightCoughFrequency"
+                          value={formData.nightCoughFrequency || ''}
+                          onChange={handleChange}
+                          placeholder="Enter frequency"
+                          className="w-32 px-3 py-2 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm transition-all duration-200 hover:border-gray-400"
+                        />
+                      </div>
+                      <div className="text-center">
+                        <label className="block text-sm font-medium text-slate-700 mb-2">Duration (Months)</label>
+                        <input
+                          type="number"
+                          name="nightCoughFrequencyDuration"
+                          value={formData.nightCoughFrequencyDuration || ''}
+                          onChange={handleChange}
+                          placeholder="0"
+                          min="0"
+                          step="1"
+                          className="w-24 px-3 py-2 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm transition-all duration-200 hover:border-gray-400"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
                   {[
-                    { name: 'coughWheezeFrequency', label: 'How many times are cough/wheeze present in a week' },
                     { name: 'intervalSymptoms', label: 'Are interval symptoms present?' },
-                    { name: 'nightCoughFrequency', label: 'Coughing at night how often does this wake the child' },
                     { name: 'earlyMorningCough', label: 'Early morning cough' },
                     { name: 'exerciseInducedSymptoms', label: 'Exercise induced symptoms?' },
                     { name: 'familySmoking', label: 'Does anyone in the family smoke?' },

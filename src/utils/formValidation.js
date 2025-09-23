@@ -3,8 +3,8 @@
 // Email validation regex
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// Phone validation regex (supports various formats)
-const PHONE_REGEX = /^[\+]?[1-9][\d]{0,15}$/;
+// Phone validation regex (supports various formats including spaces, dashes, parentheses)
+const PHONE_REGEX = /^[\+]?[0-9\s\-\(\)]{10,15}$/;
 
 // Password validation regex (minimum 8 characters, at least one letter and one number)
 const PASSWORD_REGEX = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*#?&]{8,}$/;
@@ -23,14 +23,30 @@ const CENTER_CODE_REGEX = /^[A-Za-z0-9]{3,10}$/;
 
 // Validation functions
 export const validateEmail = (email) => {
-  if (!email) return 'Email is required';
+  if (!email || email.trim() === '') return null; // Email is optional
   if (!EMAIL_REGEX.test(email)) return 'Please enter a valid email address';
   return null;
 };
 
 export const validatePhone = (phone) => {
   if (!phone) return 'Phone number is required';
-  if (!PHONE_REGEX.test(phone.replace(/\s/g, ''))) return 'Please enter a valid phone number';
+  
+  // Remove all non-digit characters except + for validation
+  const cleanPhone = phone.replace(/[^\d+]/g, '');
+  
+  // Check if it starts with + (international) or is a local number
+  if (cleanPhone.startsWith('+')) {
+    // International format: + followed by 7-15 digits
+    if (!/^\+[0-9]{7,15}$/.test(cleanPhone)) {
+      return 'Please enter a valid international phone number';
+    }
+  } else {
+    // Local format: exactly 10 digits for Indian phone numbers
+    if (!/^[0-9]{10}$/.test(cleanPhone)) {
+      return 'Please enter a valid 10-digit phone number';
+    }
+  }
+  
   return null;
 };
 
@@ -114,6 +130,7 @@ export const validatePatientForm = (formData) => {
   errors.contact = validatePhone(formData.contact);
   errors.email = formData.email ? validateEmail(formData.email) : null;
   errors.address = validateRequired(formData.address, 'Address');
+  errors.assignedDoctor = validateRequired(formData.assignedDoctor, 'Assigned Doctor');
   
   return errors;
 };

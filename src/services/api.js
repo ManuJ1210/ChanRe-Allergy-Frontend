@@ -68,4 +68,15 @@ API.interceptors.response.use(
   }
 );
 
+// Mark patient as viewed by doctor
+export const markPatientAsViewed = async (patientId) => {
+  try {
+    const response = await API.put(`/patients/${patientId}/mark-viewed`);
+    return response.data;
+  } catch (error) {
+    console.error('Error marking patient as viewed:', error);
+    throw error;
+  }
+};
+
 export default API;

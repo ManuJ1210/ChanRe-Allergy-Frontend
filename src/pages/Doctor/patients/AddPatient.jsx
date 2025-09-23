@@ -3,8 +3,9 @@ import { useDispatch, useSelector } from "react-redux";
 import { createPatient } from "../../../features/doctor/doctorThunks";
 import { useNavigate } from "react-router-dom";
 import API from "../../../services/api";
-import { Users, ArrowLeft } from 'lucide-react';
+import { Users, ArrowLeft, AlertCircle } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { validateName, validateEmail, validatePhone, validateAge } from "../../../utils/formValidation";
 const AddPatient = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -27,6 +28,9 @@ const AddPatient = () => {
     name: "Loading...",
     code: "Loading..."
   });
+
+  const [errors, setErrors] = useState({});
+  const [touchedFields, setTouchedFields] = useState({});
 
   // Get center ID from user
   const getCenterId = () => {
@@ -147,19 +151,128 @@ const AddPatient = () => {
     fetchCenterInfo();
   }, [dispatch, user]);
 
+  // Validation function
+  const validateForm = () => {
+    const newErrors = {};
+
+    // Validate name
+    const nameError = validateName(formData.name);
+    if (nameError) newErrors.name = nameError;
+
+    // Validate age
+    const ageError = validateAge(formData.age);
+    if (ageError) newErrors.age = ageError;
+
+    // Validate gender
+    if (!formData.gender) {
+      newErrors.gender = 'Gender is required';
+    }
+
+    // Validate email (optional but if provided, must be valid)
+    if (formData.email && formData.email.trim()) {
+      const emailError = validateEmail(formData.email);
+      if (emailError) newErrors.email = emailError;
+    }
+
+    // Validate contact (required, must be valid 10-digit number)
+    const contactError = validatePhone(formData.contact);
+    if (contactError) newErrors.contact = contactError;
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // Validate individual field
+  const validateField = (name, value) => {
+    let error = null;
+
+    switch (name) {
+      case 'name':
+        error = validateName(value);
+        break;
+      case 'age':
+        error = validateAge(value);
+        break;
+      case 'email':
+        if (value && value.trim()) {
+          error = validateEmail(value);
+        }
+        break;
+      case 'contact':
+        error = validatePhone(value);
+        break;
+      case 'gender':
+        if (!value) {
+          error = 'Gender is required';
+        }
+        break;
+      default:
+        break;
+    }
+
+    // Only set error if field has been touched
+    if (touchedFields[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: error
+      }));
+    }
+
+    return !error;
+  };
+
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+    
+    // Clear error when user starts typing
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: null
+      }));
+    }
+  };
+
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    
+    // Mark field as touched
+    setTouchedFields(prev => ({
+      ...prev,
+      [name]: true
+    }));
+    
+    // Validate the field
+    validateField(name, value);
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Mark all fields as touched when submitting
+    const allFields = ['name', 'age', 'gender', 'contact', 'email'];
+    const touchedAllFields = {};
+    allFields.forEach(field => {
+      touchedAllFields[field] = true;
+    });
+    setTouchedFields(touchedAllFields);
+    
+    // Validate form before submission
+    if (!validateForm()) {
+      toast.error('Please fix the errors before submitting');
+      return;
+    }
+    
     dispatch(createPatient(formData));
-  
   };
+
+  // Remove automatic validation on form data changes
+  // Validation will only happen on blur and submit
 
   useEffect(() => {
     if (success) {
-      navigate("/dashboard/Doctor/patients/PatientList");
+      navigate("/dashboard/doctor/recently-assigned-patients");
     }
   }, [success, navigate]);
 
@@ -210,10 +323,19 @@ const AddPatient = () => {
                     name="name"
                     value={formData.name}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     placeholder="Enter patient name"
-                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs ${
+                      errors.name ? 'border-red-300 bg-red-50' : 'border-slate-200'
+                    }`}
                     required
                   />
+                  {errors.name && touchedFields.name && (
+                    <div className="flex items-center gap-1 mt-1 text-xs text-red-600">
+                      <AlertCircle className="h-3 w-3" />
+                      {errors.name}
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -226,10 +348,19 @@ const AddPatient = () => {
                       name="age"
                       value={formData.age}
                       onChange={handleChange}
+                      onBlur={handleBlur}
                       placeholder="Enter age"
-                      className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs"
+                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs ${
+                        errors.age ? 'border-red-300 bg-red-50' : 'border-slate-200'
+                      }`}
                       required
                     />
+                    {errors.age && touchedFields.age && (
+                      <div className="flex items-center gap-1 mt-1 text-xs text-red-600">
+                        <AlertCircle className="h-3 w-3" />
+                        {errors.age}
+                      </div>
+                    )}
                   </div>
 
                   <div>
@@ -240,7 +371,10 @@ const AddPatient = () => {
                       name="gender"
                       value={formData.gender}
                       onChange={handleChange}
-                      className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs"
+                      onBlur={handleBlur}
+                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs ${
+                        errors.gender ? 'border-red-300 bg-red-50' : 'border-slate-200'
+                      }`}
                       required
                     >
                       <option value="">Select Gender</option>
@@ -248,6 +382,12 @@ const AddPatient = () => {
                       <option value="female">Female</option>
                       <option value="other">Other</option>
                     </select>
+                    {errors.gender && touchedFields.gender && (
+                      <div className="flex items-center gap-1 mt-1 text-xs text-red-600">
+                        <AlertCircle className="h-3 w-3" />
+                        {errors.gender}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -272,16 +412,26 @@ const AddPatient = () => {
                 
                 <div>
                   <label className="block text-xs font-medium text-slate-700 mb-2">
-                    Contact Number
+                    Contact Number *
                   </label>
                   <input
                     type="text"
                     name="contact"
                     value={formData.contact}
                     onChange={handleChange}
-                    placeholder="Enter contact number"
-                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs"
+                    onBlur={handleBlur}
+                    placeholder="Enter 10-digit phone number"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs ${
+                      errors.contact ? 'border-red-300 bg-red-50' : 'border-slate-200'
+                    }`}
+                    required
                   />
+                  {errors.contact && touchedFields.contact && (
+                    <div className="flex items-center gap-1 mt-1 text-xs text-red-600">
+                      <AlertCircle className="h-3 w-3" />
+                      {errors.contact}
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -293,9 +443,18 @@ const AddPatient = () => {
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     placeholder="Enter email address"
-                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs ${
+                      errors.email ? 'border-red-300 bg-red-50' : 'border-slate-200'
+                    }`}
                   />
+                  {errors.email && touchedFields.email && (
+                    <div className="flex items-center gap-1 mt-1 text-xs text-red-600">
+                      <AlertCircle className="h-3 w-3" />
+                      {errors.email}
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -377,8 +536,12 @@ const AddPatient = () => {
             <div className="mt-8">
               <button
                 type="submit"
-                disabled={loading}
-                className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-blue-400 text-white py-3 px-6 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 text-xs"
+                disabled={loading || Object.keys(errors).some(key => errors[key] && touchedFields[key])}
+                className={`w-full py-3 px-6 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 text-xs ${
+                  loading || Object.keys(errors).some(key => errors[key] && touchedFields[key])
+                    ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                    : 'bg-blue-500 hover:bg-blue-600 text-white'
+                }`}
               >
                 {loading ? (
                   <>
@@ -392,6 +555,11 @@ const AddPatient = () => {
                   </>
                 )}
               </button>
+              {Object.keys(errors).some(key => errors[key] && touchedFields[key]) && (
+                <p className="text-xs text-red-600 mt-2 text-center">
+                  Please fix the errors above before submitting
+                </p>
+              )}
             </div>
           </form>
         </div>

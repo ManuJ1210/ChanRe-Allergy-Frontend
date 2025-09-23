@@ -1,5 +1,7 @@
 import Sidebar from '../../components/Sidebar';
 import Header from '../../components/Header';
+import PendingBillsNotification from '../../components/PendingBillsNotification';
+import { usePendingBillsNotification } from '../../hooks/usePendingBillsNotification';
 import { useSelector } from 'react-redux';
 import { useState } from 'react';
 
@@ -7,6 +9,8 @@ export default function ReceptionistLayout({ children }) {
   const userInfo = useSelector((state) => state.user?.userInfo);
   const receptionistUserInfo = userInfo && userInfo.role === 'receptionist' ? userInfo : { role: 'receptionist' };
   const [drawerOpen, setDrawerOpen] = useState(false);
+  
+  const { showNotification, closeNotification } = usePendingBillsNotification();
 
   return (
     <div className="flex min-h-screen">
@@ -21,6 +25,12 @@ export default function ReceptionistLayout({ children }) {
           />
         )}
         <main className="flex-1 bg-gray-50 pt-16">{children}</main>
+        
+        {/* Pending Bills Notification */}
+        <PendingBillsNotification 
+          isOpen={showNotification} 
+          onClose={closeNotification} 
+        />
       </div>
     </div>
   );

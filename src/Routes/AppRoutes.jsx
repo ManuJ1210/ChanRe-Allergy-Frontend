@@ -12,6 +12,7 @@ import ErrorBoundary from '../components/ErrorBoundary';
 // Superadmin Pages
 import SuperadminDashboard from '../pages/Superadmin/Dashboard';
 import SuperadminBilling from '../pages/Superadmin/Billing';
+import SuperadminConsultationFeeBilling from '../pages/Superadmin/ConsultationFeeBilling';
 import BillingDetails from '../pages/Superadmin/BillingDetails';
 import CenterAdminBillingDetails from '../pages/CenterAdmin/BillingDetails';
 import SuperadminBillingReports from '../pages/Superadmin/BillingReports';
@@ -92,6 +93,7 @@ import LabRouteProtection from '../components/LabRouteProtection';
 // Center Admin Pages
 import CenterAdminDashboard from '../pages/CenterAdmin/Dashboard';
 import CenterAdminBilling from '../pages/CenterAdmin/Billing';
+import CenterAdminConsultationFeeBilling from '../pages/CenterAdmin/ConsultationFeeBilling';
 import CenterAdminBillingReports from '../pages/CenterAdmin/BillingReports';
 import CenterAdminBillingTracker from '../pages/CenterAdmin/BillingTracker';
 import CenterProfile from '../pages/CenterAdmin/CenterProfile';
@@ -150,6 +152,7 @@ import ReceptionistViewGPE from '../pages/Receptionist/FollowUp/GPE/ViewGPE';
 import ReceptionistViewPrescription from '../pages/Receptionist/FollowUp/Prescription/ViewPrescription';
 import ReceptionistLayout from '../pages/Receptionist/ReceptionistLayout';
 import ReceptionistBilling from '../pages/Receptionist/Billing';
+import ConsultationBilling from '../pages/Receptionist/ConsultationBilling';
 import ReceptionistBillingTracker from '../pages/Receptionist/BillingTracker';
 import AddReceptionistPatient from '../pages/Receptionist/AddPatient';
 import ReceptionistEditPatient from '../pages/Receptionist/EditPatient';
@@ -189,6 +192,7 @@ import CompletedReports from '../pages/Doctor/CompletedReports';
 import DoctorViewHistory from '../pages/Doctor/ViewHistory';
 import Notifications from '../pages/Doctor/Notifications';
 import Feedback from '../pages/Doctor/Feedback';
+import RecentlyAssignedPatients from '../pages/Doctor/patients/RecentlyAssignedPatients';
 
 export default function AppRoutes() {
   return (
@@ -357,6 +361,7 @@ export default function AppRoutes() {
         
         {/* Billing Routes */}
         <Route path="superadmin/billing" element={<SuperadminBilling />} />
+        <Route path="superadmin/consultation-fee-billing" element={<SuperadminConsultationFeeBilling />} />
         <Route path="superadmin/billing/:billingId" element={<BillingDetails />} />
         <Route path="superadmin/billing-reports" element={<SuperadminBillingReports />} />
         
@@ -441,6 +446,7 @@ export default function AppRoutes() {
 
         {/* Center Admin Billing Routes */}
         <Route path="centeradmin/billing" element={<ErrorBoundary><CenterAdminBilling /></ErrorBoundary>} />
+        <Route path="centeradmin/consultation-fee-billing" element={<ErrorBoundary><CenterAdminConsultationFeeBilling /></ErrorBoundary>} />
         <Route path="centeradmin/billing/:billingId" element={<ErrorBoundary><CenterAdminBillingDetails /></ErrorBoundary>} />
         <Route path="centeradmin/billing-reports" element={<ErrorBoundary><CenterAdminBillingReports /></ErrorBoundary>} />
         <Route path="centeradmin/billing-tracker" element={<ErrorBoundary><CenterAdminBillingTracker /></ErrorBoundary>} />
@@ -476,6 +482,7 @@ export default function AppRoutes() {
         <Route path="receptionist/view-gpe/:id" element={<ReceptionistLayout><ReceptionistViewGPE /></ReceptionistLayout>} />
         <Route path="receptionist/view-prescription/:id" element={<ReceptionistLayout><ReceptionistViewPrescription /></ReceptionistLayout>} />
         <Route path="receptionist/billing" element={<ReceptionistLayout><ReceptionistBilling /></ReceptionistLayout>} />
+        <Route path="receptionist/consultation-billing" element={<ReceptionistLayout><ConsultationBilling /></ReceptionistLayout>} />
         <Route path="receptionist/billing-tracker" element={<ReceptionistLayout><ReceptionistBillingTracker /></ReceptionistLayout>} />
 
         {/* Doctor Routes */}
@@ -483,6 +490,7 @@ export default function AppRoutes() {
         
         {/* Doctor Patient Management */}
         <Route path="doctor/patients" element={<DoctorPatientList />} />
+        <Route path="doctor/recently-assigned-patients" element={<RecentlyAssignedPatients />} />
         <Route path="doctor/patients/add-patient" element={<DoctorAddPatient />} />
         <Route path="doctor/patients/edit-patient/:id" element={<DoctorEditPatient />} />
         <Route path="doctor/patients/show-tests/:id" element={<DoctorShowTests />} />

@@ -123,6 +123,7 @@ export default function Sidebar(props) {
                 toggle={() => setCenterOpen(centerOpen === 'billing' ? null : 'billing')}
                 links={[
                   { to: "/dashboard/superadmin/billing", label: "Billing Management" },
+                  { to: "/dashboard/superadmin/consultation-fee-billing", label: "Doctor Fee" },
                   { to: "/dashboard/superadmin/billing-reports", label: "Billing Reports" },
                 ]}
                 currentPath={location.pathname}
@@ -249,6 +250,7 @@ export default function Sidebar(props) {
                 toggle={() => setCenterOpen(centerOpen === 'billing' ? null : 'billing')}
                 links={[
                   { to: "/dashboard/centeradmin/billing", label: "Billing Management" },
+                  { to: "/dashboard/centeradmin/consultation-fee-billing", label: "Doctor Fee" },
                   { to: "/dashboard/centeradmin/billing-reports", label: "Billing Reports" },
                   { to: "/dashboard/centeradmin/billing-tracker", label: "Payment Tracker" },
                 ]}
@@ -282,6 +284,12 @@ export default function Sidebar(props) {
                 isActive={isActive("/dashboard/receptionist/billing")}
               />
               <SidebarLink
+                to="/dashboard/receptionist/consultation-billing"
+                label="Consultation Fee"
+                icon={<FaMoneyBillWave />}
+                isActive={isActive("/dashboard/receptionist/consultation-billing")}
+              />
+              <SidebarLink
                 to="/dashboard/receptionist/billing-tracker"
                 label="Payment Tracker"
                 icon={<FaMoneyBillWave />}
@@ -304,6 +312,12 @@ export default function Sidebar(props) {
                 label="Patient List"
                 icon={<FaUsers />}
                 isActive={isActive("/dashboard/doctor/patients")}
+              />
+              <SidebarLink
+                to="/dashboard/doctor/recently-assigned-patients"
+                label="Recently Assigned"
+                icon={<FaClock />}
+                isActive={isActive("/dashboard/doctor/recently-assigned-patients")}
               />
               <SidebarLink
                 to="/dashboard/doctor/add-patient"
