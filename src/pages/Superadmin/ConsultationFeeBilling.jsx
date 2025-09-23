@@ -28,18 +28,20 @@ const SuperadminConsultationFeeBilling = () => {
   const { user } = useSelector(state => state.auth);
   
   const [patients, setPatients] = useState([]);
+  const [centers, setCenters] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [centerFilter, setCenterFilter] = useState('all');
   const [filteredPatients, setFilteredPatients] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [patientsPerPage] = useState(10);
+  const [patientsPerPage, setPatientsPerPage] = useState(10);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [invoiceData, setInvoiceData] = useState(null);
 
   useEffect(() => {
     fetchAllPatients();
+    fetchAllCenters();
   }, []);
 
   useEffect(() => {
@@ -51,11 +53,8 @@ const SuperadminConsultationFeeBilling = () => {
       setLoading(true);
       const response = await API.get('/patients/all');
       if (response.data.success && response.data.patients) {
-        // Filter to show only patients who have made payments
-        const patientsWithPayments = response.data.patients.filter(patient => 
-          patient.billing && patient.billing.length > 0
-        );
-        setPatients(patientsWithPayments);
+        // Show all patients (including those without billing for reassigned patients)
+        setPatients(response.data.patients);
       } else {
         console.error('Invalid response format:', response.data);
         toast.error('Invalid response from server');
@@ -65,6 +64,20 @@ const SuperadminConsultationFeeBilling = () => {
       toast.error('Failed to fetch patients');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAllCenters = async () => {
+    try {
+      const response = await API.get('/centers/all');
+      if (response.data.success && response.data.centers) {
+        setCenters(response.data.centers);
+      } else {
+        console.error('Invalid centers response format:', response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching centers:', error);
+      // Don't show error toast for centers as it's not critical
     }
   };
 
@@ -251,24 +264,12 @@ const SuperadminConsultationFeeBilling = () => {
   const getStats = () => {
     const totalPatients = patients.length;
     const needsConsultationFee = patients.filter(p => {
-      const hasConsultationFee = p.billing && p.billing.some(bill => 
-        bill.type === 'consultation' || bill.description?.toLowerCase().includes('consultation')
-      );
-      const hasPaidConsultationFee = hasConsultationFee && p.billing.some(bill => 
-        (bill.type === 'consultation' || bill.description?.toLowerCase().includes('consultation')) && 
-        (bill.status === 'paid' || bill.status === 'completed')
-      );
-      return !hasPaidConsultationFee;
+      const status = getPatientStatus(p);
+      return status === 'Consultation Fee Required' || status === 'Consultation Fee Pending' || status === 'Registration Fee Required';
     }).length;
     const paidConsultationFee = patients.filter(p => {
-      const hasConsultationFee = p.billing && p.billing.some(bill => 
-        bill.type === 'consultation' || bill.description?.toLowerCase().includes('consultation')
-      );
-      const hasPaidConsultationFee = hasConsultationFee && p.billing.some(bill => 
-        (bill.type === 'consultation' || bill.description?.toLowerCase().includes('consultation')) && 
-        (bill.status === 'paid' || bill.status === 'completed')
-      );
-      return hasPaidConsultationFee;
+      const status = getPatientStatus(p);
+      return status === 'All Paid';
     }).length;
     
     return { totalPatients, needsConsultationFee, paidConsultationFee };
@@ -286,6 +287,11 @@ const SuperadminConsultationFeeBilling = () => {
     setCurrentPage(page);
   };
 
+  const handlePatientsPerPageChange = (newPerPage) => {
+    setPatientsPerPage(newPerPage);
+    setCurrentPage(1); // Reset to first page when changing per page
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 sm:p-6">
       <div className="max-w-7xl mx-auto">
@@ -294,15 +300,18 @@ const SuperadminConsultationFeeBilling = () => {
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-md font-bold text-slate-800 mb-2">
-                Paid Patients Invoice Management - Superadmin View
+                Patient Invoice Management - Superadmin View
               </h1>
               <p className="text-slate-600 text-sm">
-                View and download invoices for patients who have made payments across all centers
+                View and manage invoices for all patients across all centers, including reassigned patients
               </p>
             </div>
             <div className="flex items-center gap-3">
               <button
-                onClick={fetchAllPatients}
+                onClick={() => {
+                  fetchAllPatients();
+                  fetchAllCenters();
+                }}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
               >
                 <RefreshCw className="h-4 w-4" />
@@ -317,7 +326,7 @@ const SuperadminConsultationFeeBilling = () => {
           <div className="bg-white rounded-xl p-6 shadow-sm border border-blue-100">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-slate-600 text-xs font-medium">Paid Patients</p>
+                <p className="text-slate-600 text-xs font-medium">Total Patients</p>
                 <p className="text-md font-bold text-slate-800">{stats.totalPatients}</p>
               </div>
               <User className="h-8 w-8 text-blue-500" />
@@ -376,6 +385,22 @@ const SuperadminConsultationFeeBilling = () => {
                     <option value="Service Charges Pending">Service Charges Pending</option>
                     <option value="Registration Fee Required">Registration Fee Required</option>
                     <option value="Consultation Fee Required">Consultation Fee Required</option>
+                  </select>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <Building className="h-4 w-4 text-slate-500" />
+                  <select
+                    value={centerFilter}
+                    onChange={(e) => setCenterFilter(e.target.value)}
+                    className="px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
+                  >
+                    <option value="all">All Centers</option>
+                    {centers.map((center) => (
+                      <option key={center._id} value={center._id}>
+                        {center.name} ({center.code})
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -495,67 +520,57 @@ const SuperadminConsultationFeeBilling = () => {
             </table>
           </div>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-slate-200 sm:px-6">
-              <div className="flex-1 flex justify-between sm:hidden">
+          {/* Modern Pagination */}
+          <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-slate-200 sm:px-6">
+            <div className="flex items-center gap-4">
+              {/* Show per page selector */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-slate-600">Show per page:</span>
+                <select
+                  value={patientsPerPage}
+                  onChange={(e) => handlePatientsPerPageChange(Number(e.target.value))}
+                  className="px-2 py-1 border border-slate-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+              </div>
+              
+              {/* Results count */}
+              <div className="text-sm text-slate-600">
+                Showing <span className="font-medium">{startIndex + 1}</span> to{' '}
+                <span className="font-medium">{Math.min(endIndex, filteredPatients.length)}</span> of{' '}
+                <span className="font-medium">{filteredPatients.length}</span> results
+              </div>
+            </div>
+
+            {/* Page navigation */}
+            {totalPages > 1 && (
+              <div className="flex items-center gap-2">
                 <button
                   onClick={() => handlePageChange(currentPage - 1)}
                   disabled={currentPage === 1}
-                  className="relative inline-flex items-center px-4 py-2 border border-slate-300 text-xs font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-3 py-1 text-sm border border-slate-300 rounded hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Previous
                 </button>
+                
+                <span className="px-3 py-1 text-sm bg-blue-50 border border-blue-200 rounded font-medium text-blue-700">
+                  {currentPage} of {totalPages}
+                </span>
+                
                 <button
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={currentPage === totalPages}
-                  className="ml-3 relative inline-flex items-center px-4 py-2 border border-slate-300 text-xs font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-3 py-1 text-sm border border-slate-300 rounded hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Next
                 </button>
               </div>
-              <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-sm text-slate-700">
-                    Showing <span className="font-medium">{startIndex + 1}</span> to{' '}
-                    <span className="font-medium">{Math.min(endIndex, filteredPatients.length)}</span> of{' '}
-                    <span className="font-medium">{filteredPatients.length}</span> results
-                  </p>
-                </div>
-                <div>
-                  <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                    <button
-                      onClick={() => handlePageChange(currentPage - 1)}
-                      disabled={currentPage === 1}
-                      className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-slate-300 bg-white text-xs font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Previous
-                    </button>
-                    {[...Array(totalPages)].map((_, index) => (
-                      <button
-                        key={index + 1}
-                        onClick={() => handlePageChange(index + 1)}
-                        className={`relative inline-flex items-center px-4 py-2 border text-xs font-medium ${
-                          currentPage === index + 1
-                            ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                            : 'bg-white border-slate-300 text-slate-500 hover:bg-slate-50'
-                        }`}
-                      >
-                        {index + 1}
-                      </button>
-                    ))}
-                    <button
-                      onClick={() => handlePageChange(currentPage + 1)}
-                      disabled={currentPage === totalPages}
-                      className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-slate-300 bg-white text-xs font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Next
-                    </button>
-                  </nav>
-                </div>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* Invoice Modal */}
