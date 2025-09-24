@@ -120,13 +120,23 @@ const ViewHistory = () => {
           {history.map((historyRecord, index) => (
             <div key={historyRecord._id || index} className="bg-white rounded-xl shadow-sm border border-blue-100">
           <div className="p-6 border-b border-blue-100">
-            <h2 className="text-sm font-semibold text-slate-800 flex items-center">
-              <FileText className="h-5 w-5 mr-2 text-blue-500" />
-                  History Record #{index + 1}
-            </h2>
-            <div className="flex items-center gap-2 text-xs text-blue-500 mt-2">
-              <Calendar className="h-4 w-4" />
-                  {historyRecord.createdAt ? new Date(historyRecord.createdAt).toLocaleDateString() : "N/A"}
+            <div className="flex justify-between items-start">
+              <div>
+                <h2 className="text-sm font-semibold text-slate-800 flex items-center">
+                  <FileText className="h-5 w-5 mr-2 text-blue-500" />
+                      History Record #{index + 1}
+                </h2>
+                <div className="flex items-center gap-2 text-xs text-blue-500 mt-2">
+                  <Calendar className="h-4 w-4" />
+                      {historyRecord.createdAt ? new Date(historyRecord.createdAt).toLocaleDateString() : "N/A"}
+                </div>
+              </div>
+              <button
+                onClick={() => navigate(`/dashboard/Doctor/patients/AddHistory/EditHistory/${patientId}/${historyRecord._id}`)}
+                className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg font-medium transition-colors text-xs"
+              >
+                Edit History
+              </button>
             </div>
           </div>
 
@@ -146,11 +156,6 @@ const ViewHistory = () => {
                         <span className="text-sm font-medium text-slate-600">Hay Fever:</span>
                         <span className="text-sm text-slate-800 font-medium">{historyRecord.hayFever}</span>
                       </div>
-                      {historyRecord.hayFeverDuration && (
-                        <div className="text-xs text-slate-500">
-                          Duration: {historyRecord.hayFeverDuration} months
-                        </div>
-                      )}
                     </div>
                   )}
                   {historyRecord.asthma && (
@@ -159,11 +164,6 @@ const ViewHistory = () => {
                         <span className="text-sm font-medium text-slate-600">Asthma:</span>
                         <span className="text-sm text-slate-800 font-medium">{historyRecord.asthma}</span>
                       </div>
-                      {historyRecord.asthmaDuration && (
-                        <div className="text-xs text-slate-500">
-                          Duration: {historyRecord.asthmaDuration} months
-                        </div>
-                      )}
                     </div>
                   )}
                   {historyRecord.breathingProblems && (
@@ -172,11 +172,6 @@ const ViewHistory = () => {
                         <span className="text-sm font-medium text-slate-600">Breathing Problems:</span>
                         <span className="text-sm text-slate-800 font-medium">{historyRecord.breathingProblems}</span>
                       </div>
-                      {historyRecord.breathingProblemsDuration && (
-                        <div className="text-xs text-slate-500">
-                          Duration: {historyRecord.breathingProblemsDuration} months
-                        </div>
-                      )}
                     </div>
                   )}
                   {historyRecord.hivesSwelling && (
@@ -185,11 +180,6 @@ const ViewHistory = () => {
                         <span className="text-sm font-medium text-slate-600">Hives/Swelling:</span>
                         <span className="text-sm text-slate-800 font-medium">{historyRecord.hivesSwelling}</span>
                       </div>
-                      {historyRecord.hivesSwellingDuration && (
-                        <div className="text-xs text-slate-500">
-                          Duration: {historyRecord.hivesSwellingDuration} months
-                        </div>
-                      )}
                     </div>
                   )}
                   {historyRecord.sinusTrouble && (
@@ -198,11 +188,6 @@ const ViewHistory = () => {
                         <span className="text-sm font-medium text-slate-600">Sinus Trouble:</span>
                         <span className="text-sm text-slate-800 font-medium">{historyRecord.sinusTrouble}</span>
                       </div>
-                      {historyRecord.sinusTroubleDuration && (
-                        <div className="text-xs text-slate-500">
-                          Duration: {historyRecord.sinusTroubleDuration} months
-                        </div>
-                      )}
                     </div>
                   )}
                   {historyRecord.eczemaRashes && (
@@ -211,11 +196,6 @@ const ViewHistory = () => {
                         <span className="text-sm font-medium text-slate-600">Eczema/Rashes:</span>
                         <span className="text-sm text-slate-800 font-medium">{historyRecord.eczemaRashes}</span>
                       </div>
-                      {historyRecord.eczemaRashesDuration && (
-                        <div className="text-xs text-slate-500">
-                          Duration: {historyRecord.eczemaRashesDuration} months
-                        </div>
-                      )}
                     </div>
                   )}
                   {historyRecord.foodAllergies && (
@@ -224,11 +204,6 @@ const ViewHistory = () => {
                         <span className="text-sm font-medium text-slate-600">Food Allergies:</span>
                         <span className="text-sm text-slate-800 font-medium">{historyRecord.foodAllergies}</span>
                       </div>
-                      {historyRecord.foodAllergiesDuration && (
-                        <div className="text-xs text-slate-500">
-                          Duration: {historyRecord.foodAllergiesDuration} months
-                        </div>
-                      )}
                     </div>
                   )}
                   {historyRecord.drugAllergy && (
@@ -237,11 +212,6 @@ const ViewHistory = () => {
                         <span className="text-sm font-medium text-slate-600">Drug Allergy:</span>
                         <span className="text-sm text-slate-800 font-medium">{historyRecord.drugAllergy}</span>
                       </div>
-                      {historyRecord.drugAllergyDuration && (
-                        <div className="text-xs text-slate-500">
-                          Duration: {historyRecord.drugAllergyDuration} months
-                        </div>
-                      )}
                     </div>
                   )}
                   {historyRecord.arthriticDiseases && (
@@ -250,11 +220,6 @@ const ViewHistory = () => {
                         <span className="text-sm font-medium text-slate-600">Arthritic Diseases:</span>
                         <span className="text-sm text-slate-800 font-medium">{historyRecord.arthriticDiseases}</span>
                       </div>
-                      {historyRecord.arthriticDiseasesDuration && (
-                        <div className="text-xs text-slate-500">
-                          Duration: {historyRecord.arthriticDiseasesDuration} months
-                        </div>
-                      )}
                     </div>
                   )}
                   {historyRecord.immuneDefect && (
@@ -263,11 +228,6 @@ const ViewHistory = () => {
                         <span className="text-sm font-medium text-slate-600">Immune Defect:</span>
                         <span className="text-sm text-slate-800 font-medium">{historyRecord.immuneDefect}</span>
                       </div>
-                      {historyRecord.immuneDefectDuration && (
-                        <div className="text-xs text-slate-500">
-                          Duration: {historyRecord.immuneDefectDuration} months
-                        </div>
-                      )}
                     </div>
                   )}
                   {historyRecord.beeStingHypersensitivity && (
@@ -276,11 +236,6 @@ const ViewHistory = () => {
                         <span className="text-sm font-medium text-slate-600">Bee Sting Hypersensitivity:</span>
                         <span className="text-sm text-slate-800 font-medium">{historyRecord.beeStingHypersensitivity}</span>
                       </div>
-                      {historyRecord.beeStingHypersensitivityDuration && (
-                        <div className="text-xs text-slate-500">
-                          Duration: {historyRecord.beeStingHypersensitivityDuration} months
-                        </div>
-                      )}
                     </div>
                   )}
                 </div>

@@ -19,7 +19,11 @@ import {
   AlertCircle,
   Shield,
   TrendingUp,
-  Receipt
+  Receipt,
+  Edit,
+  Save,
+  X,
+  RefreshCw
 } from 'lucide-react';
 
 const CenterAdminBilling = () => {
@@ -37,6 +41,16 @@ const CenterAdminBilling = () => {
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState(null);
   const [localUser, setLocalUser] = useState(null);
+  
+  // Edit payment modal state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingBill, setEditingBill] = useState(null);
+  const [editFormData, setEditFormData] = useState({
+    paidAmount: '',
+    paymentMethod: 'cash',
+    paymentStatus: 'partial',
+    notes: ''
+  });
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -680,6 +694,159 @@ const CenterAdminBilling = () => {
     toast.info('Invoice download functionality will be implemented');
   };
 
+  // Open edit payment modal
+  const openEditModal = (item) => {
+    if (!item.billing) {
+      toast.error('No billing information available to edit');
+      return;
+    }
+    
+    setEditingBill(item);
+    setEditFormData({
+      paidAmount: item.billing.paidAmount || 0,
+      paymentMethod: item.billing.paymentMethod || 'cash',
+      paymentStatus: item.billing.paymentStatus || 'partial',
+      notes: item.billing.paymentNotes || ''
+    });
+    setShowEditModal(true);
+  };
+
+  // Close edit payment modal
+  const closeEditModal = () => {
+    setShowEditModal(false);
+    setEditingBill(null);
+    setEditFormData({
+      paidAmount: '',
+      paymentMethod: 'cash',
+      paymentStatus: 'partial',
+      notes: ''
+    });
+  };
+
+  // Handle form input changes
+  const handleEditFormChange = (field, value) => {
+    setEditFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  // Save edited payment status
+  const saveEditedBill = async () => {
+    try {
+      if (!editingBill || !editingBill.billing) {
+        toast.error('No bill selected for editing');
+        return;
+      }
+
+      // Validate form data
+      const totalAmount = editingBill.billing.amount || 0;
+      const paidAmount = parseFloat(editFormData.paidAmount) || 0;
+
+      console.log('🔍 Frontend validation:', {
+        totalAmount,
+        paidAmount,
+        paidAmountString: editFormData.paidAmount,
+        paymentMethod: editFormData.paymentMethod,
+        paymentStatus: editFormData.paymentStatus
+      });
+
+      if (isNaN(paidAmount)) {
+        toast.error('Please enter a valid number for paid amount');
+        return;
+      }
+
+      if (paidAmount < 0) {
+        toast.error('Paid amount cannot be negative');
+        return;
+      }
+
+      if (paidAmount > totalAmount) {
+        toast.error(`Paid amount cannot exceed total amount (₹${totalAmount})`);
+        return;
+      }
+
+      // Prepare update data
+      const updateData = {
+        paidAmount: paidAmount,
+        paymentMethod: editFormData.paymentMethod,
+        paymentStatus: editFormData.paymentStatus,
+        notes: editFormData.notes.trim(),
+        updatedBy: user?.name || 'Center Admin',
+        updatedAt: new Date().toISOString()
+      };
+
+      // Make API call to update the payment status
+      console.log('💰 Making API call to update payment status:', editingBill._id);
+      console.log('📝 Payment update data:', updateData);
+      console.log('📋 Editing bill data:', {
+        id: editingBill._id,
+        patientName: editingBill.patientName,
+        testType: editingBill.testType,
+        billing: editingBill.billing
+      });
+      
+      const response = await API.put(`/billing/test-requests/${editingBill._id}/update-payment`, updateData);
+
+      console.log('📋 API Response:', response.data);
+
+      if (response.data.success) {
+        // Handle test response
+        if (response.data.testData) {
+          toast.success('Payment endpoint is working! Test successful.');
+          console.log('✅ Test response received:', response.data.testData);
+          closeEditModal();
+          return;
+        }
+
+        // Handle actual payment update response
+        const paymentSummary = response.data.paymentSummary;
+        console.log('📋 Payment summary received:', paymentSummary);
+        
+        if (paymentSummary) {
+          toast.success(`Payment status updated! Paid: ₹${paymentSummary.paidAmount}, Remaining: ₹${paymentSummary.remainingAmount}`);
+          
+          // Refresh billing data
+          console.log('🔄 Refreshing billing data...');
+          await fetchBillingData();
+          console.log('✅ Billing data refreshed');
+          
+          // Force a small delay to ensure UI updates
+          setTimeout(() => {
+            console.log('🔄 Forcing UI refresh...');
+            setBillingData(prevData => [...prevData]); // Trigger re-render
+          }, 100);
+          
+          // Close modal
+          closeEditModal();
+        } else {
+          console.log('⚠️ No payment summary in response, using fallback');
+          toast.success('Payment status updated successfully');
+          console.log('🔄 Refreshing billing data...');
+          await fetchBillingData();
+          console.log('✅ Billing data refreshed');
+          
+          // Force a small delay to ensure UI updates
+          setTimeout(() => {
+            console.log('🔄 Forcing UI refresh...');
+            setBillingData(prevData => [...prevData]); // Trigger re-render
+          }, 100);
+          
+          closeEditModal();
+        }
+      } else {
+        toast.error(response.data.message || 'Failed to update payment status');
+      }
+    } catch (error) {
+      console.error('Error updating payment status:', error);
+      if (error.response?.data?.message) {
+        toast.error(error.response.data.message);
+      } else {
+        toast.error('Failed to update payment status');
+      }
+    }
+  };
+
   // Calculate totals with payment amount logic
   const calculateTotals = () => {
     // Filter to only include items that have billing information
@@ -934,6 +1101,14 @@ const CenterAdminBilling = () => {
                 <p className="text-slate-600 text-lg">Monitor and manage billing for your center</p>
               </div>
               <div className="flex items-center space-x-3">
+                <button
+                  onClick={fetchBillingData}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 flex items-center gap-2"
+                  title="Refresh billing data"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Refresh
+                </button>
                 <div className="text-right">
                   <div className="text-sm text-slate-500">Total Records</div>
                   <div className="text-2xl font-bold text-slate-800">{filteredData?.length || 0}</div>
@@ -1385,6 +1560,17 @@ const CenterAdminBilling = () => {
                                 </button>
                               )}
                               
+                              {/* Edit Payment Button - Only show for bills that have been generated */}
+                              {item.billing && item.billing.amount > 0 && (
+                                <button
+                                  onClick={() => openEditModal(item)}
+                                  className="p-2 text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded-lg transition-colors duration-200"
+                                  title="Edit Payment Status"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </button>
+                              )}
+                              
                             </div>
                           </td>
                         </tr>
@@ -1538,6 +1724,167 @@ const CenterAdminBilling = () => {
                     className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
                   >
                     Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Payment Status Modal */}
+        {showEditModal && editingBill && (
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+            <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-2/3 lg:w-1/2 shadow-lg rounded-md bg-white">
+              <div className="mt-3">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-medium text-gray-900">Edit Payment Status</h3>
+                  <button
+                    onClick={closeEditModal}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="h-6 w-6" />
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  {/* Patient Info */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex">
+                      <div className="flex-shrink-0">
+                        <User className="h-5 w-5 text-blue-400" />
+                      </div>
+                      <div className="ml-3">
+                        <h3 className="text-sm font-medium text-blue-800">
+                          Patient Information
+                        </h3>
+                        <div className="mt-2 text-sm text-blue-700">
+                          <p><strong>Patient:</strong> {editingBill.patientName}</p>
+                          <p><strong>Test:</strong> {editingBill.testType}</p>
+                          <p><strong>Doctor:</strong> Dr. {editingBill.doctorName}</p>
+                          <p><strong>Total Amount:</strong> ₹{(editingBill.billing?.amount || 0).toLocaleString()}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Payment Form */}
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Paid Amount (₹) *
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max={editingBill.billing?.amount || 0}
+                        value={editFormData.paidAmount}
+                        onChange={(e) => handleEditFormChange('paidAmount', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Enter paid amount"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Maximum: ₹{(editingBill.billing?.amount || 0).toLocaleString()}
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Payment Method
+                      </label>
+                      <select
+                        value={editFormData.paymentMethod}
+                        onChange={(e) => handleEditFormChange('paymentMethod', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="cash">Cash</option>
+                        <option value="card">Card</option>
+                        <option value="upi">UPI</option>
+                        <option value="cheque">Cheque</option>
+                        <option value="bank_transfer">Bank Transfer</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Payment Status
+                      </label>
+                      <select
+                        value={editFormData.paymentStatus}
+                        onChange={(e) => handleEditFormChange('paymentStatus', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="pending">Pending</option>
+                        <option value="partial">Partial Payment</option>
+                        <option value="completed">Completed</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Payment Notes
+                      </label>
+                      <textarea
+                        value={editFormData.notes}
+                        onChange={(e) => handleEditFormChange('notes', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        rows="3"
+                        placeholder="Enter payment notes (optional)"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Payment Summary */}
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div className="flex">
+                      <div className="flex-shrink-0">
+                        <DollarSign className="h-5 w-5 text-green-400" />
+                      </div>
+                      <div className="ml-3">
+                        <h3 className="text-sm font-medium text-green-800">
+                          Payment Summary
+                        </h3>
+                        <div className="mt-2 text-sm text-green-700">
+                          <p><strong>Total Amount:</strong> ₹{(editingBill.billing?.amount || 0).toLocaleString()}</p>
+                          <p><strong>Paid Amount:</strong> ₹{(parseFloat(editFormData.paidAmount) || 0).toLocaleString()}</p>
+                          <p><strong>Remaining:</strong> ₹{((editingBill.billing?.amount || 0) - (parseFloat(editFormData.paidAmount) || 0)).toLocaleString()}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Warning */}
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <div className="flex">
+                      <div className="flex-shrink-0">
+                        <AlertCircle className="h-5 w-5 text-yellow-400" />
+                      </div>
+                      <div className="ml-3">
+                        <h3 className="text-sm font-medium text-yellow-800">
+                          Important Notice
+                        </h3>
+                        <div className="mt-2 text-sm text-yellow-700">
+                          <p>This will update the payment status and affect billing calculations.</p>
+                          <p>Use this to correct payment amounts if mistakenly recorded as fully paid.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 flex justify-end space-x-3">
+                  <button
+                    onClick={closeEditModal}
+                    className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors duration-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={saveEditedBill}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 flex items-center gap-2"
+                  >
+                    <Save className="h-4 w-4" />
+                    Update Payment
                   </button>
                 </div>
               </div>

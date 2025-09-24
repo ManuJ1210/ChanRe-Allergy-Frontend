@@ -111,9 +111,17 @@ const ViewProfile = () => {
       // Check for refresh parameter (from successful test submission)
       const urlParams = new URLSearchParams(location.search);
       const refreshParam = urlParams.get('refresh');
+      const tabParam = urlParams.get('tab');
       
       if (refreshParam) {
         // Clear the refresh parameter from URL
+        window.history.replaceState({}, '', `/dashboard/Doctor/patients/profile/ViewProfile/${id}`);
+      }
+      
+      // Handle tab parameter
+      if (tabParam && TABS.includes(tabParam)) {
+        setActiveTab(tabParam);
+        // Clear the tab parameter from URL after setting it
         window.history.replaceState({}, '', `/dashboard/Doctor/patients/profile/ViewProfile/${id}`);
       }
 
@@ -902,6 +910,12 @@ const ViewProfile = () => {
                               className="text-blue-600 hover:text-blue-900 text-xs font-medium"
                             >
                               View Details
+                            </button>
+                            <button
+                              onClick={() => navigate(`/dashboard/Doctor/patients/AddHistory/EditHistory/${patient._id}/${historyItem._id}`)}
+                              className="text-green-600 hover:text-green-900 text-xs font-medium"
+                            >
+                              Edit
                             </button>
                           </div>
                         </div>

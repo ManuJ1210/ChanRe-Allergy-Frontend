@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import API from '../../../../../services/api';
+import { ArrowLeft } from 'lucide-react';
 
-const SYMPTOM_OPTIONS = ['Itching', 'Tearing', 'Redness', 'Discomfort', 'Discharge', 'Photophobia'];
+const SYMPTOM_OPTIONS = ['Itching', 'Tearing/Watering', 'Redness', 'Discomfort', 'Discharge', 'Photophobia'];
 const TYPE_OPTIONS = [
   'Seasonal',
   'Perennial',
   'Intermittent (< 4 days per week or < 4 consecutive week)',
-  'Persistent (< 4 days per week or < 4 consecutive week)'
+  'Persistent (> 4 days per week or > 4 consecutive week)'
 ];
 const GRADING_CRITERIA = [
   'Signs & Symptoms being bothersome',
@@ -25,7 +26,7 @@ export default function AddAllergicConjunctivitis() {
   const [form, setForm] = useState({
     symptoms: {
       Itching: '',
-      Tearing: '',
+      'Tearing/Watering': '',
       Redness: '',
       Discomfort: '',
       Discharge: '',
@@ -117,6 +118,17 @@ export default function AddAllergicConjunctivitis() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto p-6">
+        {/* Header with Back Button */}
+        <div className="mb-6">
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center space-x-2 text-blue-600 hover:text-blue-700 transition-colors text-xs"
+          >
+            <ArrowLeft size={20} />
+            <span>Back</span>
+          </button>
+        </div>
+        
         <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-lg p-8 space-y-8">
           {/* Main Title */}
           <h1 className="text-3xl font-bold text-gray-800 text-center mb-8">ALLERGIC CONJUNCTIVITIS</h1>

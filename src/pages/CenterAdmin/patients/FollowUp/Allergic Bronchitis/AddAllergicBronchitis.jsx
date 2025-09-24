@@ -9,7 +9,8 @@ import {
   Activity,
   Save,
   FileText,
-  User
+  User,
+  Info
 } from 'lucide-react';
 
 const GINA_QUESTIONS = [
@@ -28,9 +29,9 @@ const GINA_OPTIONS = [
 ];
 
 const PFT_GRADES = [
-  { label: "Mild", value: "Mild", description: "Fev >= 80%" },
-  { label: "Moderate", value: "Moderate", description: "Fev >= 50-80%" },
-  { label: "Severe", value: "Severe", description: "Fev >= 30-50%" },
+  { label: "Mild", value: "Mild", description: "FEV1 < 80%" },
+  { label: "Moderate", value: "Moderate", description: "FEV1 < 50-80%" },
+  { label: "Severe", value: "Severe", description: "FEV1 < 30-50%" },
   { label: "Very Severe", value: "Very Severe", description: "Extremely difficult to breathe" }
 ];
 
@@ -48,6 +49,8 @@ const AddAllergicBronchitis = () => {
     pftGrading: '',
     habits: ''
   });
+
+  const [showLungFunctionDetails, setShowLungFunctionDetails] = useState(false);
 
   const { loading, error, addAllergicBronchitisSuccess } = useSelector(state => state.centerAdmin);
 
@@ -176,7 +179,18 @@ const AddAllergicBronchitis = () => {
                       {GINA_QUESTIONS.map(question => (
                         <tr key={question} className="border-b border-gray-300">
                           <td className="border border-gray-300 px-4 py-3 text-xs font-medium text-gray-700">
-                            {question}
+                            <div className="flex items-center">
+                              {question}
+                              {question === "Lung Function(PEF or FEV1)" && (
+                                <button
+                                  type="button"
+                                  onClick={() => setShowLungFunctionDetails(!showLungFunctionDetails)}
+                                  className="ml-2 text-blue-600 hover:text-blue-700"
+                                >
+                                  <Info size={14} />
+                                </button>
+                              )}
+                            </div>
                           </td>
                           {GINA_OPTIONS.map(option => (
                             <td key={option.value} className="border border-gray-300 px-4 py-3 text-center">
@@ -196,6 +210,31 @@ const AddAllergicBronchitis = () => {
                   </table>
                 </div>
               </div>
+              
+              {/* Lung Function Details */}
+              {showLungFunctionDetails && (
+                <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h3 className="text-sm font-semibold text-blue-800 mb-3">Lung Function (PEF) Details:</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                    <div className="bg-white p-3 rounded border">
+                      <span className="font-medium text-gray-700">Intermediate:</span>
+                      <span className="ml-2 text-gray-600">PEF &lt; 20%</span>
+                    </div>
+                    <div className="bg-white p-3 rounded border">
+                      <span className="font-medium text-gray-700">Mild:</span>
+                      <span className="ml-2 text-gray-600">PEF 20-30%</span>
+                    </div>
+                    <div className="bg-white p-3 rounded border">
+                      <span className="font-medium text-gray-700">Moderate:</span>
+                      <span className="ml-2 text-gray-600">PEF &gt; 30%</span>
+                    </div>
+                    <div className="bg-white p-3 rounded border">
+                      <span className="font-medium text-gray-700">Severe:</span>
+                      <span className="ml-2 text-gray-600">PEF &gt; 30%</span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* PFT Grading Section */}

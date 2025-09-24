@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import API from '../../services/api';
 import { 
@@ -19,13 +19,19 @@ import {
   RefreshCw,
   Settings,
   UserPlus,
-  X
+  X,
+  FileSpreadsheet,
+  FileDown
 } from 'lucide-react';
 
 const CenterAdminConsultationFeeBilling = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useSelector(state => state.auth);
+  
+  // Get reassignment info from navigation state
+  const reassignmentInfo = location.state?.reassignmentInfo;
   
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -33,9 +39,12 @@ const CenterAdminConsultationFeeBilling = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [filteredPatients, setFilteredPatients] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [patientsPerPage] = useState(10);
+  const [patientsPerPage, setPatientsPerPage] = useState(10);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [invoiceData, setInvoiceData] = useState(null);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
 
   useEffect(() => {
     fetchCenterPatients();
@@ -45,17 +54,115 @@ const CenterAdminConsultationFeeBilling = () => {
     filterPatients();
   }, [patients, searchTerm, statusFilter]);
 
+  // Clear reassignment info only when user manually dismisses the notification
+  // or when payment is completed - NOT automatically after 1 second
+  const clearReassignmentInfo = () => {
+    console.log('🧹 Manually clearing reassignment info');
+    navigate('/dashboard/centeradmin/consultation-fee-billing', { replace: true });
+  };
+
   const fetchCenterPatients = async () => {
     try {
       setLoading(true);
-      const response = await API.get('/patients');
-      if (response.data.patients) {
-        // Filter to show only patients who have made payments
-        const patientsWithPayments = response.data.patients.filter(patient => 
-          patient.billing && patient.billing.length > 0
-        );
-        setPatients(patientsWithPayments);
+      
+      // First, get the total count to understand pagination (with reassigned patients)
+      const firstResponse = await API.get('/patients?limit=10&page=1&includeReassigned=true');
+      
+      const totalPatients = firstResponse.data.pagination?.total || 0;
+      const totalPages = firstResponse.data.pagination?.totalPages || 1;
+      
+      if (totalPatients === 0) {
+        setPatients([]);
+        return;
       }
+      
+      // Try multiple approaches to get all patients including reassigned ones
+      
+      // Approach 1: Try /patients/all (superadmin endpoint) - only for superadmin users
+      if (user?.role === 'superadmin') {
+        try {
+          const allResponse = await API.get('/patients/all');
+          if (allResponse.data.patients && allResponse.data.patients.length > 0) {
+            setPatients(allResponse.data.patients);
+            return;
+          }
+        } catch (allError) {
+          // Continue to next approach
+        }
+      }
+      
+      // Approach 2: Try with includeReassigned parameter
+      try {
+        const reassignedResponse = await API.get('/patients?limit=10000&page=1&includeReassigned=true');
+        if (reassignedResponse.data.patients && reassignedResponse.data.patients.length > 0) {
+          setPatients(reassignedResponse.data.patients);
+          return;
+        }
+      } catch (reassignedError) {
+        // Continue to next approach
+      }
+      
+      // Approach 3: Try simple high limit approach
+      try {
+        const simpleResponse = await API.get('/patients?limit=10000&page=1');
+        if (simpleResponse.data.patients && simpleResponse.data.patients.length > 0) {
+          if (simpleResponse.data.patients.length >= totalPatients) {
+            setPatients(simpleResponse.data.patients);
+            return;
+          }
+        }
+      } catch (simpleError) {
+        // Continue to pagination approach
+      }
+      
+      // If simple approach didn't work, try pagination
+      const allPatients = [];
+      const promises = [];
+      
+      // Create promises for all pages
+      for (let page = 1; page <= totalPages; page++) {
+        promises.push(
+          API.get(`/patients?limit=100&page=${page}&includeReassigned=true`)
+            .then(response => response.data.patients || [])
+            .catch(error => [])
+        );
+      }
+      
+      // Wait for all pages to load
+      const pageResults = await Promise.all(promises);
+      
+      // Combine all patients from all pages
+      pageResults.forEach((pagePatients) => {
+        allPatients.push(...pagePatients);
+      });
+      
+      // If we still don't have all patients, try alternative approaches
+      if (allPatients.length < totalPatients) {
+        // Try alternative approach - get all patients without pagination
+        try {
+          const altResponse = await API.get('/patients/all');
+          if (altResponse.data.patients && altResponse.data.patients.length > allPatients.length) {
+            setPatients(altResponse.data.patients);
+            return;
+          }
+        } catch (altError) {
+          // Continue to next approach
+        }
+        
+        // Try with very high limit
+        try {
+          const highLimitResponse = await API.get('/patients?limit=10000&page=1&includeReassigned=true');
+          if (highLimitResponse.data.patients && highLimitResponse.data.patients.length > allPatients.length) {
+            setPatients(highLimitResponse.data.patients);
+            return;
+          }
+        } catch (highLimitError) {
+          // Continue with pagination results
+        }
+      }
+      
+      setPatients(allPatients);
+      
     } catch (error) {
       console.error('Error fetching patients:', error);
       toast.error('Failed to fetch patients');
@@ -65,39 +172,147 @@ const CenterAdminConsultationFeeBilling = () => {
   };
 
   const filterPatients = () => {
-    let filtered = patients;
-
-    // Search filter
-    if (searchTerm) {
-      filtered = filtered.filter(patient =>
+    let filtered = patients.filter(patient => {
+      // Apply search filter only - show all patients regardless of payment status
+      const matchesSearch = !searchTerm || 
         patient.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         patient.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         patient.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         patient.uhId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        patient.assignedDoctor?.name?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
+        patient.assignedDoctor?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      return matchesSearch;
+    });
 
-    // Status filter
+    // Process patients - create separate entries for reassigned patients
+    const processedPatients = [];
+    const processedPatientIds = new Set(); // Track processed patients to avoid duplicates
+    
+    filtered.forEach(patient => {
+      // Check if this is a newly reassigned patient from navigation
+      const isNewlyReassigned = reassignmentInfo?.reassigned && reassignmentInfo?.patientId === patient._id;
+      
+      // Check if patient has billing records for different doctors (indicating previous reassignment)
+      const currentDoctorId = patient.assignedDoctor?._id || patient.assignedDoctor;
+      const hasBillingForDifferentDoctor = patient.billing && patient.billing.some(bill => {
+        const hasDoctorId = bill.doctorId && bill.doctorId.toString();
+        return hasDoctorId && bill.doctorId.toString() !== currentDoctorId?.toString();
+      });
+      
+      // Check if patient has multiple consultation fees (indicating reassignment)
+      const consultationFees = patient.billing?.filter(bill => 
+        bill.type === 'consultation' || bill.description?.toLowerCase().includes('consultation')
+      ) || [];
+      const hasMultipleConsultationFees = consultationFees.length > 1;
+      
+      // Check if this patient was previously reassigned (has reassignment marker in localStorage)
+      const reassignmentKey = `reassigned_${patient._id}`;
+      const wasPreviouslyReassigned = localStorage.getItem(reassignmentKey) === 'true';
+      
+      const needsReassignedEntry = isNewlyReassigned || hasBillingForDifferentDoctor || hasMultipleConsultationFees || wasPreviouslyReassigned;
+      
+      if (needsReassignedEntry && !processedPatientIds.has(patient._id)) {
+        // Mark as processed
+        processedPatientIds.add(patient._id);
+        
+        // 1. Add the original patient entry
+        processedPatients.push({
+          ...patient,
+          isReassignedEntry: false,
+          reassignmentInfo: null,
+          isOriginalEntry: true,
+          originalPatientId: patient._id
+        });
+        
+        // 2. Create a reassigned entry (treated as new patient without reg fee)
+        const reassignedPatient = {
+          ...patient,
+          isReassignedEntry: true,
+          reassignmentInfo: isNewlyReassigned ? reassignmentInfo : { 
+            reassigned: true, 
+            patientId: patient._id,
+            reason: 'Doctor reassignment'
+          },
+          reassignedEntryId: `${patient._id}_reassigned`,
+          originalPatientId: patient._id,
+          // Clear billing records for reassigned entry - they need new consultation fee
+          billing: []
+        };
+        
+        // Mark this patient as reassigned in localStorage so it persists
+        const reassignmentKey = `reassigned_${patient._id}`;
+        localStorage.setItem(reassignmentKey, 'true');
+        
+        console.log('🔄 Creating separate entries for:', patient.name);
+        console.log('📋 Original entry (with all billing records)');
+        console.log('📋 Reassigned entry (treated as new patient, no reg fee)');
+        
+        processedPatients.push(reassignedPatient);
+      } else if (!processedPatientIds.has(patient._id)) {
+        // Add regular patient
+        processedPatientIds.add(patient._id);
+        processedPatients.push({
+          ...patient,
+          isReassignedEntry: false,
+          reassignmentInfo: null,
+          originalPatientId: patient._id
+        });
+      }
+    });
+
+    // Apply status filter to processed patients
     if (statusFilter !== 'all') {
-      filtered = filtered.filter(patient => {
+      const statusFiltered = processedPatients.filter(patient => {
         const status = getPatientStatus(patient);
         return status === statusFilter;
       });
+      setFilteredPatients(statusFiltered);
+    } else {
+      setFilteredPatients(processedPatients);
     }
-
-    setFilteredPatients(filtered);
+    
     setCurrentPage(1);
   };
 
   const getPatientStatus = (patient) => {
+    console.log('🔍 Getting status for patient:', patient.name);
+    console.log('🔍 All billing records:', patient.billing?.map(bill => ({
+      id: bill._id,
+      type: bill.type,
+      description: bill.description,
+      doctorId: bill.doctorId,
+      doctorIdType: typeof bill.doctorId,
+      doctorIdString: bill.doctorId?.toString(),
+      amount: bill.amount,
+      status: bill.status
+    })));
+    
+    const isReassignedEntry = patient.isReassignedEntry || false;
+    
+    // For reassigned patients with empty billing, they need consultation fee
+    if (isReassignedEntry && (!patient.billing || patient.billing.length === 0)) {
+      console.log('✅ Reassigned patient with no billing - needs consultation fee:', patient.name);
+      return 'Consultation Fee Required';
+    }
+    
     if (!patient.billing || patient.billing.length === 0) {
-      return 'No Payments';
+      console.log('❌ No billing records found for:', patient.name);
+      return 'Consultation Fee Required';
     }
 
-    const consultationFee = patient.billing.find(bill => 
-      bill.type === 'consultation' || bill.description?.toLowerCase().includes('consultation')
-    );
+    // Check for consultation fee for the current doctor
+    const currentDoctorId = patient.assignedDoctor?._id || patient.assignedDoctor;
+    
+    console.log('🔍 Current doctor ID:', currentDoctorId, 'Is reassigned entry:', isReassignedEntry);
+
+    const consultationFee = patient.billing.find(bill => {
+      const isConsultationType = bill.type === 'consultation' || bill.description?.toLowerCase().includes('consultation');
+      const hasDoctorId = bill.doctorId && bill.doctorId.toString();
+      const matchesCurrentDoctor = !hasDoctorId || bill.doctorId.toString() === currentDoctorId?.toString();
+      
+      return isConsultationType && matchesCurrentDoctor;
+    });
+    
     const registrationFee = patient.billing.find(bill => bill.type === 'registration');
     const serviceCharges = patient.billing.filter(bill => bill.type === 'service');
 
@@ -111,23 +326,51 @@ const CenterAdminConsultationFeeBilling = () => {
 
     const isNewPatient = isPatientNew(patient);
 
-    if (isNewPatient && !hasRegistrationFee) {
-      return 'Registration Fee Required';
-    }
+    console.log('🔍 Status check results:', {
+      hasConsultationFee,
+      paidConsultationFee,
+      hasRegistrationFee,
+      paidRegistrationFee,
+      hasServiceCharges,
+      paidServiceCharges,
+      isNewPatient,
+      isReassignedEntry
+    });
 
-    if (!hasConsultationFee) {
-      return 'Consultation Fee Required';
+    if (isReassignedEntry) {
+      // For reassigned patients, treat as new patient but WITHOUT registration fee
+      // They only need consultation fee for the new doctor
+      if (!hasConsultationFee) {
+        return 'Consultation Fee Required';
+      }
+      if (hasConsultationFee && !paidConsultationFee) {
+        return 'Consultation Fee Pending';
+      }
+      if (hasServiceCharges && !paidServiceCharges) {
+        return 'Service Charges Pending';
+      }
+      return 'All Paid';
+    } else {
+      // For regular patients, check registration fee first (new patients only)
+      if (isNewPatient && !hasRegistrationFee) {
+        return 'Registration Fee Required';
+      }
+      
+      // Check consultation fee
+      if (!hasConsultationFee) {
+        return 'Consultation Fee Required';
+      }
+      if (hasConsultationFee && !paidConsultationFee) {
+        return 'Consultation Fee Pending';
+      }
+      
+      // Check service charges
+      if (hasServiceCharges && !paidServiceCharges) {
+        return 'Service Charges Pending';
+      }
+      
+      return 'All Paid';
     }
-
-    if (hasConsultationFee && !paidConsultationFee) {
-      return 'Consultation Fee Pending';
-    }
-
-    if (hasServiceCharges && !paidServiceCharges) {
-      return 'Service Charges Pending';
-    }
-
-    return 'All Paid';
   };
 
   const isPatientNew = (patient) => {
@@ -142,9 +385,23 @@ const CenterAdminConsultationFeeBilling = () => {
       return null;
     }
 
-    const consultationFee = patient.billing.find(bill => 
-      bill.type === 'consultation' || bill.description?.toLowerCase().includes('consultation')
-    );
+    const isReassignedEntry = patient.isReassignedEntry || false;
+    
+    // For reassigned patients with empty billing, they need new consultation fee
+    if (isReassignedEntry && patient.billing.length === 0) {
+      return null;
+    }
+
+    // Check for consultation fee for the current doctor
+    const currentDoctorId = patient.assignedDoctor?._id || patient.assignedDoctor;
+
+    const consultationFee = patient.billing.find(bill => {
+      const isConsultationType = bill.type === 'consultation' || bill.description?.toLowerCase().includes('consultation');
+      const hasDoctorId = bill.doctorId && bill.doctorId.toString();
+      const matchesCurrentDoctor = !hasDoctorId || bill.doctorId.toString() === currentDoctorId?.toString();
+      
+      return isConsultationType && matchesCurrentDoctor;
+    });
 
     if (!consultationFee) {
       return null;
@@ -183,6 +440,13 @@ const CenterAdminConsultationFeeBilling = () => {
       return [];
     }
 
+    const isReassignedEntry = patient.isReassignedEntry || false;
+    
+    // For reassigned patients with empty billing, they have no service charges yet
+    if (isReassignedEntry && patient.billing.length === 0) {
+      return [];
+    }
+
     return patient.billing.filter(bill => bill.type === 'service').map(bill => ({
       amount: bill.amount,
       status: bill.status,
@@ -197,8 +461,16 @@ const CenterAdminConsultationFeeBilling = () => {
 
   const handleGenerateInvoice = async (patient) => {
     try {
+      // For reassigned patients, use the original patient ID to get billing records
+      // For regular patients, use the patient ID directly
+      const patientIdToUse = patient.isReassignedEntry ? patient.originalPatientId : patient._id;
+      
+      console.log('🧾 Generating invoice for:', patient.name);
+      console.log('🧾 Is reassigned entry:', patient.isReassignedEntry);
+      console.log('🧾 Using patient ID:', patientIdToUse);
+      
       const response = await API.post('/billing/generate-invoice', {
-        patientId: patient._id
+        patientId: patientIdToUse
       });
       
       if (response.data.success) {
@@ -210,6 +482,326 @@ const CenterAdminConsultationFeeBilling = () => {
     } catch (error) {
       console.error('Error generating invoice:', error);
       toast.error('Failed to generate invoice');
+    }
+  };
+
+  const exportToPDF = async () => {
+    setIsExporting(true);
+    try {
+      const exportData = filteredPatients.map(patient => {
+        const status = getPatientStatus(patient);
+        const consultationFee = getConsultationFeeDetails(patient);
+        const registrationFee = getRegistrationFeeDetails(patient);
+        const serviceCharges = getServiceChargesDetails(patient);
+        
+        return {
+          name: patient.name,
+          uhId: patient.uhId || 'N/A',
+          doctor: patient.assignedDoctor?.name || 'Not Assigned',
+          visit: getVisitNumber(patient),
+          status: status,
+          consultationAmount: consultationFee?.amount || 0,
+          consultationStatus: consultationFee?.status || 'N/A',
+          registrationAmount: registrationFee?.amount || 0,
+          registrationStatus: registrationFee?.status || 'N/A',
+          serviceAmount: serviceCharges.reduce((sum, s) => sum + s.amount, 0),
+          serviceCount: serviceCharges.length,
+          totalAmount: (consultationFee?.amount || 0) + (registrationFee?.amount || 0) + serviceCharges.reduce((sum, s) => sum + s.amount, 0),
+          createdAt: new Date(patient.createdAt).toLocaleDateString()
+        };
+      });
+
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Patient Billing Report - ${new Date().toLocaleDateString()}</title>
+            <meta charset="UTF-8">
+            <style>
+              * { margin: 0; padding: 0; box-sizing: border-box; }
+              body { 
+                font-family: Arial, sans-serif; 
+                line-height: 1.4; 
+                color: #333; 
+                background: #fff;
+                padding: 20px;
+                font-size: 12px;
+              }
+              .report-container {
+                max-width: 1000px;
+                margin: 0 auto;
+                background: white;
+                border: 2px solid #333;
+                page-break-inside: avoid;
+              }
+              .header {
+                background: #f8f9fa;
+                border-bottom: 2px solid #333;
+                padding: 20px;
+                text-align: center;
+              }
+              .clinic-name {
+                font-size: 24px;
+                font-weight: bold;
+                color: #333;
+                margin-bottom: 5px;
+              }
+              .report-title {
+                font-size: 20px;
+                font-weight: bold;
+                color: #333;
+                margin-bottom: 10px;
+              }
+              .report-date {
+                font-size: 14px;
+                color: #666;
+              }
+              .content {
+                padding: 20px;
+              }
+              .summary-stats {
+                display: flex;
+                justify-content: space-around;
+                margin-bottom: 20px;
+                padding: 15px;
+                background: #f8f9fa;
+                border: 1px solid #ddd;
+              }
+              .stat-item {
+                text-align: center;
+              }
+              .stat-number {
+                font-size: 18px;
+                font-weight: bold;
+                color: #333;
+              }
+              .stat-label {
+                font-size: 12px;
+                color: #666;
+                margin-top: 5px;
+              }
+              .data-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-bottom: 20px;
+                border: 1px solid #333;
+              }
+              .data-table th {
+                background: #333;
+                color: white;
+                padding: 8px 6px;
+                text-align: left;
+                font-weight: bold;
+                font-size: 11px;
+                text-transform: uppercase;
+                border: 1px solid #333;
+              }
+              .data-table td {
+                padding: 6px;
+                border: 1px solid #ddd;
+                font-size: 11px;
+                vertical-align: top;
+              }
+              .data-table tr:nth-child(even) {
+                background: #f8f9fa;
+              }
+              .status-badge {
+                padding: 2px 6px;
+                border-radius: 3px;
+                font-size: 10px;
+                font-weight: bold;
+                text-transform: uppercase;
+              }
+              .status-paid { background: #d4edda; color: #155724; }
+              .status-pending { background: #fff3cd; color: #856404; }
+              .status-required { background: #f8d7da; color: #721c24; }
+              .amount {
+                text-align: right;
+                font-weight: 600;
+              }
+              .footer {
+                margin-top: 20px;
+                padding: 15px;
+                background: #f8f9fa;
+                border-top: 2px solid #333;
+                text-align: center;
+                font-size: 11px;
+                color: #666;
+              }
+              @media print {
+                body { padding: 0; margin: 0; }
+                .report-container { border: none; }
+                .report-container { page-break-inside: avoid; }
+              }
+              @page {
+                margin: 0.5in;
+                size: A4 landscape;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="report-container">
+              <div class="header">
+                <div class="clinic-name">Patient Billing Report</div>
+                <div class="report-title">Consultation Fee Billing Summary</div>
+                <div class="report-date">Generated on ${new Date().toLocaleString('en-IN', { 
+                  year: 'numeric', 
+                  month: 'long', 
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}</div>
+              </div>
+              
+              <div class="content">
+                <div class="summary-stats">
+                  <div class="stat-item">
+                    <div class="stat-number">${exportData.length}</div>
+                    <div class="stat-label">Total Patients</div>
+                  </div>
+                  <div class="stat-item">
+                    <div class="stat-number">${exportData.filter(p => p.status === 'All Paid').length}</div>
+                    <div class="stat-label">Fully Paid</div>
+                  </div>
+                  <div class="stat-item">
+                    <div class="stat-number">${exportData.filter(p => p.status.includes('Pending')).length}</div>
+                    <div class="stat-label">Pending Payments</div>
+                  </div>
+                  <div class="stat-item">
+                    <div class="stat-number">₹${exportData.reduce((sum, p) => sum + p.totalAmount, 0).toLocaleString('en-IN')}</div>
+                    <div class="stat-label">Total Revenue</div>
+                  </div>
+                </div>
+                
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Patient Name</th>
+                      <th>UH ID</th>
+                      <th>Doctor</th>
+                      <th>Visit</th>
+                      <th>Status</th>
+                      <th>Consultation (₹)</th>
+                      <th>Registration (₹)</th>
+                      <th>Services (₹)</th>
+                      <th>Total (₹)</th>
+                      <th>Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${exportData.map(patient => `
+                      <tr>
+                        <td>${patient.name}</td>
+                        <td>${patient.uhId}</td>
+                        <td>${patient.doctor}</td>
+                        <td>${patient.visit}</td>
+                        <td><span class="status-badge ${
+                          patient.status === 'All Paid' ? 'status-paid' :
+                          patient.status.includes('Pending') ? 'status-pending' :
+                          'status-required'
+                        }">${patient.status}</span></td>
+                        <td class="amount">${patient.consultationAmount > 0 ? '₹' + patient.consultationAmount.toLocaleString('en-IN') : '-'}</td>
+                        <td class="amount">${patient.registrationAmount > 0 ? '₹' + patient.registrationAmount.toLocaleString('en-IN') : '-'}</td>
+                        <td class="amount">${patient.serviceAmount > 0 ? '₹' + patient.serviceAmount.toLocaleString('en-IN') : '-'}</td>
+                        <td class="amount">₹${patient.totalAmount.toLocaleString('en-IN')}</td>
+                        <td>${patient.createdAt}</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+              
+              <div class="footer">
+                <p>This report contains billing information for patients with payment records</p>
+                <p>Generated on ${new Date().toLocaleString('en-IN', { 
+                  year: 'numeric', 
+                  month: 'long', 
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}</p>
+              </div>
+            </div>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
+      
+      toast.success('PDF report generated successfully');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('Failed to generate PDF report');
+    } finally {
+      setIsExporting(false);
+      setShowExportModal(false);
+    }
+  };
+
+  const exportToExcel = async () => {
+    setIsExporting(true);
+    try {
+      const exportData = filteredPatients.map(patient => {
+        const status = getPatientStatus(patient);
+        const consultationFee = getConsultationFeeDetails(patient);
+        const registrationFee = getRegistrationFeeDetails(patient);
+        const serviceCharges = getServiceChargesDetails(patient);
+        
+        return {
+          'Patient Name': patient.name,
+          'UH ID': patient.uhId || 'N/A',
+          'Doctor': patient.assignedDoctor?.name || 'Not Assigned',
+          'Visit': getVisitNumber(patient),
+          'Status': status,
+          'Consultation Amount (₹)': consultationFee?.amount || 0,
+          'Consultation Status': consultationFee?.status || 'N/A',
+          'Registration Amount (₹)': registrationFee?.amount || 0,
+          'Registration Status': registrationFee?.status || 'N/A',
+          'Service Amount (₹)': serviceCharges.reduce((sum, s) => sum + s.amount, 0),
+          'Service Count': serviceCharges.length,
+          'Total Amount (₹)': (consultationFee?.amount || 0) + (registrationFee?.amount || 0) + serviceCharges.reduce((sum, s) => sum + s.amount, 0),
+          'Phone': patient.phone || 'N/A',
+          'Email': patient.email || 'N/A',
+          'Registration Date': new Date(patient.createdAt).toLocaleDateString(),
+          'Payment Method': consultationFee?.paymentMethod || registrationFee?.paymentMethod || 'N/A'
+        };
+      });
+
+      // Create CSV content
+      const headers = Object.keys(exportData[0] || {});
+      const csvContent = [
+        headers.join(','),
+        ...exportData.map(row => 
+          headers.map(header => {
+            const value = row[header];
+            // Escape commas and quotes in CSV
+            if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
+              return `"${value.replace(/"/g, '""')}"`;
+            }
+            return value;
+          }).join(',')
+        )
+      ].join('\n');
+
+      // Create and download file
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `patient_billing_report_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success('Excel report downloaded successfully');
+    } catch (error) {
+      console.error('Error generating Excel:', error);
+      toast.error('Failed to generate Excel report');
+    } finally {
+      setIsExporting(false);
+      setShowExportModal(false);
     }
   };
 
@@ -237,30 +829,45 @@ const CenterAdminConsultationFeeBilling = () => {
     }
   };
 
+  const getVisitNumber = (patient) => {
+    // Calculate visit number based on visitCount and revisitHistory
+    const baseVisits = patient.visitCount || 0;
+    const revisitCount = patient.revisitHistory?.length || 0;
+    const totalVisits = baseVisits + revisitCount;
+    
+    // If no visits recorded, consider it as 1st visit
+    if (totalVisits === 0) {
+      return '1st Visit';
+    }
+    
+    // Return appropriate visit number
+    const visitNumber = totalVisits + 1; // +1 because we're showing current visit
+    if (visitNumber === 1) return '1st Visit';
+    if (visitNumber === 2) return '2nd Visit';
+    if (visitNumber === 3) return '3rd Visit';
+    return `${visitNumber}th Visit`;
+  };
+
   const getStats = () => {
     const totalPatients = patients.length;
-    const needsConsultationFee = patients.filter(p => {
-      const hasConsultationFee = p.billing && p.billing.some(bill => 
-        bill.type === 'consultation' || bill.description?.toLowerCase().includes('consultation')
-      );
-      const hasPaidConsultationFee = hasConsultationFee && p.billing.some(bill => 
-        (bill.type === 'consultation' || bill.description?.toLowerCase().includes('consultation')) && 
-        (bill.status === 'paid' || bill.status === 'completed')
-      );
-      return !hasPaidConsultationFee;
-    }).length;
-    const paidConsultationFee = patients.filter(p => {
-      const hasConsultationFee = p.billing && p.billing.some(bill => 
-        bill.type === 'consultation' || bill.description?.toLowerCase().includes('consultation')
-      );
-      const hasPaidConsultationFee = hasConsultationFee && p.billing.some(bill => 
-        (bill.type === 'consultation' || bill.description?.toLowerCase().includes('consultation')) && 
-        (bill.status === 'paid' || bill.status === 'completed')
-      );
-      return hasPaidConsultationFee;
-    }).length;
     
-    return { totalPatients, needsConsultationFee, paidConsultationFee };
+    // Count patients by status
+    const statusCounts = patients.reduce((acc, patient) => {
+      const status = getPatientStatus(patient);
+      acc[status] = (acc[status] || 0) + 1;
+      return acc;
+    }, {});
+    
+    const needsConsultationFee = (statusCounts['Consultation Fee Required'] || 0) + 
+                                (statusCounts['Consultation Fee Pending'] || 0) +
+                                (statusCounts['Service Charges Pending'] || 0) +
+                                (statusCounts['Registration Fee Required'] || 0);
+    
+    const paidConsultationFee = statusCounts['All Paid'] || 0;
+    const noPayments = statusCounts['No Payments'] || 0;
+    
+    
+    return { totalPatients, needsConsultationFee, paidConsultationFee, noPayments };
   };
 
   const stats = getStats();
@@ -283,31 +890,76 @@ const CenterAdminConsultationFeeBilling = () => {
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-md font-bold text-slate-800 mb-2">
-                Paid Patients Invoice Management - Center Admin View
+                Patient Billing Management - Center Admin View
               </h1>
               <p className="text-slate-600 text-sm">
-                View and download invoices for patients who have made payments in your center
+                View, manage, and download invoices for all patients in your center
               </p>
             </div>
             <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowExportModal(true)}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                disabled={filteredPatients.length === 0}
+              >
+                <FileDown className="h-4 w-4" />
+                Export Data
+              </button>
               <button
                 onClick={fetchCenterPatients}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
               >
                 <RefreshCw className="h-4 w-4" />
-                Refresh
+                Refresh Data
               </button>
             </div>
           </div>
         </div>
 
+        {/* Reassignment Notification Banner */}
+        {reassignmentInfo?.reassigned && (
+          <div className="mb-6">
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+              <div className="flex items-start justify-between">
+                <div className="flex items-start">
+                  <div className="flex-shrink-0">
+                    <AlertCircle className="h-5 w-5 text-orange-600" />
+                  </div>
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-orange-800">
+                      Patient Reassigned Successfully
+                    </h3>
+                    <div className="mt-2 text-sm text-orange-700">
+                      <p>
+                        <strong>{reassignmentInfo.patientName}</strong> has been reassigned to{' '}
+                        <strong>{reassignmentInfo.newDoctorName}</strong>
+                      </p>
+                      <p className="mt-2 font-medium text-orange-800">
+                        ⚠️ Please collect consultation fee and service charges for the new doctor assignment.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={clearReassignmentInfo}
+                  className="flex-shrink-0 text-orange-600 hover:text-orange-800"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
           <div className="bg-white rounded-xl p-6 shadow-sm border border-blue-100">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-slate-600 text-xs font-medium">Paid Patients</p>
+                <p className="text-slate-600 text-xs font-medium">Total Patients</p>
                 <p className="text-md font-bold text-slate-800">{stats.totalPatients}</p>
+                <p className="text-xs text-slate-500">All patients</p>
               </div>
               <User className="h-8 w-8 text-blue-500" />
             </div>
@@ -318,6 +970,7 @@ const CenterAdminConsultationFeeBilling = () => {
               <div>
                 <p className="text-slate-600 text-xs font-medium">Pending Payments</p>
                 <p className="text-md font-bold text-slate-800">{stats.needsConsultationFee}</p>
+                <p className="text-xs text-slate-500">Need attention</p>
               </div>
               <AlertCircle className="h-8 w-8 text-orange-500" />
             </div>
@@ -328,8 +981,31 @@ const CenterAdminConsultationFeeBilling = () => {
               <div>
                 <p className="text-slate-600 text-xs font-medium">Fully Paid</p>
                 <p className="text-md font-bold text-slate-800">{stats.paidConsultationFee}</p>
+                <p className="text-xs text-slate-500">Complete</p>
               </div>
               <CheckCircle className="h-8 w-8 text-green-500" />
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-blue-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-slate-600 text-xs font-medium">No Payments</p>
+                <p className="text-md font-bold text-slate-800">{stats.noPayments}</p>
+                <p className="text-xs text-slate-500">New patients</p>
+              </div>
+              <UserPlus className="h-8 w-8 text-gray-500" />
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-blue-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-slate-600 text-xs font-medium">Current View</p>
+                <p className="text-md font-bold text-slate-800">{filteredPatients.length}</p>
+                <p className="text-xs text-slate-500">Filtered results</p>
+              </div>
+              <Filter className="h-8 w-8 text-purple-500" />
             </div>
           </div>
         </div>
@@ -374,12 +1050,41 @@ const CenterAdminConsultationFeeBilling = () => {
 
         {/* Patients Table */}
         <div className="bg-white rounded-xl shadow-sm border border-blue-100 overflow-hidden">
+          {loading ? (
+            <div className="p-8 text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+              <p className="text-slate-600 text-sm">Loading patients...</p>
+            </div>
+          ) : filteredPatients.length === 0 ? (
+            <div className="p-8 text-center">
+              <User className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-slate-900 mb-2">No patients found</h3>
+              <p className="text-slate-600 text-sm mb-4">
+                {searchTerm || statusFilter !== 'all' 
+                  ? 'Try adjusting your search criteria or filters'
+                  : 'No patients found in your center'
+                }
+              </p>
+              {(searchTerm || statusFilter !== 'all') && (
+                <button
+                  onClick={() => {
+                    setSearchTerm('');
+                    setStatusFilter('all');
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                >
+                  Clear Filters
+                </button>
+              )}
+            </div>
+          ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Patient</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Doctor</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Visit</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Payment Details</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
@@ -392,17 +1097,31 @@ const CenterAdminConsultationFeeBilling = () => {
                   const registrationFee = getRegistrationFeeDetails(patient);
                   const serviceCharges = getServiceChargesDetails(patient);
 
+                  const isReassignedEntry = patient.isReassignedEntry || false;
+                  
+                  // Use unique key for each entry (original vs reassigned)
+                  const uniqueKey = isReassignedEntry ? `${patient._id}_reassigned` : patient._id;
+                  
                   return (
-                    <tr key={patient._id} className="hover:bg-slate-50">
+                    <tr key={uniqueKey} className={`hover:bg-slate-50 ${isReassignedEntry ? 'bg-orange-50 border-l-4 border-orange-400' : ''}`}>
                       <td className="px-4 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="flex-shrink-0 h-10 w-10">
-                            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                              <User className="h-5 w-5 text-blue-600" />
+                            <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
+                              isReassignedEntry ? 'bg-orange-100' : 'bg-blue-100'
+                            }`}>
+                              <User className={`h-5 w-5 ${isReassignedEntry ? 'text-orange-600' : 'text-blue-600'}`} />
                             </div>
                           </div>
                           <div className="ml-4">
-                            <div className="text-sm font-medium text-slate-900">{patient.name}</div>
+                            <div className="flex items-center gap-2">
+                              <div className="text-sm font-medium text-slate-900">{patient.name}</div>
+                              {isReassignedEntry && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                                  Reassigned
+                                </span>
+                              )}
+                            </div>
                             <div className="text-sm text-slate-500">{patient.uhId || 'N/A'}</div>
                             <div className="text-xs text-slate-400">
                               {new Date(patient.createdAt).toLocaleDateString()} {new Date(patient.createdAt).toLocaleTimeString()}
@@ -412,6 +1131,23 @@ const CenterAdminConsultationFeeBilling = () => {
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap">
                         <div className="text-sm text-slate-900">{patient.assignedDoctor?.name || 'Not Assigned'}</div>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 h-8 w-8">
+                            <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
+                              <span className="text-xs font-bold text-green-600">{getVisitNumber(patient).split(' ')[0]}</span>
+                            </div>
+                          </div>
+                          <div className="ml-2">
+                            <div className="text-sm font-medium text-slate-900">{getVisitNumber(patient)}</div>
+                            {patient.revisitHistory && patient.revisitHistory.length > 0 && (
+                              <div className="text-xs text-slate-500">
+                                Last: {new Date(patient.revisitHistory[patient.revisitHistory.length - 1].revisitDate).toLocaleDateString()}
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(status)}`}>
@@ -463,13 +1199,26 @@ const CenterAdminConsultationFeeBilling = () => {
                             <Eye className="h-4 w-4" />
                           </button>
                           
-                          <button
-                            onClick={() => handleGenerateInvoice(patient)}
-                            className="text-purple-600 hover:text-purple-700 p-1 rounded transition-colors"
-                            title="Generate Invoice"
-                          >
-                            <FileText className="h-4 w-4" />
-                          </button>
+                          {/* Only show invoice button for patients with billing records */}
+                          {!isReassignedEntry && (
+                            <button
+                              onClick={() => handleGenerateInvoice(patient)}
+                              className="text-purple-600 hover:text-purple-700 p-1 rounded transition-colors"
+                              title="Generate Invoice"
+                            >
+                              <FileText className="h-4 w-4" />
+                            </button>
+                          )}
+                          
+                          {/* Show different message for reassigned patients */}
+                          {isReassignedEntry && (
+                            <span 
+                              className="text-orange-600 p-1 rounded transition-colors cursor-help"
+                              title="No billing records yet - collect consultation fee first"
+                            >
+                              <FileText className="h-4 w-4 opacity-50" />
+                            </span>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -478,69 +1227,234 @@ const CenterAdminConsultationFeeBilling = () => {
               </tbody>
             </table>
           </div>
+          )}
 
-          {/* Pagination */}
+          {/* Enhanced Pagination */}
+          <div className="bg-white px-4 py-4 flex flex-col sm:flex-row items-center justify-between border-t border-slate-200 sm:px-6 gap-4">
+            {/* Pagination Info */}
+            <div className="flex items-center gap-4">
+              <div className="text-sm text-slate-700">
+                Showing <span className="font-medium">{startIndex + 1}</span> to{' '}
+                <span className="font-medium">{Math.min(endIndex, filteredPatients.length)}</span> of{' '}
+                <span className="font-medium">{filteredPatients.length}</span> results
+              </div>
+              
+              {/* Items per page selector */}
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-slate-600">Show:</label>
+                <select
+                  value={patientsPerPage}
+                  onChange={(e) => {
+                    setPatientsPerPage(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="px-2 py-1 border border-slate-300 rounded text-xs focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+                <span className="text-sm text-slate-600">per page</span>
+              </div>
+            </div>
+
+            {/* Pagination Controls */}
           {totalPages > 1 && (
-            <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-slate-200 sm:px-6">
-              <div className="flex-1 flex justify-between sm:hidden">
+              <div className="flex items-center gap-2">
+                {/* First Page */}
+                <button
+                  onClick={() => handlePageChange(1)}
+                  disabled={currentPage === 1}
+                  className="px-2 py-1 border border-slate-300 rounded text-xs font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="First page"
+                >
+                  ««
+                </button>
+                
+                {/* Previous Page */}
                 <button
                   onClick={() => handlePageChange(currentPage - 1)}
                   disabled={currentPage === 1}
-                  className="relative inline-flex items-center px-4 py-2 border border-slate-300 text-xs font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-3 py-1 border border-slate-300 rounded text-xs font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Previous page"
                 >
-                  Previous
+                  ‹
                 </button>
-                <button
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="ml-3 relative inline-flex items-center px-4 py-2 border border-slate-300 text-xs font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Next
-                </button>
-              </div>
-              <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-sm text-slate-700">
-                    Showing <span className="font-medium">{startIndex + 1}</span> to{' '}
-                    <span className="font-medium">{Math.min(endIndex, filteredPatients.length)}</span> of{' '}
-                    <span className="font-medium">{filteredPatients.length}</span> results
-                  </p>
-                </div>
-                <div>
-                  <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+
+                {/* Page Numbers */}
+                <div className="flex items-center gap-1">
+                  {/* Show first few pages */}
+                  {currentPage > 3 && (
+                    <>
                     <button
-                      onClick={() => handlePageChange(currentPage - 1)}
-                      disabled={currentPage === 1}
-                      className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-slate-300 bg-white text-xs font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        onClick={() => handlePageChange(1)}
+                        className="px-3 py-1 border border-slate-300 rounded text-xs font-medium text-slate-500 hover:bg-slate-50"
                     >
-                      Previous
+                        1
                     </button>
-                    {[...Array(totalPages)].map((_, index) => (
+                      {currentPage > 4 && (
+                        <span className="px-2 text-slate-400">...</span>
+                      )}
+                    </>
+                  )}
+
+                  {/* Show pages around current page */}
+                  {[...Array(totalPages)].map((_, index) => {
+                    const pageNumber = index + 1;
+                    const isCurrentPage = pageNumber === currentPage;
+                    const isNearCurrentPage = Math.abs(pageNumber - currentPage) <= 2;
+                    
+                    if (!isNearCurrentPage && pageNumber !== 1 && pageNumber !== totalPages) {
+                      return null;
+                    }
+
+                    return (
                       <button
-                        key={index + 1}
-                        onClick={() => handlePageChange(index + 1)}
-                        className={`relative inline-flex items-center px-4 py-2 border text-xs font-medium ${
-                          currentPage === index + 1
+                        key={pageNumber}
+                        onClick={() => handlePageChange(pageNumber)}
+                        className={`px-3 py-1 border text-xs font-medium ${
+                          isCurrentPage
                             ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
                             : 'bg-white border-slate-300 text-slate-500 hover:bg-slate-50'
                         }`}
                       >
-                        {index + 1}
+                        {pageNumber}
                       </button>
-                    ))}
+                    );
+                  })}
+
+                  {/* Show last few pages */}
+                  {currentPage < totalPages - 2 && (
+                    <>
+                      {currentPage < totalPages - 3 && (
+                        <span className="px-2 text-slate-400">...</span>
+                      )}
+                      <button
+                        onClick={() => handlePageChange(totalPages)}
+                        className="px-3 py-1 border border-slate-300 rounded text-xs font-medium text-slate-500 hover:bg-slate-50"
+                      >
+                        {totalPages}
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                {/* Next Page */}
                     <button
                       onClick={() => handlePageChange(currentPage + 1)}
                       disabled={currentPage === totalPages}
-                      className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-slate-300 bg-white text-xs font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-3 py-1 border border-slate-300 rounded text-xs font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Next page"
                     >
-                      Next
+                  ›
                     </button>
-                  </nav>
+
+                {/* Last Page */}
+                <button
+                  onClick={() => handlePageChange(totalPages)}
+                  disabled={currentPage === totalPages}
+                  className="px-2 py-1 border border-slate-300 rounded text-xs font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Last page"
+                >
+                  »»
+                </button>
                 </div>
+            )}
+
+            {/* Quick Jump */}
+            {totalPages > 5 && (
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-slate-600">Go to:</label>
+                <input
+                  type="number"
+                  min="1"
+                  max={totalPages}
+                  value={currentPage}
+                  onChange={(e) => {
+                    const page = Number(e.target.value);
+                    if (page >= 1 && page <= totalPages) {
+                      handlePageChange(page);
+                    }
+                  }}
+                  className="w-16 px-2 py-1 border border-slate-300 rounded text-xs text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <span className="text-sm text-slate-600">of {totalPages}</span>
               </div>
+            )}
+          </div>
+        </div>
+
+        {/* Export Modal */}
+        {showExportModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-slate-800">
+                  Export Patient Data
+                </h3>
+                <button
+                  onClick={() => setShowExportModal(false)}
+                  className="text-slate-400 hover:text-slate-600"
+                  disabled={isExporting}
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <p className="text-slate-600 text-sm">
+                  Choose the format to export {filteredPatients.length} patient records:
+                </p>
+                
+                <div className="space-y-3">
+                  <button
+                    onClick={exportToPDF}
+                    disabled={isExporting}
+                    className="w-full p-4 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <div className="p-2 bg-red-100 rounded-lg">
+                      <FileText className="h-6 w-6 text-red-600" />
+                    </div>
+                    <div className="text-left">
+                      <div className="font-medium text-slate-900">Export as PDF</div>
+                      <div className="text-sm text-slate-500">Print-ready report with formatting</div>
+                    </div>
+                  </button>
+                  
+                  <button
+                    onClick={exportToExcel}
+                    disabled={isExporting}
+                    className="w-full p-4 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <div className="p-2 bg-green-100 rounded-lg">
+                      <FileSpreadsheet className="h-6 w-6 text-green-600" />
+                    </div>
+                    <div className="text-left">
+                      <div className="font-medium text-slate-900">Export as Excel (CSV)</div>
+                      <div className="text-sm text-slate-500">Spreadsheet format for data analysis</div>
+                    </div>
+                  </button>
+                </div>
+                
+                {isExporting && (
+                  <div className="flex items-center justify-center gap-2 text-blue-600">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                    <span className="text-sm">Generating report...</span>
             </div>
           )}
+                
+                <div className="pt-4 border-t border-slate-200">
+                  <p className="text-xs text-slate-500">
+                    <strong>Note:</strong> The export will include all currently filtered results. 
+                    Use search and filters to customize the data before exporting.
+                  </p>
         </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Invoice Modal */}
         {showInvoiceModal && invoiceData && (

@@ -407,7 +407,9 @@ export default function AppRoutes() {
         <Route path="CenterAdmin/patients/AddHistory/:id" element={<ErrorBoundary><CenterAdminAddHistory /></ErrorBoundary>} />
         <Route path="CenterAdmin/patients/AddHistory/AddHistory/:id" element={<ErrorBoundary><CenterAdminAddHistory /></ErrorBoundary>} />
         <Route path="CenterAdmin/patients/ViewHistory/:patientId" element={<ErrorBoundary><CenterAdminViewHistory /></ErrorBoundary>} />
+        <Route path="CenterAdmin/patients/AddHistory/ViewHistory/:patientId" element={<ErrorBoundary><CenterAdminViewHistory /></ErrorBoundary>} />
         <Route path="CenterAdmin/patients/EditHistory/:patientId/:historyId" element={<ErrorBoundary><CenterAdminEditHistory /></ErrorBoundary>} />
+        <Route path="CenterAdmin/patients/AddHistory/EditHistory/:patientId/:historyId" element={<ErrorBoundary><CenterAdminEditHistory /></ErrorBoundary>} />
         <Route path="CenterAdmin/patients/AddMedications/:id" element={<ErrorBoundary><CenterAdminAddMedications /></ErrorBoundary>} />
         <Route path="CenterAdmin/patients/profile/AddMedications/:id" element={<ErrorBoundary><CenterAdminAddMedications /></ErrorBoundary>} />
         <Route path="CenterAdmin/patients/profile/ViewProfile/:id" element={<CenterAdminViewProfile />} />
@@ -512,6 +514,7 @@ export default function AppRoutes() {
         <Route path="Doctor/patients/profile/AddMedications/:id" element={<DoctorAddMedications />} />
         <Route path="Doctor/patients/AddHistory/:patientId" element={<DoctorAddHistory />} />
         <Route path="Doctor/patients/AddHistory/ViewHistory/:patientId" element={<DoctorViewHistoryPatients />} />
+        <Route path="Doctor/patients/AddHistory/EditHistory/:patientId/:historyId" element={<DoctorEditHistory />} />
         <Route path="Doctor/AddTestRequest" element={<AddTestRequest />} />
         <Route path="Doctor/TestRequests" element={<TestRequests />} />
         

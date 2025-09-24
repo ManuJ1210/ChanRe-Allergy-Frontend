@@ -18,6 +18,8 @@ const AddGPE = () => {
 
   const [formData, setFormData] = useState({
     weight: '',
+    height: '',
+    bmi: '',
     pulse: '',
     bp: '',
     rr: '',
@@ -31,7 +33,7 @@ const AddGPE = () => {
     drugAdverseNotion: '',
     drugCompliance: '',
     adviseFollowUp: '',
-    eyeMedication: ''
+    otherMedications: ''
   });
 
   const { loading, error, addGPESuccess } = useSelector(state => state.centerAdmin);
@@ -42,6 +44,33 @@ const AddGPE = () => {
       navigate(`/dashboard/CenterAdmin/patients/ViewProfile/${patientId}`);
     }
   }, [addGPESuccess, dispatch, navigate, patientId]);
+
+  const calculateBMI = (weight, height) => {
+    if (weight && height && !isNaN(weight) && !isNaN(height) && height > 0) {
+      const heightInMeters = height / 100;
+      const bmi = (weight / (heightInMeters * heightInMeters)).toFixed(1);
+      return bmi;
+    }
+    return '';
+  };
+
+  const handleWeightHeightChange = (name, value) => {
+    setFormData(prev => {
+      const newData = {
+        ...prev,
+        [name]: value
+      };
+      
+      // Calculate BMI when weight or height changes
+      if (name === 'weight' || name === 'height') {
+        const weight = name === 'weight' ? value : prev.weight;
+        const height = name === 'height' ? value : prev.height;
+        newData.bmi = calculateBMI(weight, height);
+      }
+      
+      return newData;
+    });
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -89,17 +118,43 @@ const AddGPE = () => {
             <div className="space-y-6">
               <h2 className="text-sm font-semibold text-gray-800 border-b border-gray-200 pb-2">GPE</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* First Row */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-3">Weight</label>
-                  <input
-                    type="text"
-                    name="weight"
-                    value={formData.weight}
-                    onChange={handleChange}
-                    placeholder="Enter weight"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
-                  />
+                {/* Weight, Height, BMI Row */}
+                <div className="md:col-span-2">
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-3">Weight (kg)</label>
+                      <input
+                        type="number"
+                        name="weight"
+                        value={formData.weight}
+                        onChange={(e) => handleWeightHeightChange('weight', e.target.value)}
+                        placeholder="Enter weight"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-3">Height (cm)</label>
+                      <input
+                        type="number"
+                        name="height"
+                        value={formData.height}
+                        onChange={(e) => handleWeightHeightChange('height', e.target.value)}
+                        placeholder="Enter height"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-3">BMI</label>
+                      <input
+                        type="text"
+                        name="bmi"
+                        value={formData.bmi}
+                        readOnly
+                        placeholder="Auto calculated"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-xs font-semibold text-blue-600"
+                      />
+                    </div>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-3">Pulse</label>
@@ -256,13 +311,13 @@ const AddGPE = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-3">Eye Medication</label>
+                  <label className="block text-xs font-medium text-gray-700 mb-3">Other Medications</label>
                   <input
                     type="text"
-                    name="eyeMedication"
-                    value={formData.eyeMedication}
+                    name="otherMedications"
+                    value={formData.otherMedications}
                     onChange={handleChange}
-                    placeholder="Enter eye medication"
+                    placeholder="Enter other medications"
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
                   />
                 </div>

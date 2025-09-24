@@ -7,10 +7,77 @@ import { FileText, Save, ArrowLeft, CheckCircle } from "lucide-react";
 
 export default function AddHistory() {
   const { id } = useParams();
-  const patientId = id; // Map the id parameter to patientId for consistency
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { loading, error, addHistorySuccess, history, historyLoading, historyError } = useSelector((state) => state.centerAdmin);
+  
+  // Debug logging
+  console.log('=== AddHistory Debug Info ===');
+  console.log('useParams():', useParams());
+  console.log('id from params:', id);
+  console.log('typeof id:', typeof id);
+  console.log('window.location.pathname:', window.location.pathname);
+  console.log('window.location.href:', window.location.href);
+  console.log('================================');
+  
+  // Enhanced patient ID extraction with multiple fallback methods
+  let patientId = id;
+  
+  // If id is undefined or invalid, try multiple methods to extract patient ID
+  if (!patientId || patientId === 'undefined' || patientId === 'null') {
+    const pathSegments = window.location.pathname.split('/');
+    console.log('Path segments:', pathSegments);
+    
+    // Method 1: Look for AddHistory in the path and get the next segment as patient ID
+    const addHistoryIndex = pathSegments.findIndex(segment => segment === 'AddHistory');
+    if (addHistoryIndex !== -1 && pathSegments[addHistoryIndex + 1]) {
+      patientId = pathSegments[addHistoryIndex + 1];
+      console.log('Method 1 - Extracted patientId from AddHistory segment:', patientId);
+    }
+    
+    // Method 2: If still not found, look for the last segment that looks like an ID
+    if (!patientId || patientId === 'undefined' || patientId === 'null') {
+      const lastSegment = pathSegments[pathSegments.length - 1];
+      if (lastSegment && lastSegment.length > 10) { // MongoDB ObjectIds are typically 24 characters
+        patientId = lastSegment;
+        console.log('Method 2 - Using last segment as patientId:', patientId);
+      }
+    }
+    
+    // Method 3: Try to get from localStorage if available
+    if (!patientId || patientId === 'undefined' || patientId === 'null') {
+      const storedPatientId = localStorage.getItem('currentPatientId');
+      if (storedPatientId) {
+        patientId = storedPatientId;
+        console.log('Method 3 - Using stored patientId from localStorage:', patientId);
+      }
+    }
+  }
+  
+  console.log('Final patientId after all methods:', patientId);
+  
+  
+  // Safety check for patientId
+  if (!patientId || patientId === 'undefined' || patientId === 'null') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 sm:p-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <h3 className="text-sm font-medium text-red-800">Error: Patient ID Missing</h3>
+            <p className="text-red-700 text-xs mt-2">
+              The patient ID is missing from the URL. Please navigate back to the patient list and try again.
+            </p>
+            <button
+              onClick={() => navigate('/dashboard/CenterAdmin/patients/PatientList')}
+              className="mt-3 px-4 py-2 bg-red-100 text-red-700 rounded text-xs hover:bg-red-200"
+            >
+              Back to Patient List
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
   
 
   
@@ -170,7 +237,14 @@ export default function AddHistory() {
     if (addHistorySuccess) {
       setTimeout(() => {
         dispatch(resetCenterAdminState());
-        navigate(`/dashboard/CenterAdmin/patients/profile/ViewProfile/${patientId}`);
+        // Only navigate if patientId is valid
+        if (patientId && patientId !== 'undefined' && patientId !== 'null') {
+          navigate(`/dashboard/CenterAdmin/patients/profile/ViewProfile/${patientId}`);
+        } else {
+          console.error('Cannot navigate: patientId is invalid:', patientId);
+          // Fallback navigation
+          navigate('/dashboard/CenterAdmin/patients/PatientList');
+        }
       }, 1500);
     }
   }, [addHistorySuccess, dispatch, navigate, patientId]);
@@ -193,16 +267,29 @@ export default function AddHistory() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    // Basic validation
+    if (!patientId || patientId === 'undefined' || patientId === 'null') {
+      console.error('Patient ID is required');
+      alert('Patient ID is missing. Please navigate back and try again.');
+      return;
+    }
+    
+    console.log('Submitting history for patient:', patientId);
+    console.log('Form data:', formData);
+    
     // Add patientId to the form data
     const historyDataWithPatientId = {
       ...formData,
       patientId: patientId
     };
     
+    console.log('History data with patient ID:', historyDataWithPatientId);
+    
     try {
-      await dispatch(addPatientHistory(historyDataWithPatientId));
+      const result = await dispatch(addPatientHistory(historyDataWithPatientId));
+      console.log('History submission result:', result);
     } catch (error) {
-      console.error('Error in handleSubmit:', error);
+      console.error('Error submitting history:', error);
     }
   };
 
@@ -455,47 +542,29 @@ export default function AddHistory() {
                       <div className="mb-3">
                         <span className="text-sm text-slate-700 font-medium">{event.label}</span>
                       </div>
-                      <div className="grid grid-cols-3 gap-4 items-center">
-                        <div className="flex items-center space-x-6">
-                          <label className="flex items-center cursor-pointer">
-                            <input
-                              type="radio"
-                              name={event.name}
-                              value="yes"
-                              checked={formData[event.name] === "yes"}
-                              onChange={handleChange}
-                              className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500"
-                            />
-                            <span className="text-sm font-medium text-slate-700">Yes</span>
-                          </label>
-                          <label className="flex items-center cursor-pointer">
-                            <input
-                              type="radio"
-                              name={event.name}
-                              value="no"
-                              checked={formData[event.name] === "no"}
-                              onChange={handleChange}
-                              className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500"
-                            />
-                            <span className="text-sm font-medium text-slate-700">No</span>
-                          </label>
-                        </div>
-                        <div className="text-center">
-                          <label className="block text-sm font-medium text-slate-700 mb-2">Duration (Months)</label>
+                      <div className="flex items-center space-x-6">
+                        <label className="flex items-center cursor-pointer">
                           <input
-                            type="number"
-                            name={`${event.name}Duration`}
-                            value={formData[`${event.name}Duration`] || ''}
+                            type="radio"
+                            name={event.name}
+                            value="yes"
+                            checked={formData[event.name] === "yes"}
                             onChange={handleChange}
-                            placeholder="0"
-                            min="0"
-                            step="1"
-                            className="w-24 px-3 py-2 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm transition-all duration-200 hover:border-gray-400"
+                            className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500"
                           />
-                        </div>
-                        <div className="text-center">
-                          
-                        </div>
+                          <span className="text-sm font-medium text-slate-700">Yes</span>
+                        </label>
+                        <label className="flex items-center cursor-pointer">
+                          <input
+                            type="radio"
+                            name={event.name}
+                            value="no"
+                            checked={formData[event.name] === "no"}
+                            onChange={handleChange}
+                            className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500"
+                          />
+                          <span className="text-sm font-medium text-slate-700">No</span>
+                        </label>
                       </div>
                     </div>
                   ))}
@@ -505,31 +574,16 @@ export default function AddHistory() {
                     <div className="mb-3">
                       <span className="text-sm text-slate-700 font-medium">How many times are cough/wheeze present in a week</span>
                     </div>
-                    <div className="grid grid-cols-2 gap-4 items-center">
-                      <div className="text-center">
-                        <label className="block text-sm font-medium text-slate-700 mb-2">Number of times per week</label>
-                        <input
-                          type="text"
-                          name="coughWheezeFrequency"
-                          value={formData.coughWheezeFrequency || ''}
-                          onChange={handleChange}
-                          placeholder="Enter frequency"
-                          className="w-32 px-3 py-2 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm transition-all duration-200 hover:border-gray-400"
-                        />
-                      </div>
-                      <div className="text-center">
-                        <label className="block text-sm font-medium text-slate-700 mb-2">Duration (Months)</label>
-                        <input
-                          type="number"
-                          name="coughWheezeFrequencyDuration"
-                          value={formData.coughWheezeFrequencyDuration || ''}
-                          onChange={handleChange}
-                          placeholder="0"
-                          min="0"
-                          step="1"
-                          className="w-24 px-3 py-2 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm transition-all duration-200 hover:border-gray-400"
-                        />
-                      </div>
+                    <div className="text-left">
+                      <label className="block text-sm font-medium text-slate-700 mb-2">Number of times per week</label>
+                      <input
+                        type="text"
+                        name="coughWheezeFrequency"
+                        value={formData.coughWheezeFrequency || ''}
+                        onChange={handleChange}
+                        placeholder="Enter frequency"
+                        className="w-32 px-3 py-2 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm transition-all duration-200 hover:border-gray-400"
+                      />
                     </div>
                   </div>
 
@@ -538,31 +592,16 @@ export default function AddHistory() {
                     <div className="mb-3">
                       <span className="text-sm text-slate-700 font-medium">Coughing at night how often does this wake the person</span>
                     </div>
-                    <div className="grid grid-cols-2 gap-4 items-center">
-                      <div className="text-center">
-                        <label className="block text-sm font-medium text-slate-700 mb-2">No of times</label>
-                        <input
-                          type="text"
-                          name="nightCoughFrequency"
-                          value={formData.nightCoughFrequency || ''}
-                          onChange={handleChange}
-                          placeholder="Enter frequency"
-                          className="w-32 px-3 py-2 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm transition-all duration-200 hover:border-gray-400"
-                        />
-                      </div>
-                      <div className="text-center">
-                        <label className="block text-sm font-medium text-slate-700 mb-2">Duration (Months)</label>
-                        <input
-                          type="number"
-                          name="nightCoughFrequencyDuration"
-                          value={formData.nightCoughFrequencyDuration || ''}
-                          onChange={handleChange}
-                          placeholder="0"
-                          min="0"
-                          step="1"
-                          className="w-24 px-3 py-2 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm transition-all duration-200 hover:border-gray-400"
-                        />
-                      </div>
+                    <div className="text-left">
+                      <label className="block text-sm font-medium text-slate-700 mb-2">No of times</label>
+                      <input
+                        type="text"
+                        name="nightCoughFrequency"
+                        value={formData.nightCoughFrequency || ''}
+                        onChange={handleChange}
+                        placeholder="Enter frequency"
+                        className="w-32 px-3 py-2 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm transition-all duration-200 hover:border-gray-400"
+                      />
                     </div>
                   </div>
 
@@ -577,47 +616,29 @@ export default function AddHistory() {
                       <div className="mb-3">
                         <span className="text-sm text-slate-700 font-medium">{event.label}</span>
                       </div>
-                      <div className="grid grid-cols-3 gap-4 items-center">
-                        <div className="flex items-center space-x-6">
-                          <label className="flex items-center cursor-pointer">
-                            <input
-                              type="radio"
-                              name={event.name}
-                              value="yes"
-                              checked={formData[event.name] === "yes"}
-                              onChange={handleChange}
-                              className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500"
-                            />
-                            <span className="text-sm font-medium text-slate-700">Yes</span>
-                          </label>
-                          <label className="flex items-center cursor-pointer">
-                            <input
-                              type="radio"
-                              name={event.name}
-                              value="no"
-                              checked={formData[event.name] === "no"}
-                              onChange={handleChange}
-                              className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500"
-                            />
-                            <span className="text-sm font-medium text-slate-700">No</span>
-                          </label>
-                        </div>
-                        <div className="text-center">
-                          <label className="block text-sm font-medium text-slate-700 mb-2">Duration (Months)</label>
+                      <div className="flex items-center space-x-6">
+                        <label className="flex items-center cursor-pointer">
                           <input
-                            type="number"
-                            name={`${event.name}Duration`}
-                            value={formData[`${event.name}Duration`] || ''}
+                            type="radio"
+                            name={event.name}
+                            value="yes"
+                            checked={formData[event.name] === "yes"}
                             onChange={handleChange}
-                            placeholder="0"
-                            min="0"
-                            step="1"
-                            className="w-24 px-3 py-2 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm transition-all duration-200 hover:border-gray-400"
+                            className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500"
                           />
-                        </div>
-                        <div className="text-center">
-                          
-                        </div>
+                          <span className="text-sm font-medium text-slate-700">Yes</span>
+                        </label>
+                        <label className="flex items-center cursor-pointer">
+                          <input
+                            type="radio"
+                            name={event.name}
+                            value="no"
+                            checked={formData[event.name] === "no"}
+                            onChange={handleChange}
+                            className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500"
+                          />
+                          <span className="text-sm font-medium text-slate-700">No</span>
+                        </label>
                       </div>
                     </div>
                   ))}
@@ -760,7 +781,7 @@ export default function AddHistory() {
                     { key: 'skinItchingNoRashesPresent', label: 'Itching with no rashes' }
                   ].map((condition) => (
                     <div key={condition.key} className="bg-slate-50 rounded-lg border border-slate-200 p-4">
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
                         <div className="md:col-span-1">
                           <span className="text-sm font-medium text-slate-700">{condition.label}</span>
                         </div>
@@ -787,19 +808,6 @@ export default function AddHistory() {
                             />
                             <span className="text-sm font-medium text-slate-700">No</span>
                           </label>
-                        </div>
-                        <div className="text-center">
-                          <label className="block text-sm font-medium text-slate-700 mb-2">Duration (Months)</label>
-                          <input
-                            type="number"
-                            name={`${condition.key}Duration`}
-                            value={formData[`${condition.key}Duration`] || ''}
-                            onChange={handleChange}
-                            placeholder="0"
-                            min="0"
-                            step="1"
-                            className="w-24 px-3 py-2 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm transition-all duration-200 hover:border-gray-400"
-                          />
                         </div>
                         <div className="md:col-span-1">
                           <label className="block text-sm font-medium text-slate-700 mb-2">Distribution</label>
@@ -835,47 +843,29 @@ export default function AddHistory() {
                       <div className="mb-3">
                         <span className="text-sm text-slate-700 font-medium">{condition.label}</span>
                       </div>
-                      <div className="grid grid-cols-3 gap-4 items-center">
-                        <div className="flex items-center space-x-6">
-                          <label className="flex items-center cursor-pointer">
-                            <input
-                              type="radio"
-                              name={condition.name}
-                              value="yes"
-                              checked={formData[condition.name] === "yes"}
-                              onChange={handleChange}
-                              className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500"
-                            />
-                            <span className="text-sm font-medium text-slate-700">Yes</span>
-                          </label>
-                          <label className="flex items-center cursor-pointer">
-                            <input
-                              type="radio"
-                              name={condition.name}
-                              value="no"
-                              checked={formData[condition.name] === "no"}
-                              onChange={handleChange}
-                              className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500"
-                            />
-                            <span className="text-sm font-medium text-slate-700">No</span>
-                          </label>
-                        </div>
-                        <div className="text-center">
-                          <label className="block text-sm font-medium text-slate-700 mb-2">Duration (Months)</label>
+                      <div className="flex items-center space-x-6">
+                        <label className="flex items-center cursor-pointer">
                           <input
-                            type="number"
-                            name={`${condition.name}Duration`}
-                            value={formData[`${condition.name}Duration`] || ''}
+                            type="radio"
+                            name={condition.name}
+                            value="yes"
+                            checked={formData[condition.name] === "yes"}
                             onChange={handleChange}
-                            placeholder="0"
-                            min="0"
-                            step="1"
-                            className="w-24 px-3 py-2 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm transition-all duration-200 hover:border-gray-400"
+                            className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500"
                           />
-                        </div>
-                        <div className="text-center">
-                          
-                        </div>
+                          <span className="text-sm font-medium text-slate-700">Yes</span>
+                        </label>
+                        <label className="flex items-center cursor-pointer">
+                          <input
+                            type="radio"
+                            name={condition.name}
+                            value="no"
+                            checked={formData[condition.name] === "no"}
+                            onChange={handleChange}
+                            className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500"
+                          />
+                          <span className="text-sm font-medium text-slate-700">No</span>
+                        </label>
                       </div>
                     </div>
                   ))}

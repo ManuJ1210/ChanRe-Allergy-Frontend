@@ -198,10 +198,29 @@ const ViewGPE = () => {
                 GPE
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {latestRecord.weight && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-500">Weight</label>
-                    <p className="text-gray-900 font-medium">{latestRecord.weight}</p>
+                {/* Weight, Height, BMI Row */}
+                {(latestRecord.weight || latestRecord.height || latestRecord.bmi) && (
+                  <div className="md:col-span-2">
+                    <div className="grid grid-cols-3 gap-4">
+                      {latestRecord.weight && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-500">Weight (kg)</label>
+                          <p className="text-gray-900 font-medium">{latestRecord.weight}</p>
+                        </div>
+                      )}
+                      {latestRecord.height && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-500">Height (cm)</label>
+                          <p className="text-gray-900 font-medium">{latestRecord.height}</p>
+                        </div>
+                      )}
+                      {latestRecord.bmi && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-500">BMI</label>
+                          <p className="text-blue-600 font-semibold">{latestRecord.bmi}</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
                 {latestRecord.pulse && (
@@ -292,10 +311,10 @@ const ViewGPE = () => {
                     <p className="text-gray-900 font-medium">{latestRecord.adviseFollowUp}</p>
                   </div>
                 )}
-                {latestRecord.eyeMedication && (
+                {latestRecord.otherMedications && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-500">Eye Medication</label>
-                    <p className="text-gray-900 font-medium">{latestRecord.eyeMedication}</p>
+                    <label className="block text-sm font-medium text-gray-500">Other Medications</label>
+                    <p className="text-gray-900 font-medium">{latestRecord.otherMedications}</p>
                   </div>
                 )}
               </div>
@@ -312,7 +331,7 @@ const ViewGPE = () => {
                     </div>
                     <h3 className="font-medium text-gray-800 mb-1">Vital Signs</h3>
                     <p className="text-sm text-gray-500">
-                      {[latestRecord.weight, latestRecord.pulse, latestRecord.bp, latestRecord.rr, latestRecord.temp, latestRecord.spo2].filter(Boolean).length} recorded
+                      {[latestRecord.weight, latestRecord.height, latestRecord.bmi, latestRecord.pulse, latestRecord.bp, latestRecord.rr, latestRecord.temp, latestRecord.spo2].filter(Boolean).length} recorded
                     </p>
                   </div>
                   

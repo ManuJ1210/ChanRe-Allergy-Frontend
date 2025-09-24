@@ -7,7 +7,7 @@ import {
   ArrowLeft, User, Phone, Calendar, MapPin, Activity, Pill, FileText, Eye, Edit, Plus, AlertCircle, Mail, UserCheck, Trash2
 } from 'lucide-react';
 
-const TABS = ["Overview", "Follow Up", "Prescription"];
+const TABS = ["Overview", "Follow Up", "Prescription", "History"];
 
 const ViewProfile = () => {
   const { id } = useParams();
@@ -94,11 +94,19 @@ const ViewProfile = () => {
       // Check for refresh parameter (from successful test submission)
       const urlParams = new URLSearchParams(location.search);
       const refreshParam = urlParams.get('refresh');
+      const tabParam = urlParams.get('tab');
       
-             if (refreshParam) {
-         // Clear the refresh parameter from URL
-         window.history.replaceState({}, '', `/dashboard/CenterAdmin/patients/profile/ViewProfile/${id}`);
-       }
+      if (refreshParam) {
+        // Clear the refresh parameter from URL
+        window.history.replaceState({}, '', `/dashboard/CenterAdmin/patients/profile/ViewProfile/${id}`);
+      }
+      
+      // Handle tab parameter
+      if (tabParam && TABS.includes(tabParam)) {
+        setActiveTab(tabParam);
+        // Clear the tab parameter from URL after setting it
+        window.history.replaceState({}, '', `/dashboard/CenterAdmin/patients/profile/ViewProfile/${id}`);
+      }
 
       dispatch(fetchPatientDetails(id));
       dispatch(fetchPatientMedications(id));
@@ -475,79 +483,6 @@ const ViewProfile = () => {
                 </div>
               </div>
 
-              {/* History */}
-              <div className="bg-white rounded-xl shadow-sm border border-blue-100">
-                <div className="p-4 sm:p-6 border-b border-blue-100">
-                  <h2 className="text-sm font-semibold text-slate-800 flex items-center">
-                    <FileText className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-blue-500" />
-                    Medical History
-                  </h2>
-                  <p className="text-slate-600 mt-1 text-xs">
-                    Complete patient medical history and examination records
-                  </p>
-                </div>
-                <div className="p-4 sm:p-6">
-                  {historyLoading ? (
-                    <div className="text-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
-                      <p className="text-slate-600 text-xs">Loading history...</p>
-                    </div>
-                  ) : historyError ? (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                      <p className="text-red-600 text-xs">{historyError}</p>
-                    </div>
-                  ) : !Array.isArray(history) || history.length === 0 ? (
-                    <div className="text-center py-8">
-                      <FileText className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                      <p className="text-slate-500 text-xs">No history found</p>
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="bg-slate-50 border-b border-slate-200">
-                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Date</th>
-                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Hay Fever</th>
-                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Asthma</th>
-                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Breathing Problems</th>
-                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Hives/Swelling</th>
-                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Sinus Trouble</th>
-                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Eczema/Rashes</th>
-                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Food Allergies</th>
-                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Drug Allergy</th>
-                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Action</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-200">
-                      {history.map((h, idx) => (
-                            <tr key={h._id || idx} className="hover:bg-slate-50 transition-colors">
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-600">
-                                {h.createdAt ? new Date(h.createdAt).toLocaleDateString() : 'N/A'}
-                              </td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{h.hayFever || 'N/A'}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{h.asthma || 'N/A'}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{h.breathingProblems || 'N/A'}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{h.hivesSwelling || 'N/A'}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{h.sinusTrouble || 'N/A'}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{h.eczemaRashes || 'N/A'}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{h.foodAllergies || 'N/A'}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{h.drugAllergy || 'N/A'}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">
-                                <button
-                                  onClick={() => navigate(`/dashboard/CenterAdmin/patients/ViewHistory/${h._id}`)}
-                                  className="text-blue-600 hover:text-blue-900 font-medium"
-                                >
-                                  View Details
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              </div>
             </div>
           )}
           {activeTab === "Follow Up" && (
@@ -912,6 +847,113 @@ const ViewProfile = () => {
                     </table>
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+          {activeTab === "History" && (
+            <div className="space-y-6 sm:space-y-8">
+              {/* History */}
+              <div className="bg-white rounded-xl shadow-sm border border-blue-100">
+                <div className="p-4 sm:p-6 border-b border-blue-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <div>
+                    <h2 className="text-sm font-semibold text-slate-800 flex items-center">
+                      <FileText className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-blue-500" />
+                      Medical History
+                    </h2>
+                    <p className="text-slate-600 mt-1 text-xs">
+                      Complete patient medical history and examination records
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      // Store patient ID in localStorage as backup
+                      localStorage.setItem('currentPatientId', patient._id);
+                      navigate(`/dashboard/CenterAdmin/patients/AddHistory/${patient._id}`);
+                    }}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-xs w-full sm:w-auto"
+                  >
+                    Add History
+                  </button>
+                </div>
+                <div className="p-4 sm:p-6">
+                  {historyLoading ? (
+                    <div className="text-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                      <p className="text-slate-600 text-xs">Loading history...</p>
+                    </div>
+                  ) : historyError ? (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                      <p className="text-red-600 text-xs">{historyError}</p>
+                    </div>
+                  ) : !Array.isArray(history) || history.length === 0 ? (
+                    <div className="text-center py-8">
+                      <FileText className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                      <p className="text-slate-500 text-xs mb-4">No history found</p>
+                      <button
+                        onClick={() => {
+                          // Store patient ID in localStorage as backup
+                          localStorage.setItem('currentPatientId', patient._id);
+                          navigate(`/dashboard/CenterAdmin/patients/AddHistory/${patient._id}`);
+                        }}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors text-xs"
+                      >
+                        Add First History
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="bg-slate-50 border-b border-slate-200">
+                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Date</th>
+                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Hay Fever</th>
+                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Asthma</th>
+                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Breathing Problems</th>
+                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Hives/Swelling</th>
+                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Sinus Trouble</th>
+                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Eczema/Rashes</th>
+                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Food Allergies</th>
+                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Drug Allergy</th>
+                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200">
+                          {history.map((h, idx) => (
+                            <tr key={h._id || idx} className="hover:bg-slate-50 transition-colors">
+                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-600">
+                                {h.createdAt ? new Date(h.createdAt).toLocaleDateString() : 'N/A'}
+                              </td>
+                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{h.hayFever || 'N/A'}</td>
+                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{h.asthma || 'N/A'}</td>
+                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{h.breathingProblems || 'N/A'}</td>
+                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{h.hivesSwelling || 'N/A'}</td>
+                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{h.sinusTrouble || 'N/A'}</td>
+                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{h.eczemaRashes || 'N/A'}</td>
+                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{h.foodAllergies || 'N/A'}</td>
+                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{h.drugAllergy || 'N/A'}</td>
+                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => navigate(`/dashboard/CenterAdmin/patients/ViewHistory/${h._id}`)}
+                                    className="text-blue-600 hover:text-blue-900 font-medium"
+                                  >
+                                    View Details
+                                  </button>
+                                  <button
+                                    onClick={() => navigate(`/dashboard/CenterAdmin/patients/AddHistory/EditHistory/${patient._id}/${h._id}`)}
+                                    className="text-green-600 hover:text-green-900 font-medium"
+                                  >
+                                    Edit
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}

@@ -69,9 +69,9 @@ const SuperadminConsultationFeeBilling = () => {
 
   const fetchAllCenters = async () => {
     try {
-      const response = await API.get('/centers/all');
-      if (response.data.success && response.data.centers) {
-        setCenters(response.data.centers);
+      const response = await API.get('/centers');
+      if (response.data && Array.isArray(response.data)) {
+        setCenters(response.data);
       } else {
         console.error('Invalid centers response format:', response.data);
       }
