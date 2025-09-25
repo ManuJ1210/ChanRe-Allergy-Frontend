@@ -97,7 +97,8 @@ export const validateCenterCode = (code) => {
 
 export const validateExperience = (experience) => {
   if (!experience) return null; // Optional field
-  if (experience.length < 2) return 'Experience description must be at least 2 characters long';
+  if (experience.length < 1) return 'Experience description cannot be empty';
+  if (experience.length > 50) return 'Experience description must be less than 50 characters';
   return null;
 };
 
@@ -145,7 +146,7 @@ export const validateDoctorForm = (formData) => {
   errors.username = validateUsername(formData.username);
   errors.password = validatePassword(formData.password);
   errors.qualification = validateQualification(formData.qualification);
-  errors.designation = validateRequired(formData.designation, 'Designation');
+  errors.designation = validateQualification(formData.designation); // Make designation optional like qualification
   errors.kmcNumber = validateKMCNumber(formData.kmcNumber);
   errors.experience = validateExperience(formData.experience);
   errors.bio = validateBio(formData.bio);

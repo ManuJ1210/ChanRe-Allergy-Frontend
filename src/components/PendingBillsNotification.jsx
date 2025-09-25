@@ -48,10 +48,13 @@ export default function PendingBillsNotification({ isOpen, onClose }) {
     if (patients.length > 0) {
       const pending = patients.filter(patient => {
         const status = getPatientStatus(patient);
-        console.log('Consultation Patient:', patient.name, 'Status:', status, 'Billing:', patient.billing);
+        // Only log if patient has pending bills
+        if (status !== 'All Paid') {
+          console.log('Consultation Patient:', patient.name, 'Status:', status);
+        }
         return status !== 'All Paid';
       });
-      console.log('Pending consultation bills:', pending);
+      console.log('Pending consultation bills:', pending.length);
       setPendingBills(pending);
     } else {
       setPendingBills([]);
@@ -59,22 +62,18 @@ export default function PendingBillsNotification({ isOpen, onClose }) {
   }, [patients]);
 
   useEffect(() => {
-    console.log('🔍 Billing Requests Data:', billingRequests);
-    console.log('🔍 Billing Requests Length:', billingRequests?.length);
-    console.log('🔍 Billing Requests Type:', typeof billingRequests);
-    console.log('🔍 Billing Requests Is Array:', Array.isArray(billingRequests));
-    
     if (billingRequests && billingRequests.length > 0) {
+      console.log('🔍 Processing', billingRequests.length, 'billing requests');
+      
       const followUpPending = billingRequests.filter(request => {
-        console.log('🔍 Processing Request:', {
-          id: request._id,
-          patientName: request.patient?.name,
-          billing: request.billing,
-          status: request.status,
-          total: request.total,
-          paid: request.paid,
-          remaining: request.remaining
-        });
+        // Only log details for requests that might be unpaid
+        const isLikelyUnpaid = request.status === 'Billing_Paid' && 
+          request.billing?.status === 'partially_paid' ||
+          request.status !== 'Billing_Paid';
+        
+        if (isLikelyUnpaid) {
+          console.log('🔍 Processing Request:', request.patient?.name || 'Unknown', 'Status:', request.status, 'Billing Status:', request.billing?.status);
+        }
         
         // Check if billing is an array, if not, treat it as a single object or check other properties
         let hasUnpaidBills = false;
@@ -84,6 +83,7 @@ export default function PendingBillsNotification({ isOpen, onClose }) {
             bill.status === 'No payments' || 
             bill.status === 'no payments' || 
             bill.status === 'pending' ||
+            bill.status === 'partially_paid' ||
             (bill.remaining && bill.remaining > 0)
           );
         } else if (request.billing) {
@@ -92,6 +92,7 @@ export default function PendingBillsNotification({ isOpen, onClose }) {
           hasUnpaidBills = bill.status === 'No payments' || 
             bill.status === 'no payments' || 
             bill.status === 'pending' ||
+            bill.status === 'partially_paid' ||
             (bill.remaining && bill.remaining > 0);
         } else {
           // Check if the request itself has unpaid status
@@ -102,26 +103,20 @@ export default function PendingBillsNotification({ isOpen, onClose }) {
             request.status === 'Billing Generated' ||  // ✅ Added: Bills that are generated but not paid
             request.status === 'Billing_Pending' ||     // ✅ Added: Bills pending generation
             request.status === 'Billing_Generated' ||   // ✅ Added: Alternative naming
+            (request.status === 'Billing_Paid' && request.billing?.status === 'partially_paid') || // ✅ Added: Partially paid bills
             (request.remaining && request.remaining > 0) ||
             (request.total && request.paid && request.total > request.paid);
         }
         
-        console.log('🔍 Billing Request Result:', request.patient?.name || 'Unknown', 'Has unpaid bills:', hasUnpaidBills, 'Billing:', request.billing, 'Request status:', request.status);
+        if (isLikelyUnpaid) {
+          console.log('🔍 Billing Request Result:', request.patient?.name || 'Unknown', 'Has unpaid bills:', hasUnpaidBills);
+        }
         return hasUnpaidBills;
       });
-      console.log('🔍 Pending follow-up bills:', followUpPending);
       
-      // If no unpaid bills found, show ALL billing requests for debugging
-      if (followUpPending.length === 0 && billingRequests.length > 0) {
-        console.log('🔍 No unpaid bills found, showing ALL billing requests for debugging:');
-        console.log('🔍 All billing requests:', billingRequests);
-        // Temporarily show all requests to debug the issue
-        setFollowUpBills(billingRequests);
-      } else {
-        setFollowUpBills(followUpPending);
-      }
+      console.log('🔍 Pending follow-up bills:', followUpPending.length);
+      setFollowUpBills(followUpPending);
     } else {
-      console.log('🔍 No billing requests found or empty array');
       setFollowUpBills([]);
     }
   }, [billingRequests]);
@@ -188,8 +183,6 @@ export default function PendingBillsNotification({ isOpen, onClose }) {
       bill.status === 'No payments' || bill.status === 'no payments' || bill.status === 'pending'
     );
     
-    console.log('Patient:', patient.name, 'No payment bills:', noPaymentBills);
-    
     if (noPaymentBills.length > 0) {
       return 'No Payments';
     }
@@ -199,8 +192,6 @@ export default function PendingBillsNotification({ isOpen, onClose }) {
       const remaining = bill.remaining || 0;
       return remaining > 0;
     });
-    
-    console.log('Patient:', patient.name, 'Bills with remaining amounts:', billsWithRemaining);
     
     if (billsWithRemaining.length > 0) {
       return 'Service Charges Pending';
@@ -389,6 +380,7 @@ export default function PendingBillsNotification({ isOpen, onClose }) {
                         bill.status === 'No payments' || 
                         bill.status === 'no payments' || 
                         bill.status === 'pending' ||
+                        bill.status === 'partially_paid' ||
                         (bill.remaining && bill.remaining > 0)
                       );
                     } else if (request.billing) {
@@ -397,6 +389,7 @@ export default function PendingBillsNotification({ isOpen, onClose }) {
                       if (bill.status === 'No payments' || 
                           bill.status === 'no payments' || 
                           bill.status === 'pending' ||
+                          bill.status === 'partially_paid' ||
                           (bill.remaining && bill.remaining > 0)) {
                         unpaidBills = [bill];
                       }

@@ -23,7 +23,14 @@ import {
   CreditCard,
   Target,
   BarChart3,
-  RefreshCw
+  RefreshCw,
+  Plus,
+  Edit,
+  Trash2,
+  Save,
+  X,
+  FileSpreadsheet,
+  Settings
 } from 'lucide-react';
 import API from '../../services/api';
 
@@ -38,6 +45,29 @@ const ReceptionistBillingTracker = () => {
   const [dateFilter, setDateFilter] = useState('all');
   const [localUser, setLocalUser] = useState(null);
   
+  // Payment recording states
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentType, setPaymentType] = useState('consultation'); // consultation, service, registration
+  const [selectedPatient, setSelectedPatient] = useState(null);
+  const [paymentData, setPaymentData] = useState({
+    amount: '',
+    paymentMethod: 'cash',
+    notes: '',
+    doctorId: '',
+    serviceName: '',
+    serviceDescription: ''
+  });
+  const [allPayments, setAllPayments] = useState([]);
+  const [filteredPayments, setFilteredPayments] = useState([]);
+  const [patients, setPatients] = useState([]);
+  const [doctors, setDoctors] = useState([]);
+  const [paymentSearchTerm, setPaymentSearchTerm] = useState('');
+  const [paymentTypeFilter, setPaymentTypeFilter] = useState('all');
+  
+  // Pagination for payments table
+  const [currentPaymentPage, setCurrentPaymentPage] = useState(1);
+  const [paymentsPerPage, setPaymentsPerPage] = useState(10);
+  
   // Pagination state for each section
   const [currentPage, setCurrentPage] = useState({
     fullyPaid: 1,
@@ -46,6 +76,419 @@ const ReceptionistBillingTracker = () => {
   });
   const [itemsPerPage, setItemsPerPage] = useState(5);
   
+  // Fetch patients and doctors for payment recording
+  const fetchPatientsAndDoctors = async () => {
+    try {
+      const [patientsResponse, doctorsResponse] = await Promise.all([
+        API.get('/patients'),
+        API.get('/doctors')
+      ]);
+      
+      setPatients(patientsResponse.data.patients || patientsResponse.data || []);
+      setDoctors(doctorsResponse.data || []);
+    } catch (error) {
+      console.error('Error fetching patients and doctors:', error);
+      toast.error('Failed to fetch patients and doctors');
+    }
+  };
+
+  // Clear all dummy/test data from localStorage
+  const clearDummyData = () => {
+    console.log('🧹 Clearing dummy/test data from localStorage...');
+    const keysToRemove = [];
+    
+    // Check all localStorage keys
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('payment_record_')) {
+        try {
+          const payment = JSON.parse(localStorage.getItem(key));
+          // Check if this is dummy/test data
+          if (payment.patientName && (
+            payment.patientName.toLowerCase().includes('test') ||
+            payment.patientName.toLowerCase().includes('dummy') ||
+            payment.patientName.toLowerCase().includes('sample') ||
+            payment.patientName.toLowerCase().includes('example') ||
+            payment.patientName.toLowerCase().includes('demo') ||
+            payment.patientName.toLowerCase().includes('fake') ||
+            payment.doctorName?.toLowerCase().includes('test') ||
+            payment.doctorName?.toLowerCase().includes('dummy') ||
+            payment.doctorName?.toLowerCase().includes('sample') ||
+            payment.doctorName?.toLowerCase().includes('example') ||
+            payment.doctorName?.toLowerCase().includes('demo') ||
+            payment.doctorName?.toLowerCase().includes('fake') ||
+            // Check for common test patterns
+            payment.patientName.match(/^test.*\d+$/i) ||
+            payment.patientName.match(/^sample.*\d+$/i) ||
+            payment.patientName.match(/^dummy.*\d+$/i) ||
+            payment.patientName.match(/^user.*\d+$/i) ||
+            payment.patientName.match(/^patient.*\d+$/i)
+          )) {
+            keysToRemove.push(key);
+            console.log('🗑️ Marking dummy data for removal:', key, payment.patientName);
+          }
+        } catch (error) {
+          console.error('❌ Error parsing payment for dummy check:', error);
+        }
+      }
+    }
+    
+    // Remove dummy data
+    keysToRemove.forEach(key => {
+      localStorage.removeItem(key);
+      console.log('✅ Removed dummy data:', key);
+    });
+    
+    if (keysToRemove.length > 0) {
+      toast.success(`Removed ${keysToRemove.length} dummy/test payment records`);
+      // Reload payments after clearing dummy data
+      loadAllPayments();
+    } else {
+      toast.info('No dummy/test data found to remove');
+    }
+  };
+
+  // Load all payments from localStorage (excluding dummy data)
+  const loadAllPayments = () => {
+    console.log('🔍 Loading payments from localStorage...');
+    const payments = [];
+    
+    // Check all localStorage keys
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      console.log('🔍 Checking key:', key);
+      
+      if (key && key.startsWith('payment_record_')) {
+        try {
+          const payment = JSON.parse(localStorage.getItem(key));
+          console.log('✅ Found payment:', payment);
+          
+          // Skip dummy/test data
+          if (payment.patientName && (
+            payment.patientName.toLowerCase().includes('test') ||
+            payment.patientName.toLowerCase().includes('dummy') ||
+            payment.patientName.toLowerCase().includes('sample') ||
+            payment.patientName.toLowerCase().includes('example') ||
+            payment.patientName.toLowerCase().includes('demo') ||
+            payment.patientName.toLowerCase().includes('fake') ||
+            payment.doctorName?.toLowerCase().includes('test') ||
+            payment.doctorName?.toLowerCase().includes('dummy') ||
+            payment.doctorName?.toLowerCase().includes('sample') ||
+            payment.doctorName?.toLowerCase().includes('example') ||
+            payment.doctorName?.toLowerCase().includes('demo') ||
+            payment.doctorName?.toLowerCase().includes('fake') ||
+            // Check for common test patterns
+            payment.patientName.match(/^test.*\d+$/i) ||
+            payment.patientName.match(/^sample.*\d+$/i) ||
+            payment.patientName.match(/^dummy.*\d+$/i) ||
+            payment.patientName.match(/^user.*\d+$/i) ||
+            payment.patientName.match(/^patient.*\d+$/i)
+          )) {
+            console.log('⏭️ Skipping dummy data:', payment.patientName);
+            continue;
+          }
+          
+          payments.push(payment);
+        } catch (error) {
+          console.error('❌ Error parsing payment:', error);
+        }
+      }
+    }
+    
+    console.log('📊 Total payments found (excluding dummy data):', payments.length);
+    console.log('📊 All payments:', payments);
+    
+    const sortedPayments = payments.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    setAllPayments(sortedPayments);
+    
+    // If no payments found, just show empty state
+    if (payments.length === 0) {
+      console.log('📊 No payments found in localStorage');
+    }
+  };
+
+
+  // Filter payments based on search and type
+  const filterPayments = () => {
+    console.log('🔍 Starting filterPayments with:', {
+      allPaymentsCount: allPayments.length,
+      paymentSearchTerm,
+      paymentTypeFilter
+    });
+    
+    let filtered = allPayments;
+
+    // Search filter
+    if (paymentSearchTerm) {
+      console.log('🔍 Applying search filter:', paymentSearchTerm);
+      filtered = filtered.filter(payment => {
+        const searchLower = paymentSearchTerm.toLowerCase();
+        const matches = (
+          (payment.patientName || '').toLowerCase().includes(searchLower) ||
+          (payment.patientPhone || '').toLowerCase().includes(searchLower) ||
+          (payment.doctorName || '').toLowerCase().includes(searchLower) ||
+          (payment.serviceName || '').toLowerCase().includes(searchLower) ||
+          (payment.paymentMethod || '').toLowerCase().includes(searchLower) ||
+          (payment.recordedBy || '').toLowerCase().includes(searchLower) ||
+          (payment.type || '').toLowerCase().includes(searchLower)
+        );
+        console.log('🔍 Payment matches search:', payment.patientName, matches);
+        return matches;
+      });
+    }
+
+    // Type filter
+    if (paymentTypeFilter !== 'all') {
+      console.log('🔍 Applying type filter:', paymentTypeFilter);
+      filtered = filtered.filter(payment => {
+        const matches = payment.type === paymentTypeFilter;
+        console.log('🔍 Payment matches type:', payment.patientName, payment.type, matches);
+        return matches;
+      });
+    }
+
+    console.log('✅ Final filtered count:', filtered.length);
+    setFilteredPayments(filtered);
+    
+    // Reset to first page when filtering
+    setCurrentPaymentPage(1);
+  };
+
+  // Calculate pagination for payments
+  const getPaginatedPayments = () => {
+    const startIndex = (currentPaymentPage - 1) * paymentsPerPage;
+    const endIndex = startIndex + paymentsPerPage;
+    return filteredPayments.slice(startIndex, endIndex);
+  };
+
+  const getTotalPaymentPages = () => {
+    return Math.ceil(filteredPayments.length / paymentsPerPage);
+  };
+
+  // Update filtered payments when allPayments or filters change
+  useEffect(() => {
+    console.log('🔄 Filtering payments...', {
+      allPayments: allPayments.length,
+      paymentSearchTerm,
+      paymentTypeFilter
+    });
+    filterPayments();
+  }, [allPayments, paymentSearchTerm, paymentTypeFilter]);
+
+  // Save payment to localStorage
+  const savePayment = (payment) => {
+    const paymentId = `payment_record_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const paymentRecord = {
+      ...payment,
+      id: paymentId,
+      timestamp: new Date().toISOString(),
+      recordedBy: user.name,
+      centerId: localUser?.centerId || localUser?.center?.id
+    };
+    
+    localStorage.setItem(paymentId, JSON.stringify(paymentRecord));
+    loadAllPayments();
+    toast.success('Payment recorded successfully!');
+  };
+
+  // Handle payment submission
+  const handlePaymentSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!selectedPatient || !paymentData.amount) {
+      toast.error('Please select a patient and enter amount');
+      return;
+    }
+
+    try {
+      const paymentRecord = {
+        patientId: selectedPatient._id,
+        patientName: selectedPatient.name,
+        patientPhone: selectedPatient.phone,
+        patientEmail: selectedPatient.email,
+        type: paymentType,
+        amount: parseFloat(paymentData.amount),
+        paymentMethod: paymentData.paymentMethod,
+        notes: paymentData.notes,
+        doctorId: paymentData.doctorId,
+        doctorName: doctors.find(d => d._id === paymentData.doctorId)?.name || 'N/A',
+        serviceName: paymentData.serviceName,
+        serviceDescription: paymentData.serviceDescription,
+        isReassigned: selectedPatient.isReassigned || false,
+        originalDoctor: selectedPatient.assignedDoctor?.name || 'N/A',
+        currentDoctor: selectedPatient.currentDoctor?.name || selectedPatient.assignedDoctor?.name || 'N/A'
+      };
+
+      // Save to localStorage
+      savePayment(paymentRecord);
+
+      // Also save to backend if needed
+      if (paymentType === 'consultation') {
+        await API.post('/billing/consultation-fee', {
+          patientId: selectedPatient._id,
+          doctorId: paymentData.doctorId,
+          amount: paymentData.amount,
+          paymentMethod: paymentData.paymentMethod,
+          notes: paymentData.notes
+        });
+      } else if (paymentType === 'service') {
+        await API.post('/billing/service-charges', {
+          patientId: selectedPatient._id,
+          doctorId: paymentData.doctorId,
+          services: [{
+            name: paymentData.serviceName,
+            amount: paymentData.amount,
+            description: paymentData.serviceDescription
+          }],
+          paymentMethod: paymentData.paymentMethod,
+          notes: paymentData.notes
+        });
+      }
+
+      // Reset form
+      setPaymentData({
+        amount: '',
+        paymentMethod: 'cash',
+        notes: '',
+        doctorId: '',
+        serviceName: '',
+        serviceDescription: ''
+      });
+      setSelectedPatient(null);
+      setShowPaymentModal(false);
+      
+    } catch (error) {
+      console.error('Error recording payment:', error);
+      toast.error('Failed to record payment');
+    }
+  };
+
+  // Export payments to Excel
+  // Enhanced export function with comprehensive data for SAP-like analysis
+  const exportPaymentsToExcel = () => {
+    if (allPayments.length === 0) {
+      toast.error('No payments to export');
+      return;
+    }
+
+    // Prepare comprehensive data for analysis
+    const exportData = allPayments.map((payment, index) => {
+      const paymentDate = new Date(payment.timestamp);
+      
+      return {
+        'Record ID': payment.id,
+        'Payment Sequence': index + 1,
+        'Transaction Date': paymentDate.toLocaleDateString('en-GB'),
+        'Transaction Time': paymentDate.toLocaleTimeString('en-GB'),
+        'Payment Type': payment.type?.toUpperCase() || 'UNKNOWN',
+        'Payment Category': payment.isReassigned ? 'REASSIGNED' : 'REGULAR',
+        
+        // Patient Information
+        'Patient ID': payment.patientId || 'N/A',
+        'Patient Name': payment.patientName || 'N/A',
+        'Patient UH ID': payment.uhId || 'N/A',
+        'Patient Age': payment.patientAge || 'N/A',
+        'Patient Gender': payment.patientGender?.toUpperCase() || 'N/A',
+        'Patient Phone': payment.patientPhone || 'N/A',
+        'Patient Email': payment.patientEmail || 'N/A',
+        
+        // Doctor Information
+        'Doctor ID': payment.doctorId || 'N/A',
+        'Doctor Name': payment.doctorName || 'N/A',
+        'Original Doctor': payment.originalDoctor || 'N/A',
+        'Current Doctor': payment.currentDoctor || 'N/A',
+        
+        // Financial Information
+        'Amount (INR)': payment.amount || 0,
+        'Payment Method': payment.paymentMethod?.toUpperCase() || 'N/A',
+        'Invoice Number': payment.invoiceNumber || 'N/A',
+        'Bill ID': payment.billId || 'N/A',
+        
+        // Service Information
+        'Service Name': payment.serviceName || 'N/A',
+        'Service Description': payment.serviceDescription || 'N/A',
+        
+        // Administrative Information
+        'Center ID': payment.centerId || 'N/A',
+        'Center Name': payment.centerName || 'N/A',
+        'Recorded By': payment.recordedBy || 'N/A',
+        'Notes': payment.notes || 'N/A',
+        
+        // Analysis Fields
+        'Month': paymentDate.getMonth() + 1,
+        'Year': paymentDate.getFullYear(),
+        'Quarter': Math.ceil((paymentDate.getMonth() + 1) / 3),
+        'Weekday': paymentDate.toLocaleDateString('en-GB', { weekday: 'long' }),
+        'Is Weekend': [0, 6].includes(paymentDate.getDay()) ? 'YES' : 'NO',
+        'Amount Category': payment.amount >= 1000 ? 'HIGH' : payment.amount >= 500 ? 'MEDIUM' : 'LOW',
+        'Payment Status': 'COMPLETED',
+        
+        // Reassignment Information
+        'Is Reassigned': payment.isReassigned ? 'YES' : 'NO',
+        'Reassignment Type': payment.isReassigned ? 'PATIENT_REASSIGNED' : 'REGULAR_PATIENT',
+        
+        // Timestamp for sorting
+        'Sort Timestamp': payment.timestamp
+      };
+    });
+
+    // Sort by timestamp (newest first)
+    exportData.sort((a, b) => new Date(b['Sort Timestamp']) - new Date(a['Sort Timestamp']));
+
+    // Calculate summary statistics
+    const summary = {
+      'Total Records': allPayments.length,
+      'Total Amount': allPayments.reduce((sum, p) => sum + (p.amount || 0), 0),
+      'Consultation Fees': allPayments.filter(p => p.type === 'consultation').length,
+      'Service Charges': allPayments.filter(p => p.type === 'service').length,
+      'Registration Fees': allPayments.filter(p => p.type === 'registration').length,
+      'Reassigned Payments': allPayments.filter(p => p.isReassigned).length,
+      'Cash Payments': allPayments.filter(p => p.paymentMethod?.toLowerCase() === 'cash').length,
+      'Card Payments': allPayments.filter(p => p.paymentMethod?.toLowerCase() === 'card').length,
+      'Online Payments': allPayments.filter(p => p.paymentMethod?.toLowerCase() === 'online').length,
+      'Average Amount': allPayments.length > 0 ? (allPayments.reduce((sum, p) => sum + (p.amount || 0), 0) / allPayments.length).toFixed(2) : 0,
+      'Export Date': new Date().toLocaleString('en-GB'),
+      'Export Generated By': localUser?.name || 'System'
+    };
+
+    // Convert to CSV format
+    const headers = Object.keys(exportData[0]);
+    const csvContent = [
+      // Summary section
+      ['PAYMENT ANALYSIS SUMMARY'],
+      Object.keys(summary).map(key => `${key}: ${summary[key]}`).join('\n'),
+      '',
+      'DETAILED PAYMENT RECORDS',
+      '',
+      // Headers
+      headers.join(','),
+      // Data rows
+      ...exportData.map(row => 
+        headers.map(header => {
+          const value = row[header];
+          // Escape commas and quotes in CSV
+          if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
+            return `"${value.replace(/"/g, '""')}"`;
+          }
+          return value;
+        }).join(',')
+      )
+    ].join('\n');
+
+    // Create and download file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `payment_analysis_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast.success(`Exported ${allPayments.length} payment records with comprehensive analysis data`);
+  };
+
   // Enhanced function to get partial payment data from localStorage
   const getPartialPaymentData = (requestId) => {
     const paymentKey = `partial_payment_${requestId}`;
@@ -125,6 +568,136 @@ const ReceptionistBillingTracker = () => {
     }
   };
 
+  // Fetch consultation fee billing data from patients
+  // Fetch all billing data from patients (consultation, service, registration)
+  const fetchAllBillingData = async () => {
+    try {
+      console.log('🔍 Fetching all billing data from patients...');
+      
+      if (!user || !localUser) {
+        console.log('User not authenticated, skipping billing data fetch');
+        return;
+      }
+      
+      let centerId = localUser?.centerId || localUser?.center?.id || localUser?.centerId || localUser?.center_id;
+      
+      if (centerId && typeof centerId === 'object' && centerId._id) {
+        centerId = centerId._id;
+      }
+      
+      if (!centerId) {
+        console.error('Center ID not found');
+        return;
+      }
+      
+      // Fetch all patients for the center
+      const patientsResponse = await API.get('/patients');
+      const patients = patientsResponse.data.patients || patientsResponse.data || [];
+      
+      console.log('📊 Found patients:', patients.length);
+      
+      // Extract all payment types from patient billing records
+      const allPaymentsData = [];
+      
+      patients.forEach(patient => {
+        // Regular billing records
+        if (patient.billing && Array.isArray(patient.billing)) {
+          patient.billing.forEach(bill => {
+            if (bill.status === 'paid') {
+              allPaymentsData.push({
+                id: `regular_${bill.type}_${bill._id}`,
+                patientId: patient._id,
+                patientName: patient.name,
+                patientPhone: patient.phone,
+                patientEmail: patient.email,
+                patientAge: patient.age,
+                patientGender: patient.gender,
+                uhId: patient.uhId,
+                type: bill.type,
+                amount: bill.amount,
+                paymentMethod: bill.paymentMethod,
+                notes: bill.notes || '',
+                doctorId: bill.doctorId,
+                doctorName: bill.doctorName || patient.assignedDoctor?.name || 'N/A',
+                serviceName: bill.serviceName || '',
+                serviceDescription: bill.serviceDescription || '',
+                isReassigned: false,
+                originalDoctor: patient.assignedDoctor?.name || 'N/A',
+                currentDoctor: patient.assignedDoctor?.name || 'N/A',
+                timestamp: bill.createdAt || bill.timestamp || new Date().toISOString(),
+                recordedBy: bill.recordedBy || 'System',
+                centerId: centerId,
+                centerName: patient.centerName || 'N/A',
+                invoiceNumber: bill.invoiceNumber || 'N/A',
+                billId: bill._id
+              });
+            }
+          });
+        }
+        
+        // Reassigned billing records
+        if (patient.isReassigned && patient.reassignedBilling && Array.isArray(patient.reassignedBilling)) {
+          patient.reassignedBilling.forEach(bill => {
+            if (bill.status === 'paid') {
+              allPaymentsData.push({
+                id: `reassigned_${bill.type}_${bill._id}`,
+                patientId: patient._id,
+                patientName: patient.name,
+                patientPhone: patient.phone,
+                patientEmail: patient.email,
+                patientAge: patient.age,
+                patientGender: patient.gender,
+                uhId: patient.uhId,
+                type: bill.type,
+                amount: bill.amount,
+                paymentMethod: bill.paymentMethod,
+                notes: bill.notes || '',
+                doctorId: bill.doctorId,
+                doctorName: bill.doctorName || patient.currentDoctor?.name || 'N/A',
+                serviceName: bill.serviceName || '',
+                serviceDescription: bill.serviceDescription || '',
+                isReassigned: true,
+                originalDoctor: patient.assignedDoctor?.name || 'N/A',
+                currentDoctor: patient.currentDoctor?.name || 'N/A',
+                timestamp: bill.createdAt || bill.timestamp || new Date().toISOString(),
+                recordedBy: bill.recordedBy || 'System',
+                centerId: centerId,
+                centerName: patient.centerName || 'N/A',
+                invoiceNumber: bill.invoiceNumber || 'N/A',
+                billId: bill._id
+              });
+            }
+          });
+        }
+      });
+      
+      console.log('💰 Found all payments:', allPaymentsData.length);
+      console.log('📈 Payment breakdown:', {
+        consultation: allPaymentsData.filter(p => p.type === 'consultation').length,
+        service: allPaymentsData.filter(p => p.type === 'service').length,
+        registration: allPaymentsData.filter(p => p.type === 'registration').length,
+        reassigned: allPaymentsData.filter(p => p.isReassigned).length
+      });
+      
+      // Save all payments to localStorage
+      allPaymentsData.forEach(payment => {
+        localStorage.setItem(payment.id, JSON.stringify(payment));
+      });
+      
+      // Reload all payments
+      loadAllPayments();
+      
+      const consultationCount = allPaymentsData.filter(p => p.type === 'consultation').length;
+      const serviceCount = allPaymentsData.filter(p => p.type === 'service').length;
+      const registrationCount = allPaymentsData.filter(p => p.type === 'registration').length;
+      
+      toast.success(`Loaded ${allPaymentsData.length} payment records (${consultationCount} consultation, ${serviceCount} service, ${registrationCount} registration)`);
+    } catch (error) {
+      console.error('Error fetching billing data:', error);
+      toast.error('Failed to fetch billing data');
+    }
+  };
+
   useEffect(() => {
     if (!user) {
       setLocalUser(null);
@@ -146,6 +719,9 @@ const ReceptionistBillingTracker = () => {
       
       if (centerId) {
         fetchBillingData();
+        fetchPatientsAndDoctors();
+        loadAllPayments();
+        fetchAllBillingData();
       } else {
         if (localUser && Object.keys(localUser).length > 0) {
           if (localUser.role === 'receptionist') {
@@ -593,6 +1169,94 @@ const ReceptionistBillingTracker = () => {
           </div>
         </div>
 
+        {/* Payment Recording Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          {/* Consultation Fee Card */}
+          <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-6 hover:shadow-xl transition-shadow duration-300 cursor-pointer"
+               onClick={() => {
+                 setPaymentType('consultation');
+                 setShowPaymentModal(true);
+               }}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-600 mb-1">Consultation Fee</p>
+                <p className="text-2xl font-bold text-blue-600">{allPayments.filter(p => p.type === 'consultation').length}</p>
+                <p className="text-xs text-slate-500 mt-1">Doctor consultations</p>
+              </div>
+              <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
+                <User className="w-6 h-6 text-white" />
+              </div>
+            </div>
+            <div className="mt-4 flex items-center text-blue-600 text-sm font-medium">
+              <Plus className="w-4 h-4 mr-1" />
+              Record Payment
+            </div>
+          </div>
+
+          {/* Service Charges Card */}
+          <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-6 hover:shadow-xl transition-shadow duration-300 cursor-pointer"
+               onClick={() => {
+                 setPaymentType('service');
+                 setShowPaymentModal(true);
+               }}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-600 mb-1">Service Charges</p>
+                <p className="text-2xl font-bold text-green-600">{allPayments.filter(p => p.type === 'service').length}</p>
+                <p className="text-xs text-slate-500 mt-1">Additional services</p>
+              </div>
+              <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-green-600 rounded-xl flex items-center justify-center">
+                <Settings className="w-6 h-6 text-white" />
+              </div>
+            </div>
+            <div className="mt-4 flex items-center text-green-600 text-sm font-medium">
+              <Plus className="w-4 h-4 mr-1" />
+              Record Payment
+            </div>
+          </div>
+
+          {/* Registration Fee Card */}
+          <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-6 hover:shadow-xl transition-shadow duration-300 cursor-pointer"
+               onClick={() => {
+                 setPaymentType('registration');
+                 setShowPaymentModal(true);
+               }}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-600 mb-1">Registration Fee</p>
+                <p className="text-2xl font-bold text-purple-600">{allPayments.filter(p => p.type === 'registration').length}</p>
+                <p className="text-xs text-slate-500 mt-1">New patient registration</p>
+              </div>
+              <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
+                <Users className="w-6 h-6 text-white" />
+              </div>
+            </div>
+            <div className="mt-4 flex items-center text-purple-600 text-sm font-medium">
+              <Plus className="w-4 h-4 mr-1" />
+              Record Payment
+            </div>
+          </div>
+
+          {/* Export Payments Card */}
+          <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-6 hover:shadow-xl transition-shadow duration-300 cursor-pointer"
+               onClick={exportPaymentsToExcel}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-600 mb-1">Export Payments</p>
+                <p className="text-2xl font-bold text-orange-600">{allPayments.length}</p>
+                <p className="text-xs text-slate-500 mt-1">Total payments</p>
+              </div>
+              <div className="w-12 h-12 bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl flex items-center justify-center">
+                <FileSpreadsheet className="w-6 h-6 text-white" />
+              </div>
+            </div>
+            <div className="mt-4 flex items-center text-orange-600 text-sm font-medium">
+              <Download className="w-4 h-4 mr-1" />
+              Export to Excel
+            </div>
+          </div>
+        </div>
+
         {/* Filters */}
         <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
@@ -654,16 +1318,6 @@ const ReceptionistBillingTracker = () => {
           </div>
         </div>
 
-        {/* Loading State */}
-        {loading && (
-          <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-16 text-center">
-            <div className="flex flex-col items-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-              <p className="text-slate-600 text-lg">Loading billing data...</p>
-              <p className="text-slate-500 text-sm mt-2">Please wait while we fetch the latest data</p>
-            </div>
-          </div>
-        )}
 
         {/* Fully Paid Bills Section */}
         {!loading && (
@@ -1202,12 +1856,11 @@ const ReceptionistBillingTracker = () => {
                                         console.log('❌ Available keys in item.patient:', Object.keys(item.patient));
                                       }
                                       if (item.patientId) {
-                                        console.log('❌ Available keys in item.patientId:', Object.keys(item.patientId));
+                                       
                                       }
                                     }
                                     
-                                    console.log('🎯 Final extracted patient ID:', patientId);
-                                    console.log('🎯 Final type:', typeof patientId);
+                                    
                                     handleViewProfile(patientId);
                                   }}
                                   className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50"
@@ -1239,6 +1892,580 @@ const ReceptionistBillingTracker = () => {
               />
             </div>
           </>
+        )}
+
+        {/* All Payment Records Table - Moved to Last Position */}
+        <div className="bg-white rounded-xl shadow-lg border border-slate-200 mb-6 overflow-hidden">
+          <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-purple-50">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-4">
+                <div className="p-3 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl shadow-lg">
+                  <Receipt className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">All Payment Records</h3>
+                  <p className="text-gray-600 font-medium">Complete payment history with detailed information</p>
+                </div>
+              </div>
+              <div className="text-center">
+                <div className="text-lg font-bold text-indigo-600 mb-1">{filteredPayments.length}</div>
+                <div className="text-xs font-semibold text-gray-600">Filtered Payments</div>
+              </div>
+            </div>
+            
+            {/* Payment Search and Filter Controls */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search payments..."
+                  value={paymentSearchTerm}
+                  onChange={(e) => setPaymentSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 text-sm"
+                />
+              </div>
+              
+              <select
+                value={paymentTypeFilter}
+                onChange={(e) => setPaymentTypeFilter(e.target.value)}
+                className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 text-sm"
+              >
+                <option value="all">All Payment Types</option>
+                <option value="consultation">Consultation Fees</option>
+                <option value="service">Service Charges</option>
+                <option value="registration">Registration Fees</option>
+              </select>
+              
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => {
+                    setPaymentSearchTerm('');
+                    setPaymentTypeFilter('all');
+                  }}
+                  className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors duration-200 text-sm font-medium"
+                >
+                  Clear Filters
+                </button>
+                <button
+                  onClick={fetchAllBillingData}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 text-sm font-medium flex items-center"
+                >
+                  <DollarSign className="w-4 h-4 mr-2" />
+                  Load All Payments
+                </button>
+                <button
+                  onClick={loadAllPayments}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors duration-200 text-sm font-medium flex items-center"
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Refresh
+                </button>
+                <button
+                  onClick={clearDummyData}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200 text-sm font-medium flex items-center"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Clear Dummy Data
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <div className="overflow-x-auto w-full">
+            {filteredPayments.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Receipt className="w-8 h-8 text-indigo-400" />
+                </div>
+                <p className="text-gray-600 text-lg font-medium">
+                  {allPayments.length === 0 ? 'No payment records found' : 'No payments match your filters'}
+                </p>
+                <p className="text-gray-500 text-sm mt-2">
+                  {allPayments.length === 0 ? 'Click "Load All Payments" to fetch real payment data from your system' : 'Try adjusting your search criteria'}
+                </p>
+              </div>
+            ) : (
+              <table className="w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment Details</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient Information</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Doctor Information</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment Type</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount & Method</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service Details</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Recorded By</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {getPaginatedPayments().map((payment) => (
+                    <tr key={payment.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className={`p-2 rounded-lg mr-3 ${
+                            payment.type === 'consultation' ? 'bg-blue-100' :
+                            payment.type === 'service' ? 'bg-green-100' :
+                            'bg-purple-100'
+                          }`}>
+                            {payment.type === 'consultation' ? (
+                              <User className="w-4 h-4 text-blue-600" />
+                            ) : payment.type === 'service' ? (
+                              <Settings className="w-4 h-4 text-green-600" />
+                            ) : (
+                              <Users className="w-4 h-4 text-purple-600" />
+                            )}
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">
+                              {payment.invoiceNumber || payment.id.split('_')[2]?.slice(0, 8) || 'N/A'}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {payment.type === 'consultation' ? 'Consultation Fee' :
+                               payment.type === 'service' ? 'Service Charges' :
+                               'Registration Fee'}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="p-2 bg-blue-100 rounded-lg mr-3">
+                            <User className="w-4 h-4 text-blue-600" />
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">
+                              {payment.patientName || 'N/A'}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {payment.patientAge && payment.patientGender ? 
+                                `${payment.patientAge} years, ${payment.patientGender}` : 
+                                payment.patientPhone || 'No phone'
+                              }
+                            </div>
+                            <div className="text-xs text-gray-400">
+                              {payment.uhId ? `UH ID: ${payment.uhId}` : (payment.patientEmail || 'No email')}
+                            </div>
+                            <div className="text-xs text-gray-400">
+                              {payment.patientPhone || 'No phone'}
+                            </div>
+                            {payment.isReassigned && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 mt-1">
+                                Reassigned
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {payment.doctorName || 'N/A'}
+                        </div>
+                        {payment.isReassigned && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            <div>Original: {payment.originalDoctor || 'N/A'}</div>
+                            <div>Current: {payment.currentDoctor || 'N/A'}</div>
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          payment.type === 'consultation' ? 'bg-blue-100 text-blue-800' :
+                          payment.type === 'service' ? 'bg-green-100 text-green-800' :
+                          'bg-purple-100 text-purple-800'
+                        }`}>
+                          {payment.type === 'consultation' ? 'Consultation' :
+                           payment.type === 'service' ? 'Service' :
+                           'Registration'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">
+                          ₹{payment.amount?.toLocaleString() || '0'}
+                        </div>
+                        <div className="text-sm text-gray-500 capitalize">
+                          {payment.paymentMethod || 'N/A'}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {payment.type === 'service' ? (
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">
+                              {payment.serviceName || 'N/A'}
+                            </div>
+                            <div className="text-xs text-gray-500 max-w-xs truncate">
+                              {payment.serviceDescription || 'No description'}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-sm text-gray-500">
+                            {payment.type === 'consultation' ? 'Doctor consultation' : 'Patient registration'}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {new Date(payment.timestamp).toLocaleDateString()}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {new Date(payment.timestamp).toLocaleTimeString()}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {payment.recordedBy || 'N/A'}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => {
+                              // Copy payment details to clipboard
+                              const paymentText = `
+Payment ID: ${payment.id}
+Patient: ${payment.patientName}
+Amount: ₹${payment.amount}
+Type: ${payment.type}
+Method: ${payment.paymentMethod}
+Date: ${new Date(payment.timestamp).toLocaleString()}
+Recorded By: ${payment.recordedBy}
+                              `.trim();
+                              navigator.clipboard.writeText(paymentText);
+                              toast.success('Payment details copied to clipboard');
+                            }}
+                            className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50"
+                            title="Copy Payment Details"
+                          >
+                            <FileText className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (window.confirm('Are you sure you want to delete this payment record?')) {
+                                localStorage.removeItem(payment.id);
+                                loadAllPayments();
+                                toast.success('Payment record deleted');
+                              }
+                            }}
+                            className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50"
+                            title="Delete Payment Record"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+          
+          {/* Pagination Controls */}
+          {filteredPayments.length > 0 && (
+            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="text-sm text-gray-700">
+                    Showing {((currentPaymentPage - 1) * paymentsPerPage) + 1} to {Math.min(currentPaymentPage * paymentsPerPage, filteredPayments.length)} of {filteredPayments.length} payments
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <label className="text-sm text-gray-700">Show:</label>
+                    <select
+                      value={paymentsPerPage}
+                      onChange={(e) => {
+                        setPaymentsPerPage(Number(e.target.value));
+                        setCurrentPaymentPage(1);
+                      }}
+                      className="px-2 py-1 border border-gray-300 rounded text-sm"
+                    >
+                      <option value={5}>5</option>
+                      <option value={10}>10</option>
+                      <option value={25}>25</option>
+                      <option value={50}>50</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => setCurrentPaymentPage(1)}
+                    disabled={currentPaymentPage === 1}
+                    className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    First
+                  </button>
+                  <button
+                    onClick={() => setCurrentPaymentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPaymentPage === 1}
+                    className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </button>
+                  
+                  <div className="flex items-center space-x-1">
+                    {Array.from({ length: Math.min(5, getTotalPaymentPages()) }, (_, i) => {
+                      const pageNum = Math.max(1, Math.min(getTotalPaymentPages(), currentPaymentPage - 2 + i));
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => setCurrentPaymentPage(pageNum)}
+                          className={`px-3 py-1 text-sm border rounded ${
+                            currentPaymentPage === pageNum
+                              ? 'bg-blue-600 text-white border-blue-600'
+                              : 'border-gray-300 hover:bg-gray-100'
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  
+                  <button
+                    onClick={() => setCurrentPaymentPage(prev => Math.min(prev + 1, getTotalPaymentPages()))}
+                    disabled={currentPaymentPage === getTotalPaymentPages()}
+                    className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                  <button
+                    onClick={() => setCurrentPaymentPage(getTotalPaymentPages())}
+                    disabled={currentPaymentPage === getTotalPaymentPages()}
+                    className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Last
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Payment Recording Modal */}
+        {showPaymentModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+              <div className="p-6 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-bold text-gray-900">
+                    Record {paymentType === 'consultation' ? 'Consultation Fee' : 
+                            paymentType === 'service' ? 'Service Charges' : 
+                            'Registration Fee'} Payment
+                  </h3>
+                  <button
+                    onClick={() => {
+                      setShowPaymentModal(false);
+                      setSelectedPatient(null);
+                      setPaymentData({
+                        amount: '',
+                        paymentMethod: 'cash',
+                        notes: '',
+                        doctorId: '',
+                        serviceName: '',
+                        serviceDescription: ''
+                      });
+                    }}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+              </div>
+
+              <form onSubmit={handlePaymentSubmit} className="p-6 space-y-6">
+                {/* Patient Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Select Patient *
+                  </label>
+                  <select
+                    value={selectedPatient?._id || ''}
+                    onChange={(e) => {
+                      const patient = patients.find(p => p._id === e.target.value);
+                      setSelectedPatient(patient);
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  >
+                    <option value="">Choose a patient...</option>
+                    {patients.map(patient => (
+                      <option key={patient._id} value={patient._id}>
+                        {patient.name} - {patient.phone} {patient.isReassigned ? '(Reassigned)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Doctor Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Select Doctor *
+                  </label>
+                  <select
+                    value={paymentData.doctorId}
+                    onChange={(e) => setPaymentData({...paymentData, doctorId: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  >
+                    <option value="">Choose a doctor...</option>
+                    {doctors.map(doctor => (
+                      <option key={doctor._id} value={doctor._id}>
+                        {doctor.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Service Details (only for service charges) */}
+                {paymentType === 'service' && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Service Name *
+                      </label>
+                      <input
+                        type="text"
+                        value={paymentData.serviceName}
+                        onChange={(e) => setPaymentData({...paymentData, serviceName: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="e.g., Blood Test, X-Ray, etc."
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Service Description
+                      </label>
+                      <textarea
+                        value={paymentData.serviceDescription}
+                        onChange={(e) => setPaymentData({...paymentData, serviceDescription: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        rows={3}
+                        placeholder="Describe the service provided..."
+                      />
+                    </div>
+                  </>
+                )}
+
+                {/* Amount */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Amount (₹) *
+                  </label>
+                  <input
+                    type="number"
+                    value={paymentData.amount}
+                    onChange={(e) => setPaymentData({...paymentData, amount: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter amount"
+                    required
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
+
+                {/* Payment Method */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Payment Method *
+                  </label>
+                  <select
+                    value={paymentData.paymentMethod}
+                    onChange={(e) => setPaymentData({...paymentData, paymentMethod: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  >
+                    <option value="cash">Cash</option>
+                    <option value="card">Card</option>
+                    <option value="upi">UPI</option>
+                    <option value="netbanking">Net Banking</option>
+                    <option value="cheque">Cheque</option>
+                  </select>
+                </div>
+
+                {/* Notes */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Notes
+                  </label>
+                  <textarea
+                    value={paymentData.notes}
+                    onChange={(e) => setPaymentData({...paymentData, notes: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    rows={3}
+                    placeholder="Additional notes..."
+                  />
+                </div>
+
+                {/* Patient Info Display */}
+                {selectedPatient && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 className="font-medium text-blue-900 mb-2">Patient Information</h4>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-blue-700">Name:</span> {selectedPatient.name}
+                      </div>
+                      <div>
+                        <span className="text-blue-700">Phone:</span> {selectedPatient.phone}
+                      </div>
+                      <div>
+                        <span className="text-blue-700">Email:</span> {selectedPatient.email || 'N/A'}
+                      </div>
+                      <div>
+                        <span className="text-blue-700">Status:</span> 
+                        <span className={`ml-1 px-2 py-1 rounded-full text-xs ${
+                          selectedPatient.isReassigned ? 'bg-orange-100 text-orange-800' : 'bg-green-100 text-green-800'
+                        }`}>
+                          {selectedPatient.isReassigned ? 'Reassigned' : 'Regular'}
+                        </span>
+                      </div>
+                      {selectedPatient.isReassigned && (
+                        <>
+                          <div>
+                            <span className="text-blue-700">Original Doctor:</span> {selectedPatient.assignedDoctor?.name || 'N/A'}
+                          </div>
+                          <div>
+                            <span className="text-blue-700">Current Doctor:</span> {selectedPatient.currentDoctor?.name || 'N/A'}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowPaymentModal(false);
+                      setSelectedPatient(null);
+                      setPaymentData({
+                        amount: '',
+                        paymentMethod: 'cash',
+                        notes: '',
+                        doctorId: '',
+                        serviceName: '',
+                        serviceDescription: ''
+                      });
+                    }}
+                    className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors duration-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 flex items-center"
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    Record Payment
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
         )}
       </div>
     </div>

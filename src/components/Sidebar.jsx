@@ -290,6 +290,12 @@ export default function Sidebar(props) {
                 isActive={isActive("/dashboard/receptionist/consultation-billing")}
               />
               <SidebarLink
+                to="/dashboard/receptionist/reassign-patient"
+                label="Reassign Patient"
+                icon={<FaUserCheck />}
+                isActive={isActive("/dashboard/receptionist/reassign-patient")}
+              />
+              <SidebarLink
                 to="/dashboard/receptionist/billing-tracker"
                 label="Payment Tracker"
                 icon={<FaMoneyBillWave />}

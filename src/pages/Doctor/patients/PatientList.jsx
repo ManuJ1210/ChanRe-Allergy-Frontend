@@ -22,7 +22,8 @@ import {
   Filter,
   X,
   ChevronDown,
-  DollarSign
+  DollarSign,
+  UserPlus
 } from 'lucide-react';
 import API from '../../../services/api';
 
@@ -64,10 +65,38 @@ export default function PatientList() {
       
       return matchesSearch;
     });
-    setFilteredPatients(filtered);
+
+    // Process patients to identify reassigned patients
+    const processedPatients = filtered.map(patient => {
+      // Check if patient has billing records for different doctors (indicating reassignment)
+      const currentDoctorId = patient.assignedDoctor?._id || patient.assignedDoctor;
+      const hasBillingForDifferentDoctor = patient.billing && patient.billing.some(bill => {
+        const hasDoctorId = bill.doctorId && bill.doctorId.toString();
+        return hasDoctorId && bill.doctorId.toString() !== currentDoctorId?.toString();
+      });
+      
+      // Check if patient has multiple consultation fees (indicating reassignment)
+      const consultationFees = patient.billing?.filter(bill => 
+        bill.type === 'consultation' || bill.description?.toLowerCase().includes('consultation')
+      ) || [];
+      const hasMultipleConsultationFees = consultationFees.length > 1;
+      
+      // Check if this patient was previously reassigned (has reassignment marker in localStorage)
+      const reassignmentKey = `reassigned_${patient._id}`;
+      const wasPreviouslyReassigned = localStorage.getItem(reassignmentKey) === 'true';
+      
+      const isReassignedPatient = hasBillingForDifferentDoctor || hasMultipleConsultationFees || wasPreviouslyReassigned;
+      
+      return {
+        ...patient,
+        isReassignedPatient: isReassignedPatient
+      };
+    });
+
+    setFilteredPatients(processedPatients);
     
     // Show sub-search if we have results and a search term
-    setShowSubSearch(filtered.length > 0 && searchTerm.trim() !== '');
+    setShowSubSearch(processedPatients.length > 0 && searchTerm.trim() !== '');
   }, [searchTerm, assignedPatients]);
 
   // Apply sub-search filter on the already filtered patients
@@ -460,7 +489,15 @@ export default function PatientList() {
                   <div key={patient?._id || index} className="bg-slate-50 rounded-lg p-4 space-y-3 border border-slate-200">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="font-semibold text-slate-800 text-sm">{patient?.name || 'N/A'}</h3>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-semibold text-slate-800 text-sm">{patient?.name || 'N/A'}</h3>
+                          {patient?.isReassignedPatient && (
+                            <span className="px-2 py-1 bg-orange-100 text-orange-600 text-xs font-medium rounded-full flex items-center gap-1">
+                              <UserPlus className="h-3 w-3" />
+                              Reassigned
+                            </span>
+                          )}
+                        </div>
                         <p className="text-slate-500 text-xs">#{globalIndex + 1}</p>
                       </div>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${

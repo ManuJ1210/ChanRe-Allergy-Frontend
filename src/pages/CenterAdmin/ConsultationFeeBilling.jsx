@@ -224,7 +224,7 @@ const CenterAdminConsultationFeeBilling = () => {
           originalPatientId: patient._id
         });
         
-        // 2. Create a reassigned entry (treated as new patient without reg fee)
+        // 2. Create a reassigned entry (keep billing records but check for current doctor's consultation fee)
         const reassignedPatient = {
           ...patient,
           isReassignedEntry: true,
@@ -235,17 +235,15 @@ const CenterAdminConsultationFeeBilling = () => {
           },
           reassignedEntryId: `${patient._id}_reassigned`,
           originalPatientId: patient._id,
-          // Clear billing records for reassigned entry - they need new consultation fee
-          billing: []
+          // Keep billing records but filter for current doctor's consultation fee
+          billing: patient.billing || []
         };
         
         // Mark this patient as reassigned in localStorage so it persists
         const reassignmentKey = `reassigned_${patient._id}`;
         localStorage.setItem(reassignmentKey, 'true');
         
-        console.log('🔄 Creating separate entries for:', patient.name);
-        console.log('📋 Original entry (with all billing records)');
-        console.log('📋 Reassigned entry (treated as new patient, no reg fee)');
+        // Creating separate entries for reassigned patient
         
         processedPatients.push(reassignedPatient);
       } else if (!processedPatientIds.has(patient._id)) {
@@ -275,36 +273,39 @@ const CenterAdminConsultationFeeBilling = () => {
   };
 
   const getPatientStatus = (patient) => {
-    console.log('🔍 Getting status for patient:', patient.name);
-    console.log('🔍 All billing records:', patient.billing?.map(bill => ({
-      id: bill._id,
-      type: bill.type,
-      description: bill.description,
-      doctorId: bill.doctorId,
-      doctorIdType: typeof bill.doctorId,
-      doctorIdString: bill.doctorId?.toString(),
-      amount: bill.amount,
-      status: bill.status
-    })));
-    
     const isReassignedEntry = patient.isReassignedEntry || false;
     
-    // For reassigned patients with empty billing, they need consultation fee
-    if (isReassignedEntry && (!patient.billing || patient.billing.length === 0)) {
-      console.log('✅ Reassigned patient with no billing - needs consultation fee:', patient.name);
-      return 'Consultation Fee Required';
-    }
-    
     if (!patient.billing || patient.billing.length === 0) {
-      console.log('❌ No billing records found for:', patient.name);
       return 'Consultation Fee Required';
     }
 
     // Check for consultation fee for the current doctor
     const currentDoctorId = patient.assignedDoctor?._id || patient.assignedDoctor;
     
-    console.log('🔍 Current doctor ID:', currentDoctorId, 'Is reassigned entry:', isReassignedEntry);
-
+    // For reassigned patients, check if they have consultation fee for current doctor
+    if (isReassignedEntry) {
+      const consultationFeeForCurrentDoctor = patient.billing.find(bill => {
+        const isConsultationFee = bill.type === 'consultation' || bill.description?.toLowerCase().includes('consultation');
+        if (isConsultationFee) {
+          const hasDoctorId = bill.doctorId && bill.doctorId.toString();
+          const matchesCurrentDoctor = hasDoctorId && currentDoctorId && bill.doctorId.toString() === currentDoctorId.toString();
+          return matchesCurrentDoctor;
+        }
+        return false;
+      });
+      
+      if (!consultationFeeForCurrentDoctor) {
+        return 'Consultation Fee Required';
+      }
+      
+      if (consultationFeeForCurrentDoctor.status === 'paid' || consultationFeeForCurrentDoctor.status === 'completed') {
+        return 'All Paid';
+      } else {
+        return 'Consultation Fee Pending';
+      }
+    }
+    
+    // For regular patients, check any consultation fee
     const consultationFee = patient.billing.find(bill => {
       const isConsultationType = bill.type === 'consultation' || bill.description?.toLowerCase().includes('consultation');
       const hasDoctorId = bill.doctorId && bill.doctorId.toString();
@@ -326,16 +327,7 @@ const CenterAdminConsultationFeeBilling = () => {
 
     const isNewPatient = isPatientNew(patient);
 
-    console.log('🔍 Status check results:', {
-      hasConsultationFee,
-      paidConsultationFee,
-      hasRegistrationFee,
-      paidRegistrationFee,
-      hasServiceCharges,
-      paidServiceCharges,
-      isNewPatient,
-      isReassignedEntry
-    });
+    // Status check results
 
     if (isReassignedEntry) {
       // For reassigned patients, treat as new patient but WITHOUT registration fee

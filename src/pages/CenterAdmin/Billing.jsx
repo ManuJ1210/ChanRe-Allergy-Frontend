@@ -212,15 +212,22 @@ const CenterAdminBilling = () => {
         return;
       }
       
-      const response = await API.get(`/billing/center`);
+      // Add cache-busting parameter to ensure fresh data
+      const timestamp = new Date().getTime();
+      const response = await API.get(`/billing/center?t=${timestamp}`);
+      
+      console.log('📋 Raw API response:', response.data);
       
       // Ensure we have an array of billing requests
       if (response.data && Array.isArray(response.data.billingRequests)) {
+        console.log('📋 Setting billing data from billingRequests:', response.data.billingRequests);
         setBillingData(response.data.billingRequests);
       } else if (response.data && Array.isArray(response.data)) {
         // If the response is directly an array
+        console.log('📋 Setting billing data from direct array:', response.data);
         setBillingData(response.data);
       } else {
+        console.log('📋 No valid data found, setting empty array');
         setBillingData([]);
       }
     } catch (error) {
@@ -806,16 +813,39 @@ const CenterAdminBilling = () => {
         if (paymentSummary) {
           toast.success(`Payment status updated! Paid: ₹${paymentSummary.paidAmount}, Remaining: ₹${paymentSummary.remainingAmount}`);
           
-          // Refresh billing data
-          console.log('🔄 Refreshing billing data...');
+          // Clear localStorage data for this record to prevent conflicts
+          const paymentKey = `partial_payment_${editingBill._id}`;
+          localStorage.removeItem(paymentKey);
+          console.log('🧹 Cleared localStorage data for:', paymentKey);
+          
+          // Immediately update the specific record in state
+          console.log('🔄 Updating specific record in state...');
+          setBillingData(prevData => {
+            const updatedData = prevData.map(item => {
+              if (item._id === editingBill._id) {
+                console.log('📋 Updating item:', item.patientName, 'from', item.billing?.paidAmount, 'to', paymentSummary.paidAmount);
+                return {
+                  ...item,
+                  billing: {
+                    ...item.billing,
+                    paidAmount: paymentSummary.paidAmount,
+                    status: paymentSummary.status,
+                    paymentStatus: paymentSummary.paymentStatus,
+                    updatedAt: new Date().toISOString(),
+                    updatedBy: user?.name || 'Center Admin'
+                  }
+                };
+              }
+              return item;
+            });
+            console.log('📋 Updated data:', updatedData);
+            return updatedData;
+          });
+          
+          // Also refresh from server as backup
+          console.log('🔄 Refreshing billing data from server...');
           await fetchBillingData();
           console.log('✅ Billing data refreshed');
-          
-          // Force a small delay to ensure UI updates
-          setTimeout(() => {
-            console.log('🔄 Forcing UI refresh...');
-            setBillingData(prevData => [...prevData]); // Trigger re-render
-          }, 100);
           
           // Close modal
           closeEditModal();

@@ -517,8 +517,9 @@ const AddDocter = () => {
                     name="experience"
                     value={formData.experience}
                     onChange={handleChange}
+                    maxLength={50}
                     className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-xs"
-                    placeholder="Enter experience (e.g., 5 years)"
+                    placeholder="Enter experience (e.g., 5 years, 10+ years)"
                   />
                 </div>
               </div>
