@@ -64,6 +64,7 @@ export default function ConsultationBilling() {
   const [paymentData, setPaymentData] = useState({
     amount: '',
     paymentMethod: 'cash',
+    paymentType: 'partial',
     notes: ''
   });
   const [partialPaymentData, setPartialPaymentData] = useState({
@@ -356,6 +357,67 @@ export default function ConsultationBilling() {
     }));
   };
 
+  // New helper function to get outstanding payments for a patient
+  const getOutstandingPayments = (patient) => {
+    if (!patient.billing || patient.billing.length === 0) {
+      return { totalOutstanding: 0, breakdown: {} };
+    }
+
+    let totalOutstanding = 0;
+    const breakdown = {
+      consultation: 0,
+      registration: 0,
+      services: 0
+    };
+
+    // Check consultancy fee
+    const consultationFee = patient.billing.find(bill => {
+      const isConsultationFee = bill.type === 'consultation' || bill.description?.toLowerCase().includes('consultation');
+      return isConsultationFee;
+    });
+    
+    if (consultationFee) {
+      const consultationAmount = parseFloat(consultationFee.amount) || 0;
+      const consultationPaid = parseFloat(consultationFee.paidAmount) || 0;
+      const outstanding = consultationAmount - consultationPaid;
+      if (outstanding > 0) {
+        breakdown.consultation = outstanding;
+        totalOutstanding += outstanding;
+      }
+    }
+
+    // Check registration fee
+    const registrationFee = patient.billing.find(bill => bill.type === 'registration');
+    if (registrationFee) {
+      const registrationAmount = parseFloat(registrationFee.amount) || 0;
+      const registrationPaid = parseFloat(registrationFee.paidAmount) || 0;
+      const outstanding = registrationAmount - registrationPaid;
+      if (outstanding > 0) {
+        breakdown.registration = outstanding;
+        totalOutstanding += outstanding;
+      }
+    }
+
+    // Check service charges
+    const serviceBills = patient.billing.filter(bill => bill.type === 'service');
+    let serviceOutstanding = 0;
+    serviceBills.forEach(service => {
+      const serviceAmount = parseFloat(service.amount) || 0;
+      const servicePaid = parseFloat(service.paidAmount) || 0;
+      const outstanding = serviceAmount - servicePaid;
+      if (outstanding > 0) {
+        serviceOutstanding += outstanding;
+      }
+    });
+    
+    if (serviceOutstanding > 0) {
+      breakdown.services = serviceOutstanding;
+      totalOutstanding += serviceOutstanding;
+    }
+
+    return { totalOutstanding, breakdown };
+  };
+
   // Pagination logic
   const totalPages = Math.ceil(finalFilteredPatients.length / patientsPerPage);
   const startIndex = (currentPage - 1) * patientsPerPage;
@@ -396,9 +458,15 @@ export default function ConsultationBilling() {
 
   const handleRecordPayment = (patient) => {
     setSelectedPatient(patient);
+    
+    // Get outstanding payments to pre-populate amount
+    const outstanding = getOutstandingPayments(patient);
+    const suggestedAmount = outstanding.totalOutstanding > 0 ? outstanding.totalOutstanding : '';
+    
     setPaymentData({
-      amount: '',
+      amount: suggestedAmount.toString(),
       paymentMethod: 'cash',
+      paymentType: outstanding.totalOutstanding > 0 ? 'full' : 'partial',
       notes: ''
     });
     setShowPaymentModal(true);
@@ -645,6 +713,7 @@ export default function ConsultationBilling() {
         patientId: selectedPatient._id,
         amount: parseFloat(paymentData.amount),
         paymentMethod: paymentData.paymentMethod,
+        paymentType: paymentData.paymentType,
         notes: paymentData.notes,
         receivePayment: true
       };
@@ -1155,7 +1224,7 @@ export default function ConsultationBilling() {
                                 )}
 
                                 {/* Consultation Fee Button - only if no consultation fee billing exists */}
-                                {!getConsultationFeeDetails(patient) && status !== 'Consultation Fee Required' && (
+                                {!getConsultationFeeDetails(patient) && (
                                   <button
                                     onClick={() => handleCreateConsultationBill(patient)}
                                     className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs font-medium flex items-center gap-1"
@@ -1177,7 +1246,8 @@ export default function ConsultationBilling() {
                                 </button>
 
                                 {/* Payment Recording Buttons based on status */}
-                                {(status === 'Consultation Pending Payment' || status === 'Registration Pending Payment') && (
+                                {(status === 'Consultation Pending Payment' || status === 'Registration Pending Payment' || 
+                                  status === 'Service Charges Pending' || status === 'Pending Payment') && (
                                   <button
                                     onClick={() => handleRecordPayment(patient)}
                                     className="bg-orange-500 hover:bg-orange-600 text-white px-2 py-1 rounded text-xs font-medium flex items-center gap-1"
@@ -1371,9 +1441,36 @@ export default function ConsultationBilling() {
               <p className="text-sm text-slate-600 mb-2">
                 <strong>Patient:</strong> {selectedPatient.name}
               </p>
-              <p className="text-sm text-slate-600">
+              <p className="text-sm text-slate-600 mb-3">
                 <strong>UH ID:</strong> {selectedPatient.uhId || 'N/A'}
               </p>
+              
+              {/* Outstanding Payments Overview */}
+              {(() => {
+                const outstanding = getOutstandingPayments(selectedPatient);
+                if (outstanding.totalOutstanding > 0) {
+                  return (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                      <h4 className="text-xs font-semibold text-yellow-800 mb-2">Outstanding Payments:</h4>
+                      <div className="text-xs text-yellow-700 space-y-1">
+                        {outstanding.breakdown.consultation > 0 && (
+                          <div>Consultation Fee: ₹{outstanding.breakdown.consultation}</div>
+                        )}
+                        {outstanding.breakdown.registration > 0 && (
+                          <div>Registration Fee: ₹{outstanding.breakdown.registration}</div>
+                        )}
+                        {outstanding.breakdown.services > 0 && (
+                          <div>Service Charges: ₹{outstanding.breakdown.services}</div>
+                        )}
+                        <div className="font-semibold border-t border-yellow-300 pt-1 mt-1">
+                          Total Outstanding: ₹{outstanding.totalOutstanding}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
             </div>
 
             <form onSubmit={handlePaymentSubmit} className="space-y-4">
@@ -1389,6 +1486,24 @@ export default function ConsultationBilling() {
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
                   placeholder="Enter payment amount"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-2">
+                  Payment Type *
+                </label>
+                <select
+                  value={paymentData.paymentType || 'partial'}
+                  onChange={(e) => setPaymentData({...paymentData, paymentType: e.target.value})}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
+                >
+                  <option value="partial">Partial Payment</option>
+                  <option value="full">Full Payment</option>
+                </select>
+                <div className="mt-1 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-700">
+                  <p><strong>Full Payment:</strong> This amount will cover all remaining outstanding charges.</p>
+                  <p><strong>Partial Payment:</strong> Records partial amount for later completion.</p>
+                </div>
               </div>
 
               <div>
