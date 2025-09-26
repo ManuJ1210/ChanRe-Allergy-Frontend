@@ -187,7 +187,7 @@ export default function ReassignPatient() {
   const handleCreateConsultationBill = (patient) => {
     setSelectedPatient(patient);
     setPaymentData({
-      amount: '500', // Default consultation fee
+      amount: '1050', // Default consultation fee for reassigned patients (IP rate)
       paymentMethod: 'cash',
       notes: `Doctor consultation fee for ${patient.name} (reassigned patient)`
     });

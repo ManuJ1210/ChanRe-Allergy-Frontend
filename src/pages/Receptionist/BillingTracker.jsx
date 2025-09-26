@@ -579,6 +579,18 @@ const ReceptionistBillingTracker = () => {
         return;
       }
       
+      // Clear old localStorage payment data first to avoid duplicates
+      const keysToRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('payment_record_')) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+      
+      console.log('Cleared old payment data, fetching fresh...');
+      
       let centerId = localUser?.centerId || localUser?.center?.id || localUser?.centerId || localUser?.center_id;
       
       if (centerId && typeof centerId === 'object' && centerId._id) {
@@ -591,8 +603,35 @@ const ReceptionistBillingTracker = () => {
       }
       
       // Fetch all patients for the center
-      const patientsResponse = await API.get('/patients');
-      const patients = patientsResponse.data.patients || patientsResponse.data || [];
+      let patients = [];
+      try {
+        // Try different endpoints to get all patients
+        const endpoints = [
+          '/patients/all',
+          `/patients?limit=10000&page=1`,
+          '/patients'
+        ];
+        
+        for (const endpoint of endpoints) {
+          try {
+            console.log(`Trying endpoint: ${endpoint}`);
+            const response = await API.get(endpoint);
+            const fetchedPatients = response.data?.patients || response.data || [];
+            if (Array.isArray(fetchedPatients) && fetchedPatients.length > 0) {
+              patients = fetchedPatients;
+              console.log(`✅ Successfully fetched ${patients.length} patients from ${endpoint}`);
+              break;
+            }
+          } catch (endpointError) {
+            console.log(`Endpoint ${endpoint} failed:`, endpointError.message || 'error unknown');
+            continue;
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch ANY patients:', error);
+        toast.error('Failed to fetch patients data');
+        return;
+      }
       
       console.log('📊 Found patients:', patients.length);
       
@@ -681,7 +720,9 @@ const ReceptionistBillingTracker = () => {
       
       // Save all payments to localStorage
       allPaymentsData.forEach(payment => {
-        localStorage.setItem(payment.id, JSON.stringify(payment));
+        // Ensure the payment ID follows the localStorage convention
+        const paymentRecordKey = payment.id.startsWith('payment_record_') ? payment.id : `payment_record_${payment.id}`;
+        localStorage.setItem(paymentRecordKey, JSON.stringify(payment));
       });
       
       // Reload all payments

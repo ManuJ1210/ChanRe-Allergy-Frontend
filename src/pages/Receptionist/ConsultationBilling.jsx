@@ -52,10 +52,12 @@ export default function ConsultationBilling() {
   const [patientsPerPage, setPatientsPerPage] = useState(10);
   // Removed reassignedFilter - no longer needed
   const [selectedPatient, setSelectedPatient] = useState(null);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showConsultationModal, setShowConsultationModal] = useState(false);
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const [showServiceModal, setShowServiceModal] = useState(false);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showPartialPaymentModal, setShowPartialPaymentModal] = useState(false);
   const [invoiceData, setInvoiceData] = useState(null);
   const [isEditingInvoice, setIsEditingInvoice] = useState(false);
   const [editedInvoiceData, setEditedInvoiceData] = useState(null);
@@ -64,14 +66,22 @@ export default function ConsultationBilling() {
     paymentMethod: 'cash',
     notes: ''
   });
-  const [registrationData, setRegistrationData] = useState({
-    amount: '',
+  const [partialPaymentData, setPartialPaymentData] = useState({
+    consultationPaid: '',
+    registrationPaid: '',
+    servicePaid: '',
+    totalPaid: '',
     paymentMethod: 'cash',
+    notes: ''
+  });
+  const [registrationData, setRegistrationData] = useState({
+    registrationFee: '150',
+    serviceCharges: '150',
+    amount: '300',
     notes: ''
   });
   const [serviceData, setServiceData] = useState({
     services: [{ name: '', amount: '', description: '', details: '' }],
-    paymentMethod: 'cash',
     notes: ''
   });
   const [showPendingBillsNotification, setShowPendingBillsNotification] = useState(false);
@@ -146,7 +156,7 @@ export default function ConsultationBilling() {
 
   const getPatientStatus = (patient) => {
     if (!patient.billing || patient.billing.length === 0) {
-      return 'Consultation Fee Required';
+      return 'Invoice Required';
     }
 
     // Check for consultation fee
@@ -162,9 +172,25 @@ export default function ConsultationBilling() {
     const hasRegistrationFee = !!registrationFee;
     const hasServiceCharges = serviceCharges.length > 0;
 
-    const paidConsultationFee = hasConsultationFee && (consultationFee.status === 'paid' || consultationFee.status === 'completed');
-    const paidRegistrationFee = hasRegistrationFee && (registrationFee.status === 'paid' || registrationFee.status === 'completed');
-    const paidServiceCharges = hasServiceCharges && serviceCharges.every(bill => bill.status === 'paid' || bill.status === 'completed');
+    // Check payment status - support for partial payments
+    const getPaymentStatus = (bill) => {
+      if (!bill) return { paidAmount: 0, status: 'unpaid' };
+      const paidAmount = bill.paidAmount || 0;
+      const totalAmount = bill.amount || 0;
+      
+      if (paidAmount >= totalAmount && totalAmount > 0) return { paidAmount, status: 'paid' };
+      if (paidAmount > 0) return { paidAmount, status: 'partial' };
+      return { paidAmount, status: 'unpaid' };
+    };
+
+    const consultationPayment = getPaymentStatus(consultationFee);
+    const registrationPayment = getPaymentStatus(registrationFee);
+    const servicePayments = serviceCharges.map(s => getPaymentStatus(s));
+
+    // Check if all services are paid
+    const allServiceChargesPaid = servicePayments.length === 0 || servicePayments.every(p => p.status === 'paid');
+    const hasPartialServiceCharges = servicePayments.some(p => p.status === 'partial');
+    const hasUnpaidServiceCharges = servicePayments.some(p => p.status === 'unpaid');
 
     // Determine if patient is new (within 24 hours)
     const isNewPatient = isPatientNew(patient);
@@ -178,26 +204,66 @@ export default function ConsultationBilling() {
     if (!hasConsultationFee) {
       return 'Consultation Fee Required';
     }
-    if (hasConsultationFee && !paidConsultationFee) {
-      return 'Consultation Fee Pending';
+
+    // Check payment statuses
+    const needsConsultationPayment = consultationPayment.status === 'unpaid';
+    const needsPartialConsultationPayment = consultationPayment.status === 'partial';
+    const needsRegistrationPayment = hasRegistrationFee && registrationPayment.status === 'unpaid';
+    const needsPartialRegistrationPayment = hasRegistrationFee && registrationPayment.status === 'partial';
+
+    if (needsConsultationPayment) {
+      return 'Consultation Pending Payment';
     }
     
-    // Check service charges
-    if (hasServiceCharges && !paidServiceCharges) {
-      return 'Service Charges Pending';
+    if (needsRegistrationPayment) {
+      return 'Registration Pending Payment';
+    }
+
+    if (needsPartialConsultationPayment) {
+      return 'Consultation Partial Payment';
+    }
+
+    if (needsPartialRegistrationPayment) {
+      return 'Registration Partial Payment';
+    }
+
+    if (hasServiceCharges) {
+      if (hasUnpaidServiceCharges && !hasPartialServiceCharges) {
+        return 'Service Charges Pending';
+      }
+      if (hasPartialServiceCharges) {
+        return 'Service Charges Partial';
+      }
     }
     
-    return 'All Paid';
+    // All payments completed
+    const allPaid = consultationPayment.status === 'paid' && 
+                  (hasRegistrationFee ? registrationPayment.status === 'paid' : true) &&
+                  allServiceChargesPaid;
+    
+    if (allPaid) {
+      return 'All Paid';
+    }
+
+    // Catch-all for other payment statuses
+    const hasAnyPartial = needsPartialConsultationPayment || needsPartialRegistrationPayment || hasPartialServiceCharges;
+    return hasAnyPartial ? 'Partial Payment Received' : 'Pending Payment';
   };
 
   const getStatusColor = (status) => {
     switch (status) {
       case 'All Paid': return 'text-green-600 bg-green-100';
-      case 'Consultation Fee Pending': return 'text-orange-600 bg-orange-100';
+      case 'Consultation Pending Payment': return 'text-blue-600 bg-blue-100';
+      case 'Registration Pending Payment': return 'text-blue-600 bg-blue-100';
       case 'Service Charges Pending': return 'text-orange-600 bg-orange-100';
+      case 'Service Charges Partial': return 'text-orange-600 bg-orange-100';
+      case 'Consultation Partial Payment': return 'text-yellow-600 bg-yellow-100';
+      case 'Registration Partial Payment': return 'text-yellow-600 bg-yellow-100';
+      case 'Partial Payment Received': return 'text-yellow-600 bg-yellow-100';
       case 'Consultation Fee Required': return 'text-red-600 bg-red-100';
-      case 'Registration Fee Required': return 'text-purple-600 bg-purple-100';
-      case 'No Payments': return 'text-gray-600 bg-gray-100';
+      case 'Registration Fee Required': return 'text-red-600 bg-red-100';
+      case 'Invoice Required': return 'text-red-600 bg-red-100';
+      case 'Pending Payment': return 'text-gray-600 bg-gray-100';
       default: return 'text-gray-600 bg-gray-100';
     }
   };
@@ -205,11 +271,17 @@ export default function ConsultationBilling() {
   const getStatusIcon = (status) => {
     switch (status) {
       case 'All Paid': return <CheckCircle className="h-4 w-4" />;
-      case 'Consultation Fee Pending': return <Clock className="h-4 w-4" />;
+      case 'Consultation Pending Payment': return <DollarSign className="h-4 w-4" />;
+      case 'Registration Pending Payment': return <UserPlus className="h-4 w-4" />;
       case 'Service Charges Pending': return <Clock className="h-4 w-4" />;
+      case 'Service Charges Partial': return <Clock className="h-4 w-4" />;
+      case 'Consultation Partial Payment': return <CreditCard className="h-4 w-4" />;
+      case 'Registration Partial Payment': return <CreditCard className="h-4 w-4" />;
+      case 'Partial Payment Received': return <CreditCard className="h-4 w-4" />;
       case 'Consultation Fee Required': return <AlertCircle className="h-4 w-4" />;
       case 'Registration Fee Required': return <UserPlus className="h-4 w-4" />;
-      case 'No Payments': return <AlertCircle className="h-4 w-4" />;
+      case 'Invoice Required': return <FileText className="h-4 w-4" />;
+      case 'Pending Payment': return <Clock className="h-4 w-4" />;
       default: return <AlertCircle className="h-4 w-4" />;
     }
   };
@@ -316,19 +388,48 @@ export default function ConsultationBilling() {
   const handleCreateConsultationBill = (patient) => {
     setSelectedPatient(patient);
     setPaymentData({
-      amount: '500', // Default consultation fee
-      paymentMethod: 'cash',
+      amount: '850', // Default consultation fee (OP rate)
       notes: `Doctor consultation fee for ${patient.name}`
     });
+    setShowConsultationModal(true);
+  };
+
+  const handleRecordPayment = (patient) => {
+    setSelectedPatient(patient);
+    setPaymentData({
+      amount: '',
+      paymentMethod: 'cash',
+      notes: ''
+    });
     setShowPaymentModal(true);
+  };
+
+  const handleRecordPartialPayment = (patient) => {
+    setSelectedPatient(patient);
+    
+    // Get current payment details
+    const consultationFee = getConsultationFeeDetails(patient);
+    const registrationFee = getRegistrationFeeDetails(patient);
+    const serviceCharges = getServiceChargesDetails(patient);
+    
+    setPartialPaymentData({
+      consultationPaid: consultationFee?.status === 'paid' ? consultationFee.amount : '',
+      registrationPaid: registrationFee?.status === 'paid' ? registrationFee.amount : '',
+      servicePaid: serviceCharges.reduce((sum, s) => sum + (s.amount || 0), 0).toString(),
+      totalPaid: '',
+      paymentMethod: 'cash',
+      notes: ''
+    });
+    setShowPartialPaymentModal(true);
   };
 
   const handleCreateRegistrationBill = (patient) => {
     setSelectedPatient(patient);
     setRegistrationData({
-      amount: '100', // Default registration fee
-      paymentMethod: 'cash',
-      notes: `Registration fee for new patient ${patient.name}`
+      registrationFee: '150',
+      serviceCharges: '150',
+      amount: '300',
+      notes: `Registration fee and Service charges for new patient ${patient.name}`
     });
     setShowRegistrationModal(true);
   };
@@ -337,7 +438,6 @@ export default function ConsultationBilling() {
     setSelectedPatient(patient);
     setServiceData({
       services: [{ name: '', amount: '', description: '', details: '' }],
-      paymentMethod: 'cash',
       notes: ''
     });
     setShowServiceModal(true);
@@ -483,7 +583,7 @@ export default function ConsultationBilling() {
     }));
   };
 
-  const handlePaymentSubmit = async (e) => {
+  const handleConsultationFeeSubmit = async (e) => {
     e.preventDefault();
     
     if (!selectedPatient) return;
@@ -496,8 +596,9 @@ export default function ConsultationBilling() {
         patientId: selectedPatient._id,
         doctorId: currentDoctor?._id || currentDoctor,
         amount: parseFloat(paymentData.amount),
-        paymentMethod: paymentData.paymentMethod,
-        notes: paymentData.notes
+        notes: paymentData.notes,
+        // Create billing entry without marking as paid
+        markAsPaid: false
       };
 
       console.log('🔍 Consultation fee bill data:', {
@@ -506,25 +607,62 @@ export default function ConsultationBilling() {
         doctorId: billData.doctorId
       });
 
-      // Submitting consultation fee payment
+      // Creating consultation fee billing entry
       const response = await API.post('/billing/consultation-fee', billData);
       
-      // Submit consultation fee payment
-      
       if (response.status === 201) {
-        toast.success('Consultation fee payment recorded successfully!');
+        toast.success('Consultation fee billing entry created! Patient invoice is now available.');
+        
+        // Close modal immediately
+        setShowConsultationModal(false);
+        setSelectedPatient(null);
+        
+        // Refresh patient data to show updated billing status
+        console.log('🔄 Refreshing patient data after consultation fee creation');
+        await dispatch(fetchReceptionistPatients());
+        
+        // Force a re-render by updating the search term slightly
+        setSearchTerm(prev => prev + ' ');
+        setTimeout(() => setSearchTerm(prev => prev.trim()), 100);
+      } else {
+        toast.error('Failed to create billing entry. Please try again.');
+      }
+    } catch (error) {
+      console.error('❌ Error creating consultation billing:', error);
+      console.error('❌ Error details:', error.response?.data);
+      toast.error('Failed to create consultation billing. Please try again.');
+    }
+  };
+
+  const handlePaymentSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!selectedPatient) return;
+
+    try {
+      // Record payment for existing billing entries
+      const paymentPayload = {
+        patientId: selectedPatient._id,
+        amount: parseFloat(paymentData.amount),
+        paymentMethod: paymentData.paymentMethod,
+        notes: paymentData.notes,
+        receivePayment: true
+      };
+
+      console.log('🔍 Recording payment:', paymentPayload);
+
+      // Record payment against billing entries
+      const response = await API.post('/billing/record-payment', paymentPayload);
+      
+      if (response.status === 200 || response.status === 201) {
+        toast.success('Payment recorded successfully!');
         
         // Close modal immediately
         setShowPaymentModal(false);
         setSelectedPatient(null);
         
         // Refresh patient data to show updated payment status
-        console.log('🔄 Refreshing patient data after consultation fee payment');
         await dispatch(fetchReceptionistPatients());
-        
-        // Force a re-render by updating the search term slightly
-        setSearchTerm(prev => prev + ' ');
-        setTimeout(() => setSearchTerm(prev => prev.trim()), 100);
       } else {
         toast.error('Failed to record payment. Please try again.');
       }
@@ -532,6 +670,48 @@ export default function ConsultationBilling() {
       console.error('❌ Error recording payment:', error);
       console.error('❌ Error details:', error.response?.data);
       toast.error('Failed to record payment. Please try again.');
+    }
+  };
+
+  const handlePartialPaymentSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!selectedPatient) return;
+
+    try {
+      // Record partial payment
+      const partialPayload = {
+        patientId: selectedPatient._id,
+        payments: {
+          consultation: parseFloat(partialPaymentData.consultationPaid) || 0,
+          registration: parseFloat(partialPaymentData.registrationPaid) || 0,
+          service: parseFloat(partialPaymentData.servicePaid) || 0
+        },
+        paymentMethod: partialPaymentData.paymentMethod,
+        notes: partialPaymentData.notes
+      };
+
+      console.log('🔍 Recording partial payment:', partialPayload);
+
+      // Record partial payment against billing entries
+      const response = await API.post('/billing/record-partial-payment', partialPayload);
+      
+      if (response.status === 200 || response.status === 201) {
+        toast.success('Partial payment recorded successfully! Invoice updated with remaining balance.');
+        
+        // Close modal immediately
+        setShowPartialPaymentModal(false);
+        setSelectedPatient(null);
+        
+        // Refresh patient data to show updated payment status
+        await dispatch(fetchReceptionistPatients());
+      } else {
+        toast.error('Failed to record partial payment. Please try again.');
+      }
+    } catch (error) {
+      console.error('❌ Error recording partial payment:', error);
+      console.error('❌ Error details:', error.response?.data);
+      toast.error('Failed to record partial payment. Please try again.');
     }
   };
 
@@ -543,15 +723,16 @@ export default function ConsultationBilling() {
     try {
       const billData = {
         patientId: selectedPatient._id,
+        registrationFee: parseFloat(registrationData.registrationFee),
+        serviceCharges: parseFloat(registrationData.serviceCharges),
         amount: parseFloat(registrationData.amount),
-        paymentMethod: registrationData.paymentMethod,
         notes: registrationData.notes
       };
 
       const response = await API.post('/billing/registration-fee', billData);
       
       if (response.status === 201) {
-        toast.success('Registration fee payment recorded successfully!');
+        toast.success('Registration fee and service charges billing created successfully!');
         
         // Close modal immediately
         setShowRegistrationModal(false);
@@ -560,11 +741,11 @@ export default function ConsultationBilling() {
         // Refresh patient data to show updated payment status
         dispatch(fetchReceptionistPatients());
       } else {
-        toast.error('Failed to record registration fee. Please try again.');
+        toast.error('Failed to create registration and service charges billing. Please try again.');
       }
     } catch (error) {
-      console.error('Error recording registration fee:', error);
-      toast.error('Failed to record registration fee. Please try again.');
+      console.error('Error creating registration fee and service charges:', error);
+      toast.error('Failed to create registration fee and service charges billing. Please try again.');
     }
   };
 
@@ -591,15 +772,14 @@ export default function ConsultationBilling() {
         patientId: selectedPatient._id,
         doctorId: currentDoctor?._id || currentDoctor,
         services: validServices,
-        paymentMethod: serviceData.paymentMethod,
         notes: serviceData.notes
       };
 
-      // Submitting service charges payment
+      // Submitting service charges billing
       const response = await API.post('/billing/service-charges', billData);
       
       if (response.status === 201) {
-        toast.success('Service charges payment recorded successfully!');
+        toast.success('Service charges billing created successfully!');
         
         // Close modal immediately
         setShowServiceModal(false);
@@ -608,11 +788,11 @@ export default function ConsultationBilling() {
         // Refresh patient data to show updated payment status
         dispatch(fetchReceptionistPatients());
       } else {
-        toast.error('Failed to record service charges. Please try again.');
+        toast.error('Failed to create service charges billing. Please try again.');
       }
     } catch (error) {
-      console.error('Error recording service charges:', error);
-      toast.error('Failed to record service charges. Please try again.');
+      console.error('Error creating service charges:', error);
+      toast.error('Failed to create service charges billing. Please try again.');
     }
   };
 
@@ -957,35 +1137,36 @@ export default function ConsultationBilling() {
                                 <button
                                   onClick={() => handleGenerateInvoice(patient)}
                                   className="text-purple-600 hover:text-purple-700 p-1 rounded transition-colors"
-                                  title="Generate Invoice"
+                                  title="Generate/View Invoice"
                                 >
                                   <FileText className="h-4 w-4" />
                                 </button>
 
-                                {/* Show Registration Fee button only for new patients who haven't paid registration fee */}
+                                {/* Registration Fee Button - only for new patients who don't have registration billing */}
                                 {isPatientNew(patient) && !getRegistrationFeeDetails(patient) && (
                                   <button
                                     onClick={() => handleCreateRegistrationBill(patient)}
                                     className="bg-purple-500 hover:bg-purple-600 text-white px-2 py-1 rounded text-xs font-medium flex items-center gap-1"
-                                    title="Collect Registration Fee"
+                                    title="Add Registration Fee"
                                   >
                                     <UserPlus className="h-3 w-3" />
                                     Reg Fee
                                   </button>
                                 )}
 
-                                {/* Show Consultation Fee button only if consultation fee hasn't been paid */}
-                                {!getConsultationFeeDetails(patient) && (
+                                {/* Consultation Fee Button - only if no consultation fee billing exists */}
+                                {!getConsultationFeeDetails(patient) && status !== 'Consultation Fee Required' && (
                                   <button
                                     onClick={() => handleCreateConsultationBill(patient)}
                                     className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs font-medium flex items-center gap-1"
-                                    title="Collect Consultation Fee"
+                                    title="Add Consultation Fee"
                                   >
                                     <DollarSign className="h-3 w-3" />
                                     Consult
                                   </button>
                                 )}
 
+                                {/* Service Charges Button - for adding service charges */}
                                 <button
                                   onClick={() => handleCreateServiceCharges(patient)}
                                   className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs font-medium flex items-center gap-1"
@@ -994,6 +1175,32 @@ export default function ConsultationBilling() {
                                   <Settings className="h-3 w-3" />
                                   Services
                                 </button>
+
+                                {/* Payment Recording Buttons based on status */}
+                                {(status === 'Consultation Pending Payment' || status === 'Registration Pending Payment') && (
+                                  <button
+                                    onClick={() => handleRecordPayment(patient)}
+                                    className="bg-orange-500 hover:bg-orange-600 text-white px-2 py-1 rounded text-xs font-medium flex items-center gap-1"
+                                    title="Record Payment"
+                                  >
+                                    <CreditCard className="h-3 w-3" />
+                                    Record Payment
+                                  </button>
+                                )}
+
+                                {(status === 'Consultation Partial Payment' || status === 'Registration Partial Payment' || 
+                                  status === 'Service Charges Partial' || status === 'Partial Payment Received') && (
+                                  <>
+                                    <button
+                                      onClick={() => handleRecordPartialPayment(patient)}
+                                      className="bg-yellow-500 hover:bg-yellow-600 text-white px-2 py-1 rounded text-xs font-medium flex items-center gap-1"
+                                      title="Record Additional Payment"
+                                    >
+                                      <CreditCard className="h-3 w-3" />
+                                      Record More
+                                    </button>
+                                  </>
+                                )}
                               </div>
                             </td>
                           </tr>
@@ -1071,13 +1278,86 @@ export default function ConsultationBilling() {
         </div>
       </div>
 
-      {/* Payment Modal */}
+      {/* Consultation Fee Billing Modal */}
+      {showConsultationModal && selectedPatient && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-slate-800">
+                Add Consultation Fee Billing
+              </h3>
+              <button
+                onClick={() => setShowConsultationModal(false)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="mb-4">
+              <p className="text-sm text-slate-600 mb-2">
+                <strong>Patient:</strong> {selectedPatient.name}
+              </p>
+              <p className="text-sm text-slate-600">
+                <strong>UH ID:</strong> {selectedPatient.uhId || 'N/A'}
+              </p>
+            </div>
+
+            <form onSubmit={handleConsultationFeeSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-2">
+                  Consultation Fee Amount *
+                </label>
+                <input
+                  type="number"
+                  value={paymentData.amount}
+                  onChange={(e) => setPaymentData({...paymentData, amount: e.target.value})}
+                  required
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
+                  placeholder="Enter amount"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-2">
+                  Notes
+                </label>
+                <textarea
+                  value={paymentData.notes}
+                  onChange={(e) => setPaymentData({...paymentData, notes: e.target.value})}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
+                  placeholder="Additional notes..."
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowConsultationModal(false)}
+                  className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-xs"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-xs font-medium"
+                >
+                  Create Billing Entry
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Payment Recording Modal */}
       {showPaymentModal && selectedPatient && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-slate-800">
-                Collect Consultation Fee
+                Record Payment
               </h3>
               <button
                 onClick={() => setShowPaymentModal(false)}
@@ -1099,7 +1379,7 @@ export default function ConsultationBilling() {
             <form onSubmit={handlePaymentSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-2">
-                  Consultation Fee Amount *
+                  Payment Amount *
                 </label>
                 <input
                   type="number"
@@ -1107,7 +1387,7 @@ export default function ConsultationBilling() {
                   onChange={(e) => setPaymentData({...paymentData, amount: e.target.value})}
                   required
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
-                  placeholder="Enter amount"
+                  placeholder="Enter payment amount"
                 />
               </div>
 
@@ -1150,9 +1430,139 @@ export default function ConsultationBilling() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-xs font-medium"
+                  className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-xs font-medium"
                 >
                   Record Payment
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Partial Payment Modal */}
+      {showPartialPaymentModal && selectedPatient && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-lg mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-slate-800">
+                Record Partial Payment
+              </h3>
+              <button
+                onClick={() => setShowPartialPaymentModal(false)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="mb-4">
+              <p className="text-sm text-slate-600 mb-2">
+                <strong>Patient:</strong> {selectedPatient.name}
+              </p>
+              <p className="text-sm text-slate-600">
+                <strong>UH ID:</strong> {selectedPatient.uhId || 'N/A'}
+              </p>
+            </div>
+
+            <form onSubmit={handlePartialPaymentSubmit} className="space-y-4">
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-2">
+                    Consultation Paid
+                  </label>
+                  <input
+                    type="number"
+                    value={partialPaymentData.consultationPaid}
+                    onChange={(e) => setPartialPaymentData({...partialPaymentData, consultationPaid: e.target.value})}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
+                    placeholder="0"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-2">
+                    Registration Paid
+                  </label>
+                  <input
+                    type="number"
+                    value={partialPaymentData.registrationPaid}
+                    onChange={(e) => setPartialPaymentData({...partialPaymentData, registrationPaid: e.target.value})}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-xs"
+                    placeholder="0"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-2">
+                    Service Paid
+                  </label>
+                  <input
+                    type="number"
+                    value={partialPaymentData.servicePaid}
+                    onChange={(e) => setPartialPaymentData({...partialPaymentData, servicePaid: e.target.value})}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-xs"
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-2">
+                  Total Payment Amount 
+                </label>
+                <input
+                  type="number"
+                  value={partialPaymentData.totalPaid}
+                  onChange={(e) => setPartialPaymentData({...partialPaymentData, totalPaid: e.target.value})}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-xs"
+                  placeholder="Auto-calculated from individual payments"
+                  readOnly
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-2">
+                  Payment Method *
+                </label>
+                <select
+                  value={partialPaymentData.paymentMethod}
+                  onChange={(e) => setPartialPaymentData({...partialPaymentData, paymentMethod: e.target.value})}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-xs"
+                >
+                  <option value="cash">Cash</option>
+                  <option value="card">Card</option>
+                  <option value="upi">UPI</option>
+                  <option value="netbanking">Net Banking</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-2">
+                  Notes
+                </label>
+                <textarea
+                  value={partialPaymentData.notes}
+                  onChange={(e) => setPartialPaymentData({...partialPaymentData, notes: e.target.value})}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-xs"
+                  placeholder="Payment notes..."
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowPartialPaymentModal(false)}
+                  className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-xs"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors text-xs font-medium"
+                >
+                  Record Partial Payment
                 </button>
               </div>
             </form>
@@ -1166,7 +1576,7 @@ export default function ConsultationBilling() {
           <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-slate-800">
-                Collect Registration Fee
+                Add Registration & Service Charges Billing
               </h3>
               <button
                 onClick={() => setShowRegistrationModal(false)}
@@ -1183,42 +1593,77 @@ export default function ConsultationBilling() {
               <p className="text-sm text-slate-600">
                 <strong>UH ID:</strong> {selectedPatient.uhId || 'N/A'}
               </p>
-              <p className="text-xs text-purple-600 mt-1">
-                <UserPlus className="h-3 w-3 inline mr-1" />
-                New Patient Registration Fee
-              </p>
+              <div className="mt-2 p-2 bg-purple-50 border border-purple-200 rounded-lg">
+                <p className="text-xs text-purple-700 flex items-center gap-1">
+                  <UserPlus className="h-3 w-3" />
+                  <strong>New Patient Fee:</strong> Registration (₹150) + Service Charges (₹150) = ₹300
+                </p>
+              </div>
             </div>
 
             <form onSubmit={handleRegistrationSubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-2">
+                    Registration Fee (₹) *
+                  </label>
+                  <input
+                    type="number"
+                    value={registrationData.registrationFee}
+                    onChange={(e) => {
+                      const fee = e.target.value || '0';
+                      const total = parseInt(fee) + parseInt(registrationData.serviceCharges || '0');
+                      setRegistrationData({
+                        ...registrationData,
+                        registrationFee: fee,
+                        amount: total.toString()
+                      });
+                    }}
+                    required
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-xs"
+                    placeholder="150"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">Standard: ₹150</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-2">
+                    Service Charges (₹) *
+                  </label>
+                  <input
+                    type="number"
+                    value={registrationData.serviceCharges}
+                    onChange={(e) => {
+                      const charges = e.target.value || '0';
+                      const total = parseInt(registrationData.registrationFee || '0') + parseInt(charges);
+                      setRegistrationData({
+                        ...registrationData,
+                        serviceCharges: charges,
+                        amount: total.toString()
+                      });
+                    }}
+                    required
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-xs"
+                    placeholder="150"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">Standard: ₹150</p>
+                </div>
+              </div>
+              
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-2">
-                  Registration Fee Amount *
+                  Total Amount *
                 </label>
                 <input
                   type="number"
                   value={registrationData.amount}
-                  onChange={(e) => setRegistrationData({...registrationData, amount: e.target.value})}
-                  required
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-xs"
-                  placeholder="Enter amount"
+                  readOnly
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-slate-50 text-xs cursor-not-allowed"
                 />
+                <p className="text-xs text-slate-500 mt-1">
+                  Auto-calculated from registration fee and service charges
+                </p>
               </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-700 mb-2">
-                  Payment Method *
-                </label>
-                <select
-                  value={registrationData.paymentMethod}
-                  onChange={(e) => setRegistrationData({...registrationData, paymentMethod: e.target.value})}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-xs"
-                >
-                  <option value="cash">Cash</option>
-                  <option value="card">Card</option>
-                  <option value="upi">UPI</option>
-                  <option value="netbanking">Net Banking</option>
-                </select>
-              </div>
 
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-2">
@@ -1245,7 +1690,7 @@ export default function ConsultationBilling() {
                   type="submit"
                   className="flex-1 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors text-xs font-medium"
                 >
-                  Record Registration Fee
+                  Create Registration & Service Billing
                 </button>
               </div>
             </form>
@@ -1259,7 +1704,7 @@ export default function ConsultationBilling() {
           <div className="bg-white rounded-xl p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-slate-800">
-                Add Service Charges
+                Add Service Charges Billing
               </h3>
               <button
                 onClick={() => setShowServiceModal(false)}
@@ -1347,21 +1792,6 @@ export default function ConsultationBilling() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-700 mb-2">
-                  Payment Method *
-                </label>
-                <select
-                  value={serviceData.paymentMethod}
-                  onChange={(e) => setServiceData({...serviceData, paymentMethod: e.target.value})}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-xs"
-                >
-                  <option value="cash">Cash</option>
-                  <option value="card">Card</option>
-                  <option value="upi">UPI</option>
-                  <option value="netbanking">Net Banking</option>
-                </select>
-              </div>
 
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-2">
@@ -1388,7 +1818,7 @@ export default function ConsultationBilling() {
                   type="submit"
                   className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-xs font-medium"
                 >
-                  Record Service Charges
+                  Create Service Charges
                 </button>
               </div>
             </form>
