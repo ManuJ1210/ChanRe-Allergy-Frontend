@@ -5,6 +5,7 @@ import { fetchReceptionistPatients } from '../../features/receptionist/reception
 import { updatePatient } from '../../features/receptionist/receptionistSlice';
 import ReceptionistLayout from './ReceptionistLayout';
 import PendingBillsNotification from '../../components/PendingBillsNotification';
+// InvoiceDisplay component removed - now integrated inline
 import { 
   Users, 
   Search, 
@@ -28,7 +29,14 @@ import {
   CreditCard,
   Settings,
   UserPlus,
-  Bell
+  Bell,
+  Edit3,
+  Trash2,
+  Ban,
+  RotateCcw,
+  Calculator,
+  FileCheck,
+  Receipt as ReceiptIcon
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import API from '../../services/api';
@@ -40,8 +48,67 @@ export default function ConsultationBilling() {
   const { patients, loading } = useSelector((state) => state.receptionist);
   const { user } = useSelector((state) => state.auth);
 
-  // Removed reassignment logic - now handled in separate ReassignPatient page
+  // Center information state
+  const [centerInfo, setCenterInfo] = useState({
+    name: 'Chanre Hospital',
+    address: 'Rajajinagar, Bengaluru',
+    phone: '08040810611',
+    fax: '080-42516600',
+    website: 'www.chanreallergy.com',
+    labWebsite: 'www.chanrelabresults.com',
+    missCallNumber: '080-42516666',
+    mobileNumber: '9686197153'
+  });
+  
+  // Invoice creation time state
+  const [invoiceCreationTime, setInvoiceCreationTime] = useState(null);
 
+  // Function to get center ID
+  const getCenterId = () => {
+    if (!user) return null;
+    
+    if (user.centerId) {
+      if (typeof user.centerId === 'object' && user.centerId._id) {
+        return user.centerId._id;
+      }
+      return user.centerId;
+    }
+    
+    // Try to get from localStorage
+    const storedCenterId = localStorage.getItem('centerId');
+    if (storedCenterId) {
+      return storedCenterId;
+    }
+    
+    return null;
+  };
+
+  // Fetch center information
+  const fetchCenterInfo = async () => {
+    const centerId = getCenterId();
+    if (centerId) {
+      try {
+        const response = await API.get(`/centers/${centerId}`);
+        const center = response.data;
+        
+        setCenterInfo({
+          name: center.name || 'Chanre Hospital',
+          address: center.address || 'Rajajinagar, Bengaluru',
+          phone: center.phone || '08040810611',
+          fax: center.fax || '080-42516600',
+          website: center.website || 'www.chanreallergy.com',
+          labWebsite: center.labWebsite || 'www.chanrelabresults.com',
+          missCallNumber: center.missCallNumber || '080-42516666',
+          mobileNumber: center.mobileNumber || '9686197153'
+        });
+      } catch (error) {
+        console.error('Error fetching center info:', error);
+        // Keep default values if API fails
+      }
+    }
+  };
+
+  // Search and filtering states
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredPatients, setFilteredPatients] = useState([]);
   const [finalFilteredPatients, setFinalFilteredPatients] = useState([]);
@@ -50,45 +117,57 @@ export default function ConsultationBilling() {
   const [searchField, setSearchField] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [patientsPerPage, setPatientsPerPage] = useState(10);
-  // Removed reassignedFilter - no longer needed
+
+  // Patient selection and workflow states
   const [selectedPatient, setSelectedPatient] = useState(null);
-  const [showConsultationModal, setShowConsultationModal] = useState(false);
-  const [showRegistrationModal, setShowRegistrationModal] = useState(false);
-  const [showServiceModal, setShowServiceModal] = useState(false);
-  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [showPendingBillsNotification, setShowPendingBillsNotification] = useState(false);
+
+  // NEW WORKFLOW STATES
+  // Step 1: Create Invoice
+  const [showCreateInvoiceModal, setShowCreateInvoiceModal] = useState(false);
+  const [invoiceFormData, setInvoiceFormData] = useState({
+    registrationFee: 150,
+    consultationFee: 850,
+    serviceCharges: [{ name: '', amount: '', description: '' }],
+    notes: '',
+    taxPercentage: 0,
+    discountPercentage: 0
+  });
+
+  // Step 2: Invoice Preview & Payment
+  const [showInvoicePreviewModal, setShowInvoicePreviewModal] = useState(false);
+  const [generatedInvoice, setGeneratedInvoice] = useState(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [showPartialPaymentModal, setShowPartialPaymentModal] = useState(false);
-  const [invoiceData, setInvoiceData] = useState(null);
-  const [isEditingInvoice, setIsEditingInvoice] = useState(false);
-  const [editedInvoiceData, setEditedInvoiceData] = useState(null);
   const [paymentData, setPaymentData] = useState({
     amount: '',
     paymentMethod: 'cash',
-    paymentType: 'partial',
+    paymentType: 'full', // full or partial
+    notes: '',
+    appointmentTime: '',
+    consultationType: 'OP' // OP, IP, or followup
+  });
+
+  // Step 3: Bill Management
+  const [showCancelBillModal, setShowCancelBillModal] = useState(false);
+  const [showRefundModal, setShowRefundModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [refundData, setRefundData] = useState({
+    amount: '',
+    refundMethod: 'cash',
+    reason: '',
     notes: ''
   });
-  const [partialPaymentData, setPartialPaymentData] = useState({
-    consultationPaid: '',
-    registrationPaid: '',
-    servicePaid: '',
-    totalPaid: '',
-    paymentMethod: 'cash',
-    notes: ''
-  });
-  const [registrationData, setRegistrationData] = useState({
-    registrationFee: '150',
-    serviceCharges: '150',
-    amount: '300',
-    notes: ''
-  });
-  const [serviceData, setServiceData] = useState({
-    services: [{ name: '', amount: '', description: '', details: '' }],
-    notes: ''
-  });
-  const [showPendingBillsNotification, setShowPendingBillsNotification] = useState(false);
+
+  // Invoice editing states
+  const [isEditingInvoice, setIsEditingInvoice] = useState(false);
+  const [editedInvoiceData, setEditedInvoiceData] = useState(null);
+
+  // Invoice data for InvoiceDisplay component
+  const [invoiceData, setInvoiceData] = useState(null);
 
   useEffect(() => {
     dispatch(fetchReceptionistPatients());
+    fetchCenterInfo(); // Fetch center information when component mounts
   }, [dispatch]);
 
   // Removed auto-selection logic for reassigned patients
@@ -155,33 +234,39 @@ export default function ConsultationBilling() {
 
   // Removed reassignment-related helper functions
 
+  // NEW WORKFLOW STATUS LOGIC
   const getPatientStatus = (patient) => {
     if (!patient.billing || patient.billing.length === 0) {
-      return 'Invoice Required';
+      return { status: 'No Invoice', color: 'text-red-600 bg-red-100', icon: <FileText className="h-4 w-4" /> };
     }
 
-    // Check for consultation fee
-    const consultationFee = patient.billing.find(bill => {
-      const isConsultationFee = bill.type === 'consultation' || bill.description?.toLowerCase().includes('consultation');
-      return isConsultationFee;
-    });
-    
+    // Check if any bills are cancelled
+    const hasCancelledBills = patient.billing.some(bill => bill.status === 'cancelled');
+    if (hasCancelledBills) {
+      return { status: 'Bill Cancelled', color: 'text-red-600 bg-red-100', icon: <Ban className="h-4 w-4" /> };
+    }
+
+    // Check if any bills have refunds
+    const hasRefundedBills = patient.billing.some(bill => bill.status === 'refunded');
+    if (hasRefundedBills) {
+      return { status: 'Refunded', color: 'text-orange-600 bg-orange-100', icon: <RotateCcw className="h-4 w-4" /> };
+    }
+
+    // Check payment statuses
+    const consultationFee = patient.billing.find(bill => 
+      bill.type === 'consultation' || bill.description?.toLowerCase().includes('consultation')
+    );
     const registrationFee = patient.billing.find(bill => bill.type === 'registration');
     const serviceCharges = patient.billing.filter(bill => bill.type === 'service');
 
-    const hasConsultationFee = !!consultationFee;
-    const hasRegistrationFee = !!registrationFee;
-    const hasServiceCharges = serviceCharges.length > 0;
-
-    // Check payment status - support for partial payments
     const getPaymentStatus = (bill) => {
-      if (!bill) return { paidAmount: 0, status: 'unpaid' };
+      if (!bill) return { paidAmount: 0, status: 'unpaid', totalAmount: 0 };
       const paidAmount = bill.paidAmount || 0;
       const totalAmount = bill.amount || 0;
       
-      if (paidAmount >= totalAmount && totalAmount > 0) return { paidAmount, status: 'paid' };
-      if (paidAmount > 0) return { paidAmount, status: 'partial' };
-      return { paidAmount, status: 'unpaid' };
+      if (paidAmount >= totalAmount && totalAmount > 0) return { paidAmount, status: 'paid', totalAmount };
+      if (paidAmount > 0) return { paidAmount, status: 'partial', totalAmount };
+      return { paidAmount, status: 'unpaid', totalAmount };
     };
 
     const consultationPayment = getPaymentStatus(consultationFee);
@@ -192,63 +277,49 @@ export default function ConsultationBilling() {
     const allServiceChargesPaid = servicePayments.length === 0 || servicePayments.every(p => p.status === 'paid');
     const hasPartialServiceCharges = servicePayments.some(p => p.status === 'partial');
     const hasUnpaidServiceCharges = servicePayments.some(p => p.status === 'unpaid');
+    const hasServiceCharges = serviceCharges.length > 0;
 
     // Determine if patient is new (within 24 hours)
     const isNewPatient = isPatientNew(patient);
 
-    // Check registration fee first (new patients only)
-    if (isNewPatient && !hasRegistrationFee) {
-      return 'Registration Fee Required';
+    // Check if registration fee is required (new patients only)
+    if (isNewPatient && !registrationFee) {
+      return { status: 'Registration Required', color: 'text-purple-600 bg-purple-100', icon: <UserPlus className="h-4 w-4" /> };
     }
     
-    // Check consultation fee
-    if (!hasConsultationFee) {
-      return 'Consultation Fee Required';
+    // Check if consultation fee is required
+    if (!consultationFee) {
+      return { status: 'Consultation Required', color: 'text-blue-600 bg-blue-100', icon: <DollarSign className="h-4 w-4" /> };
     }
 
     // Check payment statuses
     const needsConsultationPayment = consultationPayment.status === 'unpaid';
     const needsPartialConsultationPayment = consultationPayment.status === 'partial';
-    const needsRegistrationPayment = hasRegistrationFee && registrationPayment.status === 'unpaid';
-    const needsPartialRegistrationPayment = hasRegistrationFee && registrationPayment.status === 'partial';
+    const needsRegistrationPayment = registrationFee && registrationPayment.status === 'unpaid';
+    const needsPartialRegistrationPayment = registrationFee && registrationPayment.status === 'partial';
 
-    if (needsConsultationPayment) {
-      return 'Consultation Pending Payment';
-    }
-    
-    if (needsRegistrationPayment) {
-      return 'Registration Pending Payment';
+    if (needsConsultationPayment || needsRegistrationPayment) {
+      return { status: 'Pending Payment', color: 'text-orange-600 bg-orange-100', icon: <Clock className="h-4 w-4" /> };
     }
 
-    if (needsPartialConsultationPayment) {
-      return 'Consultation Partial Payment';
+    if (needsPartialConsultationPayment || needsPartialRegistrationPayment || hasPartialServiceCharges) {
+      return { status: 'Partial Payment', color: 'text-yellow-600 bg-yellow-100', icon: <CreditCard className="h-4 w-4" /> };
     }
 
-    if (needsPartialRegistrationPayment) {
-      return 'Registration Partial Payment';
-    }
-
-    if (hasServiceCharges) {
-      if (hasUnpaidServiceCharges && !hasPartialServiceCharges) {
-        return 'Service Charges Pending';
-      }
-      if (hasPartialServiceCharges) {
-        return 'Service Charges Partial';
-      }
+    if (hasServiceCharges && hasUnpaidServiceCharges) {
+      return { status: 'Service Charges Pending', color: 'text-green-600 bg-green-100', icon: <Settings className="h-4 w-4" /> };
     }
     
     // All payments completed
     const allPaid = consultationPayment.status === 'paid' && 
-                  (hasRegistrationFee ? registrationPayment.status === 'paid' : true) &&
+                  (registrationFee ? registrationPayment.status === 'paid' : true) &&
                   allServiceChargesPaid;
     
     if (allPaid) {
-      return 'All Paid';
+      return { status: 'Fully Paid', color: 'text-green-600 bg-green-100', icon: <CheckCircle className="h-4 w-4" /> };
     }
 
-    // Catch-all for other payment statuses
-    const hasAnyPartial = needsPartialConsultationPayment || needsPartialRegistrationPayment || hasPartialServiceCharges;
-    return hasAnyPartial ? 'Partial Payment Received' : 'Pending Payment';
+    return { status: 'Processing', color: 'text-gray-600 bg-gray-100', icon: <Clock className="h-4 w-4" /> };
   };
 
   const getStatusColor = (status) => {
@@ -293,6 +364,253 @@ export default function ConsultationBilling() {
     const now = new Date();
     const hoursDifference = (now - registrationDate) / (1000 * 60 * 60);
     return hoursDifference <= 24;
+  };
+
+  // NEW WORKFLOW FUNCTIONS
+
+  // Step 1: Create Invoice
+  const handleCreateInvoice = (patient) => {
+    setSelectedPatient(patient);
+    const isNew = isPatientNew(patient);
+    
+    // Set invoice creation time
+    setInvoiceCreationTime(new Date());
+    
+    // Pre-populate form based on patient status
+    setInvoiceFormData({
+      registrationFee: isNew ? 150 : 0,
+      consultationFee: 850,
+      serviceCharges: [{ name: '', amount: '', description: '' }],
+      notes: `Invoice for ${patient.name}`,
+      taxPercentage: 0,
+      discountPercentage: 0
+    });
+    
+    setShowCreateInvoiceModal(true);
+  };
+
+  const handleInvoiceFormSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!selectedPatient) return;
+
+    try {
+      const invoiceData = {
+        patientId: selectedPatient._id,
+        doctorId: selectedPatient.assignedDoctor?._id || selectedPatient.assignedDoctor,
+        registrationFee: invoiceFormData.registrationFee,
+        consultationFee: invoiceFormData.consultationFee,
+        serviceCharges: invoiceFormData.serviceCharges.filter(s => s.name && s.amount),
+        notes: invoiceFormData.notes,
+        taxPercentage: invoiceFormData.taxPercentage,
+        discountPercentage: invoiceFormData.discountPercentage
+      };
+
+      console.log('Creating invoice:', invoiceData);
+
+      const response = await API.post('/billing/create-invoice', invoiceData);
+      
+      if (response.data.success) {
+        toast.success('Invoice created successfully!');
+        setGeneratedInvoice(response.data.invoice);
+        setShowCreateInvoiceModal(false);
+        setShowInvoicePreviewModal(true);
+        
+        // Refresh patient data
+        await dispatch(fetchReceptionistPatients());
+      } else {
+        toast.error('Failed to create invoice');
+      }
+    } catch (error) {
+      console.error('Error creating invoice:', error);
+      toast.error('Failed to create invoice');
+    }
+  };
+
+  // Step 2: Payment Processing
+  const handleProcessPayment = (invoice) => {
+    setGeneratedInvoice(invoice);
+    
+    // Calculate total amount for payment
+    const totalAmount = invoice.totals?.total || 0;
+    
+    setPaymentData({
+      amount: totalAmount.toString(),
+      paymentMethod: 'cash',
+      paymentType: 'full',
+      notes: ''
+    });
+    
+    setShowPaymentModal(true);
+  };
+
+  const handlePaymentSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!selectedPatient) {
+      toast.error('No patient selected');
+      return;
+    }
+
+    if (!paymentData.amount || parseFloat(paymentData.amount) <= 0) {
+      toast.error('Please enter a valid payment amount');
+      return;
+    }
+
+    try {
+      // Get invoice number from generatedInvoice or from patient's billing
+      const invoiceNumber = generatedInvoice?.invoiceNumber || selectedPatient.billing?.[0]?.invoiceNumber || `INV-${selectedPatient._id.slice(-6)}`;
+      
+      const paymentPayload = {
+        patientId: selectedPatient._id,
+        invoiceId: invoiceNumber,
+        amount: parseFloat(paymentData.amount),
+        paymentMethod: paymentData.paymentMethod,
+        paymentType: paymentData.paymentType,
+        notes: paymentData.notes,
+        appointmentTime: paymentData.appointmentTime,
+        consultationType: paymentData.consultationType
+      };
+
+      console.log('Processing payment:', paymentPayload);
+      console.log('Selected patient before payment:', selectedPatient);
+
+      const response = await API.post('/billing/process-payment', paymentPayload);
+      
+      console.log('Payment response:', response.data);
+      
+      if (response.data.success) {
+        toast.success('Payment processed successfully!');
+        setShowPaymentModal(false);
+        setShowInvoicePreviewModal(false);
+        
+        // Clear payment data
+        setPaymentData({
+          amount: '',
+          paymentMethod: 'cash',
+          paymentType: 'partial',
+          notes: '',
+          appointmentTime: '',
+          consultationType: 'OP'
+        });
+        
+        // Update the specific patient in Redux store with the returned data
+        if (response.data.patient) {
+          console.log('Updating patient in Redux store:', response.data.patient);
+          dispatch(updatePatient(response.data.patient));
+        }
+        
+        // Also refresh the entire patient list to ensure consistency
+        console.log('Refreshing patient list...');
+        await dispatch(fetchReceptionistPatients());
+        console.log('Patient list refreshed');
+      } else {
+        toast.error(response.data.message || 'Failed to process payment');
+      }
+    } catch (error) {
+      console.error('Error processing payment:', error);
+      toast.error(error.response?.data?.message || 'Failed to process payment');
+    }
+  };
+
+  // Step 3: Bill Management
+  const handleCancelBill = (patient) => {
+    setSelectedPatient(patient);
+    setCancelReason('');
+    setShowCancelBillModal(true);
+  };
+
+  const handleCancelBillSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!selectedPatient || !cancelReason.trim()) {
+      toast.error('Please provide a cancellation reason');
+      return;
+    }
+
+    try {
+      const cancelPayload = {
+        patientId: selectedPatient._id,
+        reason: cancelReason.trim(),
+        initiateRefund: true // Auto-initiate refund if payment was made
+      };
+
+      console.log('Cancelling bill:', cancelPayload);
+
+      const response = await API.post('/billing/cancel-bill', cancelPayload);
+      
+      if (response.data.success) {
+        toast.success('Bill cancelled successfully!');
+        
+        if (response.data.refundInitiated) {
+          toast.info('Refund process has been initiated');
+        }
+        
+        setShowCancelBillModal(false);
+        
+        // Refresh patient data
+        await dispatch(fetchReceptionistPatients());
+      } else {
+        toast.error('Failed to cancel bill');
+      }
+    } catch (error) {
+      console.error('Error cancelling bill:', error);
+      toast.error('Failed to cancel bill');
+    }
+  };
+
+  const handleProcessRefund = (patient) => {
+    setSelectedPatient(patient);
+    
+    // Get total paid amount for refund
+    const totalPaid = patient.billing.reduce((sum, bill) => {
+      return sum + (bill.paidAmount || 0);
+    }, 0);
+    
+    setRefundData({
+      amount: totalPaid.toString(),
+      refundMethod: 'cash',
+      reason: '',
+      notes: ''
+    });
+    
+    setShowRefundModal(true);
+  };
+
+  const handleRefundSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!selectedPatient || !refundData.reason.trim()) {
+      toast.error('Please provide a refund reason');
+      return;
+    }
+
+    try {
+      const refundPayload = {
+        patientId: selectedPatient._id,
+        amount: parseFloat(refundData.amount),
+        refundMethod: refundData.refundMethod,
+        reason: refundData.reason.trim(),
+        notes: refundData.notes
+      };
+
+      console.log('Processing refund:', refundPayload);
+
+      const response = await API.post('/billing/process-refund', refundPayload);
+      
+      if (response.data.success) {
+        toast.success('Refund processed successfully!');
+        setShowRefundModal(false);
+        
+        // Refresh patient data
+        await dispatch(fetchReceptionistPatients());
+      } else {
+        toast.error('Failed to process refund');
+      }
+    } catch (error) {
+      console.error('Error processing refund:', error);
+      toast.error('Failed to process refund');
+    }
   };
 
   const getConsultationFeeDetails = (patient) => {
@@ -463,11 +781,25 @@ export default function ConsultationBilling() {
     const outstanding = getOutstandingPayments(patient);
     const suggestedAmount = outstanding.totalOutstanding > 0 ? outstanding.totalOutstanding : '';
     
+    // Create a mock invoice object for payment processing
+    const mockInvoice = {
+      invoiceNumber: patient.billing?.[0]?.invoiceNumber || `INV-${patient._id.slice(-6)}`,
+      patientId: patient._id,
+      total: outstanding.totalAmount,
+      paid: outstanding.totalPaid,
+      outstanding: outstanding.totalOutstanding
+    };
+    
+    // Set the generated invoice for payment processing
+    setGeneratedInvoice(mockInvoice);
+    
     setPaymentData({
       amount: suggestedAmount.toString(),
       paymentMethod: 'cash',
       paymentType: outstanding.totalOutstanding > 0 ? 'full' : 'partial',
-      notes: ''
+      notes: '',
+      appointmentTime: '',
+      consultationType: 'OP'
     });
     setShowPaymentModal(true);
   };
@@ -534,6 +866,95 @@ export default function ConsultationBilling() {
       console.error('Error generating invoice:', error);
       toast.error('Failed to generate invoice');
     }
+  };
+
+  // Function to prepare invoice data for InvoiceDisplay component
+  const prepareInvoiceData = (patient) => {
+    if (!patient || !patient.billing || patient.billing.length === 0) {
+      return null;
+    }
+
+    // Debug: Log doctor data to check specializations
+    console.log('Patient assignedDoctor:', patient.assignedDoctor);
+    console.log('Doctor specializations:', patient.assignedDoctor?.specializations);
+    console.log('Doctor specializations type:', typeof patient.assignedDoctor?.specializations);
+    console.log('Doctor specializations isArray:', Array.isArray(patient.assignedDoctor?.specializations));
+    console.log('Doctor specialization (singular):', patient.assignedDoctor?.specialization);
+
+    // Calculate totals
+    const totalAmount = patient.billing.reduce((sum, bill) => sum + (bill.amount || 0), 0);
+    const totalPaid = patient.billing.reduce((sum, bill) => sum + (bill.paidAmount || 0), 0);
+    
+    // Prepare service charges
+    const serviceCharges = patient.billing
+      .filter(bill => bill.type === 'service')
+      .map(bill => ({
+        name: bill.description || 'Service Charge',
+        amount: bill.amount || 0,
+        description: bill.description || 'Medical service provided'
+      }));
+
+    // Get registration and consultation fees
+    const registrationFee = patient.billing.find(bill => bill.type === 'registration')?.amount || 0;
+    const consultationFee = patient.billing.find(bill => 
+      bill.type === 'consultation' || bill.description?.toLowerCase().includes('consultation')
+    )?.amount || 0;
+
+    return {
+      patient: {
+        name: patient.name,
+        gender: patient.gender,
+        age: patient.age,
+        uhId: patient.uhId,
+        fileNo: patient.uhId,
+        phone: patient.phone,
+        email: patient.email,
+        address: patient.address
+      },
+      doctor: {
+        name: patient.assignedDoctor?.name || 'Not Assigned',
+        specializations: (() => {
+          const doctor = patient.assignedDoctor;
+          console.log('🔍 Processing specializations for doctor:', doctor?.name);
+          console.log('🔍 Specializations value:', doctor?.specializations);
+          console.log('🔍 Specializations type:', typeof doctor?.specializations);
+          console.log('🔍 Is array:', Array.isArray(doctor?.specializations));
+          
+          // Handle array format
+          if (doctor?.specializations && Array.isArray(doctor.specializations) && doctor.specializations.length > 0) {
+            const result = doctor.specializations.join(', ');
+            console.log('🔍 Using array format, result:', result);
+            return result;
+          }
+          // Handle string format (comma-separated)
+          if (doctor?.specializations && typeof doctor.specializations === 'string' && doctor.specializations.trim()) {
+            console.log('🔍 Using string format, result:', doctor.specializations);
+            return doctor.specializations;
+          }
+          // Handle singular specialization field
+          if (doctor?.specialization) {
+            console.log('🔍 Using singular specialization, result:', doctor.specialization);
+            return doctor.specialization;
+          }
+          // Default fallback
+          console.log('🔍 Using default fallback: General');
+          return 'General';
+        })()
+      },
+      registrationFee,
+      consultationFee,
+      serviceCharges,
+      totals: {
+        subtotal: totalAmount,
+        discount: 0,
+        tax: 0,
+        total: totalAmount
+      },
+      invoiceNumber: patient.billing[0]?.invoiceNumber || `INV-${patient._id.slice(-6)}`,
+      date: new Date(),
+      generatedBy: user?.name || 'Receptionist',
+      password: patient.uhId ? `${patient.uhId}${patient.gender?.charAt(0) || 'P'}` : 'N/A'
+    };
   };
 
   // Refresh invoice data from API
@@ -702,45 +1123,6 @@ export default function ConsultationBilling() {
     }
   };
 
-  const handlePaymentSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!selectedPatient) return;
-
-    try {
-      // Record payment for existing billing entries
-      const paymentPayload = {
-        patientId: selectedPatient._id,
-        amount: parseFloat(paymentData.amount),
-        paymentMethod: paymentData.paymentMethod,
-        paymentType: paymentData.paymentType,
-        notes: paymentData.notes,
-        receivePayment: true
-      };
-
-      console.log('🔍 Recording payment:', paymentPayload);
-
-      // Record payment against billing entries
-      const response = await API.post('/billing/record-payment', paymentPayload);
-      
-      if (response.status === 200 || response.status === 201) {
-        toast.success('Payment recorded successfully!');
-        
-        // Close modal immediately
-        setShowPaymentModal(false);
-        setSelectedPatient(null);
-        
-        // Refresh patient data to show updated payment status
-        await dispatch(fetchReceptionistPatients());
-      } else {
-        toast.error('Failed to record payment. Please try again.');
-      }
-    } catch (error) {
-      console.error('❌ Error recording payment:', error);
-      console.error('❌ Error details:', error.response?.data);
-      toast.error('Failed to record payment. Please try again.');
-    }
-  };
 
   const handlePartialPaymentSubmit = async (e) => {
     e.preventDefault();
@@ -865,33 +1247,82 @@ export default function ConsultationBilling() {
     }
   };
 
+  // NEW WORKFLOW STATS
   const getStats = () => {
     const totalPatients = patients.length;
-    const needsConsultationFee = patients.filter(p => {
-      const hasConsultationFee = p.billing && p.billing.some(bill => 
-        bill.type === 'consultation' || bill.description?.toLowerCase().includes('consultation')
-      );
-      const hasPaidConsultationFee = hasConsultationFee && p.billing.some(bill => 
-        (bill.type === 'consultation' || bill.description?.toLowerCase().includes('consultation')) && 
-        (bill.status === 'paid' || bill.status === 'completed')
-      );
-      return !hasPaidConsultationFee;
+    const noInvoice = patients.filter(p => !p.billing || p.billing.length === 0).length;
+    const pendingPayment = patients.filter(p => {
+      const status = getPatientStatus(p);
+      return status.status === 'Pending Payment' || status.status === 'Partial Payment';
     }).length;
-    const paidConsultationFee = patients.filter(p => {
-      const hasConsultationFee = p.billing && p.billing.some(bill => 
-        bill.type === 'consultation' || bill.description?.toLowerCase().includes('consultation')
-      );
-      const hasPaidConsultationFee = hasConsultationFee && p.billing.some(bill => 
-        (bill.type === 'consultation' || bill.description?.toLowerCase().includes('consultation')) && 
-        (bill.status === 'paid' || bill.status === 'completed')
-      );
-      return hasPaidConsultationFee;
+    const fullyPaid = patients.filter(p => {
+      const status = getPatientStatus(p);
+      return status.status === 'Fully Paid';
+    }).length;
+    const cancelledBills = patients.filter(p => {
+      const status = getPatientStatus(p);
+      return status.status === 'Bill Cancelled';
+    }).length;
+    const refunded = patients.filter(p => {
+      const status = getPatientStatus(p);
+      return status.status === 'Refunded';
     }).length;
     
-    return { totalPatients, needsConsultationFee, paidConsultationFee };
+    return { 
+      totalPatients, 
+      noInvoice, 
+      pendingPayment, 
+      fullyPaid, 
+      cancelledBills, 
+      refunded 
+    };
   };
 
   const stats = getStats();
+
+  // Helper function to convert numbers to words
+  const numberToWords = (num) => {
+    const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+    const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+    const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+    const scales = ['', 'Thousand', 'Lakh', 'Crore'];
+
+    if (num === 0) return 'Zero';
+
+    const convertHundreds = (n) => {
+      let result = '';
+      if (n > 99) {
+        result += ones[Math.floor(n / 100)] + ' Hundred ';
+        n %= 100;
+      }
+      if (n > 19) {
+        result += tens[Math.floor(n / 10)] + ' ';
+        n %= 10;
+      } else if (n > 9) {
+        result += teens[n - 10] + ' ';
+        return result;
+      }
+      if (n > 0) {
+        result += ones[n] + ' ';
+      }
+      return result;
+    };
+
+    let result = '';
+    let scaleIndex = 0;
+    
+    while (num > 0) {
+      const chunk = num % 1000;
+      if (chunk !== 0) {
+        const chunkWords = convertHundreds(chunk);
+        result = chunkWords + scales[scaleIndex] + ' ' + result;
+      }
+      num = Math.floor(num / 1000);
+      scaleIndex++;
+    }
+
+    return result.trim();
+  };
 
   return (
     <ReceptionistLayout>
@@ -901,11 +1332,11 @@ export default function ConsultationBilling() {
           <div className="mb-8">
             <div className="flex justify-between items-center">
               <div>
-                <h1 className="text-md font-bold text-slate-800 mb-2">
-                  Doctor Consultation Fee Billing
+                <h1 className="text-2xl font-bold text-slate-800 mb-2">
+                  Consultation Billing Workflow
                 </h1>
                 <p className="text-slate-600 text-sm">
-                  Manage consultation fees - collect payments and track payment history
+                  Create invoices, process payments, and manage billing with full tracking
                 </p>
               </div>
               <div className="flex items-center gap-3">
@@ -918,33 +1349,8 @@ export default function ConsultationBilling() {
                   title="Check for pending bills"
                 >
                   <Bell className="h-4 w-4" />
-                  Pending Bills ({patients.filter(p => {
-                    const status = getPatientStatus(p);
-                    return status !== 'All Paid';
-                  }).length})
+                  Pending Bills ({stats.pendingPayment})
                 </button>
-                <button
-                  onClick={() => {
-                    sessionStorage.removeItem('pendingBillsNotificationShown');
-                    console.log('Notification reset - will show on next login');
-                    toast.success('Notification reset! Will show on next login.');
-                  }}
-                  className="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors flex items-center gap-2 text-sm"
-                  title="Reset notification for testing"
-                >
-                  Reset Notification
-                </button>
-                {/* Test reassignment button removed - functionality moved to separate page */}
-                {user?.role === 'superadmin' && (
-                  <button
-                    onClick={handleUpdateMissingInvoiceNumbers}
-                    className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors flex items-center gap-2"
-                    title="Update missing invoice numbers for existing billing records"
-                  >
-                    <Settings className="h-4 w-4" />
-                    Fix Invoice Numbers
-                  </button>
-                )}
                 <button
                   onClick={() => dispatch(fetchReceptionistPatients())}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
@@ -958,35 +1364,65 @@ export default function ConsultationBilling() {
 
           {/* Reassignment functionality moved to separate page */}
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-blue-100">
+          {/* NEW WORKFLOW STATS CARDS */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-blue-100">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-slate-600 text-xs font-medium">Total Patients</p>
-                  <p className="text-md font-bold text-slate-800">{stats.totalPatients}</p>
+                  <p className="text-lg font-bold text-slate-800">{stats.totalPatients}</p>
                 </div>
-                <Users className="h-8 w-8 text-blue-500" />
+                <Users className="h-6 w-6 text-blue-500" />
               </div>
             </div>
 
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-blue-100">
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-red-100">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-slate-600 text-xs font-medium">Need Consultation Fee</p>
-                  <p className="text-md font-bold text-slate-800">{stats.needsConsultationFee}</p>
+                  <p className="text-slate-600 text-xs font-medium">No Invoice</p>
+                  <p className="text-lg font-bold text-red-600">{stats.noInvoice}</p>
                 </div>
-                <AlertCircle className="h-8 w-8 text-red-500" />
+                <FileText className="h-6 w-6 text-red-500" />
               </div>
             </div>
 
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-blue-100">
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-orange-100">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-slate-600 text-xs font-medium">Paid Consultation Fee</p>
-                  <p className="text-md font-bold text-slate-800">{stats.paidConsultationFee}</p>
+                  <p className="text-slate-600 text-xs font-medium">Pending Payment</p>
+                  <p className="text-lg font-bold text-orange-600">{stats.pendingPayment}</p>
                 </div>
-                <CheckCircle className="h-8 w-8 text-green-500" />
+                <Clock className="h-6 w-6 text-orange-500" />
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-green-100">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-slate-600 text-xs font-medium">Fully Paid</p>
+                  <p className="text-lg font-bold text-green-600">{stats.fullyPaid}</p>
+                </div>
+                <CheckCircle className="h-6 w-6 text-green-500" />
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-red-100">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-slate-600 text-xs font-medium">Cancelled</p>
+                  <p className="text-lg font-bold text-red-600">{stats.cancelledBills}</p>
+                </div>
+                <Ban className="h-6 w-6 text-red-500" />
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-orange-100">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-slate-600 text-xs font-medium">Refunded</p>
+                  <p className="text-lg font-bold text-orange-600">{stats.refunded}</p>
+                </div>
+                <RotateCcw className="h-6 w-6 text-orange-500" />
               </div>
             </div>
           </div>
@@ -1072,11 +1508,11 @@ export default function ConsultationBilling() {
           <div className="bg-white rounded-xl shadow-sm border border-blue-100">
             <div className="p-4 sm:p-6 border-b border-blue-100">
               <h2 className="text-sm font-semibold text-slate-800 flex items-center">
-                <Receipt className="h-5 w-5 mr-2 text-blue-500" />
-                All Patients - Consultation Fee Status
+                <ReceiptIcon className="h-5 w-5 mr-2 text-blue-500" />
+                Patient Billing Workflow
               </h2>
               <p className="text-slate-600 mt-1 text-xs">
-                {finalFilteredPatients.length} patients total ({stats.needsConsultationFee} need payment, {stats.paidConsultationFee} paid)
+                {finalFilteredPatients.length} patients total - Create invoices, process payments, manage billing
               </p>
             </div>
 
@@ -1096,25 +1532,26 @@ export default function ConsultationBilling() {
                 </div>
               ) : (
                 <>
-                  {/* Desktop Table */}
+                  {/* NEW WORKFLOW TABLE */}
                   <table className="w-full">
                     <thead className="bg-slate-50">
                       <tr>
                         <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Patient</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Contact</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">UH ID</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Assigned Doctor</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Payment Details</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Doctor</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Appointment</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Billing Status</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Invoice Details</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Workflow Actions</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-slate-200">
                       {currentPatients.map((patient) => {
-                        const status = getPatientStatus(patient);
-                        const statusColor = getStatusColor(status);
-                        const statusIcon = getStatusIcon(status);
-                        const feeDetails = getConsultationFeeDetails(patient);
+                        const statusInfo = getPatientStatus(patient);
+                        const hasBilling = patient.billing && patient.billing.length > 0;
+                        const totalAmount = hasBilling ? patient.billing.reduce((sum, bill) => sum + (bill.amount || 0), 0) : 0;
+                        const totalPaid = hasBilling ? patient.billing.reduce((sum, bill) => sum + (bill.paidAmount || 0), 0) : 0;
                         
                         return (
                           <tr key={patient._id} className="hover:bg-slate-50">
@@ -1144,57 +1581,68 @@ export default function ConsultationBilling() {
                               </div>
                             </td>
                             <td className="px-4 py-4 whitespace-nowrap">
-                              <span className={`px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit ${statusColor}`}>
-                                {statusIcon}
-                                {status}
+                              <div className="text-xs text-slate-600 space-y-1">
+                                {patient.appointmentTime ? (
+                                  <>
+                                    <div className="font-medium text-slate-900">
+                                      {new Date(patient.appointmentTime).toLocaleDateString('en-GB')}
+                                    </div>
+                                    <div className="text-slate-500">
+                                      {new Date(patient.appointmentTime).toLocaleTimeString('en-GB', { 
+                                        hour: '2-digit', 
+                                        minute: '2-digit',
+                                        hour12: true 
+                                      })}
+                                    </div>
+                                    <div className={`text-xs px-2 py-1 rounded-full inline-block ${
+                                      patient.appointmentStatus === 'viewed' ? 'bg-green-100 text-green-700' :
+                                      patient.appointmentStatus === 'missed' ? 'bg-red-100 text-red-700' :
+                                      patient.appointmentStatus === 'reassigned' ? 'bg-orange-100 text-orange-700' :
+                                      'bg-blue-100 text-blue-700'
+                                    }`}>
+                                      {patient.appointmentStatus || 'scheduled'}
+                                    </div>
+                                  </>
+                                ) : (
+                                  <span className="text-slate-400">No appointment</span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-4 py-4 whitespace-nowrap">
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit ${statusInfo.color}`}>
+                                {statusInfo.icon}
+                                {statusInfo.status}
                               </span>
                             </td>
                             <td className="px-4 py-4 whitespace-nowrap">
                               <div className="text-xs text-slate-600 space-y-1">
-                                {(() => {
-                                  const consultationFee = getConsultationFeeDetails(patient);
-                                  const registrationFee = getRegistrationFeeDetails(patient);
-                                  const serviceCharges = getServiceChargesDetails(patient);
-                                  
-                                  return (
-                                    <>
-                                      {consultationFee && (
-                                        <div className="border-l-2 border-blue-400 pl-2">
-                                          <div className="font-medium text-blue-600">Consultation: ₹{consultationFee.amount}</div>
-                                          <div className="text-slate-500">{consultationFee.paymentMethod}</div>
-                                          {consultationFee.invoiceNumber && (
-                                            <div className="text-slate-400 text-xs">INV: {consultationFee.invoiceNumber}</div>
-                                          )}
+                                {hasBilling ? (
+                                  <>
+                                    <div className="font-medium">
+                                      Total: ₹{totalAmount.toLocaleString()}
                                     </div>
-                                      )}
-                                      {registrationFee && (
-                                        <div className="border-l-2 border-purple-400 pl-2">
-                                          <div className="font-medium text-purple-600">Registration: ₹{registrationFee.amount}</div>
-                                          <div className="text-slate-500">{registrationFee.paymentMethod}</div>
-                                          {registrationFee.invoiceNumber && (
-                                            <div className="text-slate-400 text-xs">INV: {registrationFee.invoiceNumber}</div>
-                                  )}
+                                    <div className="text-slate-500">
+                                      Paid: ₹{totalPaid.toLocaleString()}
+                                    </div>
+                                    {totalAmount > totalPaid && (
+                                      <div className="text-orange-600 font-medium">
+                                        Due: ₹{(totalAmount - totalPaid).toLocaleString()}
                                 </div>
                                       )}
-                                      {serviceCharges.length > 0 && (
-                                        <div className="border-l-2 border-green-400 pl-2">
-                                          <div className="font-medium text-green-600">
-                                            Services: ₹{serviceCharges.reduce((sum, s) => sum + s.amount, 0)}
-                                          </div>
-                                          <div className="text-slate-500">{serviceCharges[0].paymentMethod}</div>
-                                          <div className="text-slate-400 text-xs">{serviceCharges.length} service(s)</div>
+                                    {patient.billing[0]?.invoiceNumber && (
+                                      <div className="text-slate-400 text-xs">
+                                        INV: {patient.billing[0].invoiceNumber}
                                         </div>
                                       )}
-                                      {!consultationFee && !registrationFee && serviceCharges.length === 0 && (
-                                        <span className="text-slate-400">No payments</span>
-                                      )}
                                     </>
-                                  );
-                                })()}
+                                ) : (
+                                  <span className="text-slate-400">No billing</span>
+                                )}
                               </div>
                             </td>
                             <td className="px-4 py-4 whitespace-nowrap text-xs font-medium">
                               <div className="flex items-center gap-1 flex-wrap">
+                                {/* View Profile */}
                                 <button
                                   onClick={() => navigate(`/dashboard/receptionist/profile/${patient._id}`)}
                                   className="text-blue-600 hover:text-blue-700 p-1 rounded transition-colors"
@@ -1203,73 +1651,75 @@ export default function ConsultationBilling() {
                                   <Eye className="h-4 w-4" />
                                 </button>
                                 
+                                {/* NEW WORKFLOW ACTIONS */}
+                                
+                                {/* Create Invoice - for patients without billing */}
+                                {!hasBilling && (
                                 <button
-                                  onClick={() => handleGenerateInvoice(patient)}
-                                  className="text-purple-600 hover:text-purple-700 p-1 rounded transition-colors"
-                                  title="Generate/View Invoice"
-                                >
-                                  <FileText className="h-4 w-4" />
-                                </button>
-
-                                {/* Registration Fee Button - only for new patients who don't have registration billing */}
-                                {isPatientNew(patient) && !getRegistrationFeeDetails(patient) && (
-                                  <button
-                                    onClick={() => handleCreateRegistrationBill(patient)}
-                                    className="bg-purple-500 hover:bg-purple-600 text-white px-2 py-1 rounded text-xs font-medium flex items-center gap-1"
-                                    title="Add Registration Fee"
-                                  >
-                                    <UserPlus className="h-3 w-3" />
-                                    Reg Fee
-                                  </button>
-                                )}
-
-                                {/* Consultation Fee Button - only if no consultation fee billing exists */}
-                                {!getConsultationFeeDetails(patient) && (
-                                  <button
-                                    onClick={() => handleCreateConsultationBill(patient)}
+                                    onClick={() => handleCreateInvoice(patient)}
                                     className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs font-medium flex items-center gap-1"
-                                    title="Add Consultation Fee"
+                                    title="Create Invoice"
                                   >
-                                    <DollarSign className="h-3 w-3" />
-                                    Consult
-                                  </button>
+                                    <Calculator className="h-3 w-3" />
+                                    Create Invoice
+                                </button>
                                 )}
 
-                                {/* Service Charges Button - for adding service charges */}
-                                <button
-                                  onClick={() => handleCreateServiceCharges(patient)}
-                                  className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs font-medium flex items-center gap-1"
-                                  title="Add Service Charges"
-                                >
-                                  <Settings className="h-3 w-3" />
-                                  Services
-                                </button>
 
-                                {/* Payment Recording Buttons based on status */}
-                                {(status === 'Consultation Pending Payment' || status === 'Registration Pending Payment' || 
-                                  status === 'Service Charges Pending' || status === 'Pending Payment') && (
+                                {/* Record Payment - for pending payments */}
+                                {(statusInfo.status === 'Pending Payment' || statusInfo.status === 'Partial Payment') && (
                                   <button
                                     onClick={() => handleRecordPayment(patient)}
-                                    className="bg-orange-500 hover:bg-orange-600 text-white px-2 py-1 rounded text-xs font-medium flex items-center gap-1"
+                                    className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs font-medium flex items-center gap-1"
                                     title="Record Payment"
                                   >
-                                    <CreditCard className="h-3 w-3" />
+                                    <ReceiptIcon className="h-3 w-3" />
                                     Record Payment
                                   </button>
                                 )}
 
-                                {(status === 'Consultation Partial Payment' || status === 'Registration Partial Payment' || 
-                                  status === 'Service Charges Partial' || status === 'Partial Payment Received') && (
-                                  <>
+                                {/* View Invoice - for patients with billing */}
+                                {hasBilling && (
+                                <button
+                                    onClick={() => {
+                                      setSelectedPatient(patient);
+                                      const invoiceData = prepareInvoiceData(patient);
+                                      if (invoiceData) {
+                                        setInvoiceData(invoiceData);
+                                      setShowInvoicePreviewModal(true);
+                                      } else {
+                                        toast.error('Unable to generate invoice data');
+                                      }
+                                    }}
+                                    className="text-purple-600 hover:text-purple-700 p-1 rounded transition-colors"
+                                    title="View Invoice"
+                                  >
+                                    <FileCheck className="h-4 w-4" />
+                                </button>
+                                )}
+
+                                {/* Cancel Bill - for any patient with billing */}
+                                {hasBilling && statusInfo.status !== 'Bill Cancelled' && statusInfo.status !== 'Refunded' && (
+                                  <button
+                                    onClick={() => handleCancelBill(patient)}
+                                    className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs font-medium flex items-center gap-1"
+                                    title="Cancel Bill"
+                                  >
+                                    <Ban className="h-3 w-3" />
+                                    Cancel
+                                  </button>
+                                )}
+
+                                {/* Process Refund - for cancelled bills with payments */}
+                                {statusInfo.status === 'Bill Cancelled' && totalPaid > 0 && (
                                     <button
-                                      onClick={() => handleRecordPartialPayment(patient)}
-                                      className="bg-yellow-500 hover:bg-yellow-600 text-white px-2 py-1 rounded text-xs font-medium flex items-center gap-1"
-                                      title="Record Additional Payment"
-                                    >
-                                      <CreditCard className="h-3 w-3" />
-                                      Record More
+                                    onClick={() => handleProcessRefund(patient)}
+                                    className="bg-orange-500 hover:bg-orange-600 text-white px-2 py-1 rounded text-xs font-medium flex items-center gap-1"
+                                    title="Process Refund"
+                                  >
+                                    <RotateCcw className="h-3 w-3" />
+                                    Refund
                                     </button>
-                                  </>
                                 )}
                               </div>
                             </td>
@@ -1348,63 +1798,231 @@ export default function ConsultationBilling() {
         </div>
       </div>
 
-      {/* Consultation Fee Billing Modal */}
-      {showConsultationModal && selectedPatient && (
+      {/* NEW WORKFLOW MODALS */}
+
+      {/* Create Invoice Modal */}
+      {showCreateInvoiceModal && selectedPatient && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-slate-800">
-                Add Consultation Fee Billing
+                Create Invoice for {selectedPatient.name}
               </h3>
               <button
-                onClick={() => setShowConsultationModal(false)}
+                onClick={() => setShowCreateInvoiceModal(false)}
                 className="text-slate-400 hover:text-slate-600"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
             
-            <div className="mb-4">
-              <p className="text-sm text-slate-600 mb-2">
-                <strong>Patient:</strong> {selectedPatient.name}
-              </p>
-              <p className="text-sm text-slate-600">
-                <strong>UH ID:</strong> {selectedPatient.uhId || 'N/A'}
-              </p>
-            </div>
-
-            <form onSubmit={handleConsultationFeeSubmit} className="space-y-4">
+            <form onSubmit={handleInvoiceFormSubmit} className="space-y-4">
+              {/* Registration Fee */}
+              {isPatientNew(selectedPatient) && (
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-2">
-                  Consultation Fee Amount *
+                    Registration Fee (₹)
                 </label>
                 <input
                   type="number"
-                  value={paymentData.amount}
-                  onChange={(e) => setPaymentData({...paymentData, amount: e.target.value})}
-                  required
+                    value={invoiceFormData.registrationFee}
+                    onChange={(e) => setInvoiceFormData({...invoiceFormData, registrationFee: parseFloat(e.target.value) || 0})}
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
-                  placeholder="Enter amount"
+                    placeholder="150"
+                />
+              </div>
+              )}
+
+              {/* Consultation Fee */}
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-2">
+                  Consultation Fee (₹)
+                </label>
+                <input
+                  type="number"
+                  value={invoiceFormData.consultationFee}
+                  onChange={(e) => setInvoiceFormData({...invoiceFormData, consultationFee: parseFloat(e.target.value) || 0})}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
+                  placeholder="850"
                 />
               </div>
 
+              {/* Service Charges */}
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-2">
+                  Service Charges
+                </label>
+                <div className="space-y-3">
+                  {invoiceFormData.serviceCharges.map((service, index) => (
+                    <div key={index} className="border border-slate-200 rounded-lg p-3">
+                      <div className="grid grid-cols-3 gap-2">
+                        <input
+                          type="text"
+                          value={service.name}
+                          onChange={(e) => {
+                            const newServices = [...invoiceFormData.serviceCharges];
+                            newServices[index].name = e.target.value;
+                            setInvoiceFormData({...invoiceFormData, serviceCharges: newServices});
+                          }}
+                          placeholder="Service name"
+                          className="px-2 py-1 border border-slate-200 rounded text-xs"
+                        />
+                        <input
+                          type="number"
+                          value={service.amount}
+                          onChange={(e) => {
+                            const newServices = [...invoiceFormData.serviceCharges];
+                            newServices[index].amount = e.target.value;
+                            setInvoiceFormData({...invoiceFormData, serviceCharges: newServices});
+                          }}
+                          placeholder="Amount"
+                          className="px-2 py-1 border border-slate-200 rounded text-xs"
+                        />
+                <button
+                  type="button"
+                          onClick={() => {
+                            const newServices = invoiceFormData.serviceCharges.filter((_, i) => i !== index);
+                            setInvoiceFormData({...invoiceFormData, serviceCharges: newServices});
+                          }}
+                          className="text-red-500 hover:text-red-700 text-xs"
+                        >
+                          <X className="h-4 w-4" />
+                </button>
+              </div>
+                      <input
+                        type="text"
+                        value={service.description}
+                        onChange={(e) => {
+                          const newServices = [...invoiceFormData.serviceCharges];
+                          newServices[index].description = e.target.value;
+                          setInvoiceFormData({...invoiceFormData, serviceCharges: newServices});
+                        }}
+                        placeholder="Description"
+                        className="w-full mt-2 px-2 py-1 border border-slate-200 rounded text-xs"
+                      />
+          </div>
+                  ))}
+              <button
+                    type="button"
+                    onClick={() => {
+                      setInvoiceFormData({
+                        ...invoiceFormData,
+                        serviceCharges: [...invoiceFormData.serviceCharges, { name: '', amount: '', description: '' }]
+                      });
+                    }}
+                    className="w-full py-2 border-2 border-dashed border-slate-300 rounded-lg text-slate-500 hover:border-green-400 hover:text-green-600 transition-colors text-xs"
+                  >
+                    <Plus className="h-4 w-4 inline mr-1" />
+                    Add Service Charge
+              </button>
+            </div>
+            </div>
+
+              {/* Tax and Discount */}
+              <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-2">
+                    Tax Percentage (%)
+                </label>
+                <input
+                  type="number"
+                    value={invoiceFormData.taxPercentage}
+                    onChange={(e) => setInvoiceFormData({...invoiceFormData, taxPercentage: parseFloat(e.target.value) || 0})}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
+                    placeholder="0"
+                    min="0"
+                    max="100"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-2">
+                    Discount Percentage (%)
+                </label>
+                  <input
+                    type="number"
+                    value={invoiceFormData.discountPercentage}
+                    onChange={(e) => setInvoiceFormData({...invoiceFormData, discountPercentage: parseFloat(e.target.value) || 0})}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
+                    placeholder="0"
+                    min="0"
+                    max="100"
+                  />
+                </div>
+              </div>
+
+              {/* Notes */}
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-2">
                   Notes
                 </label>
                 <textarea
-                  value={paymentData.notes}
-                  onChange={(e) => setPaymentData({...paymentData, notes: e.target.value})}
+                  value={invoiceFormData.notes}
+                  onChange={(e) => setInvoiceFormData({...invoiceFormData, notes: e.target.value})}
                   rows={3}
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
                   placeholder="Additional notes..."
                 />
               </div>
 
+              {/* Invoice Preview */}
+              <div className="bg-slate-50 rounded-lg p-4">
+                <h4 className="font-medium text-slate-700 mb-2">Invoice Preview</h4>
+                <div className="space-y-1 text-xs">
+                  {invoiceFormData.registrationFee > 0 && (
+                    <div className="flex justify-between">
+                      <span>Registration Fee:</span>
+                      <span>₹{invoiceFormData.registrationFee}</span>
+        </div>
+      )}
+                  <div className="flex justify-between">
+                    <span>Consultation Fee:</span>
+                    <span>₹{invoiceFormData.consultationFee}</span>
+            </div>
+                  {invoiceFormData.serviceCharges.filter(s => s.name && s.amount).map((service, index) => (
+                    <div key={index} className="flex justify-between">
+                      <span>{service.name}:</span>
+                      <span>₹{service.amount}</span>
+            </div>
+                  ))}
+                  {(() => {
+                    const subtotal = invoiceFormData.registrationFee + invoiceFormData.consultationFee + 
+                      invoiceFormData.serviceCharges.reduce((sum, s) => sum + (parseFloat(s.amount) || 0), 0);
+                    const taxAmount = subtotal * (invoiceFormData.taxPercentage / 100);
+                    const discountAmount = subtotal * (invoiceFormData.discountPercentage / 100);
+                    const total = subtotal + taxAmount - discountAmount;
+                    
+                    return (
+                      <>
+                        <div className="flex justify-between border-t border-slate-300 pt-1">
+                          <span>Subtotal:</span>
+                          <span>₹{subtotal}</span>
+                </div>
+                        {taxAmount > 0 && (
+                          <div className="flex justify-between">
+                            <span>Tax:</span>
+                            <span>₹{taxAmount.toFixed(2)}</span>
+                </div>
+                        )}
+                        {discountAmount > 0 && (
+                          <div className="flex justify-between text-green-600">
+                            <span>Discount:</span>
+                            <span>-₹{discountAmount.toFixed(2)}</span>
+                </div>
+                        )}
+                        <div className="flex justify-between font-bold border-t border-slate-300 pt-1">
+                          <span>Total:</span>
+                          <span>₹{total.toFixed(2)}</span>
+              </div>
+                      </>
+                    );
+                  })()}
+              </div>
+              </div>
+
               <div className="flex gap-3 pt-4">
                 <button
                   type="button"
-                  onClick={() => setShowConsultationModal(false)}
+                  onClick={() => setShowCreateInvoiceModal(false)}
                   className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-xs"
                 >
                   Cancel
@@ -1413,7 +2031,7 @@ export default function ConsultationBilling() {
                   type="submit"
                   className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-xs font-medium"
                 >
-                  Create Billing Entry
+                  Create Invoice & Preview
                 </button>
               </div>
             </form>
@@ -1421,77 +2039,847 @@ export default function ConsultationBilling() {
         </div>
       )}
 
-      {/* Payment Recording Modal */}
+      {/* Invoice Preview & Payment Modal */}
+      {showInvoicePreviewModal && selectedPatient && invoiceData && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white shadow-2xl w-full max-w-4xl max-h-[95vh] overflow-hidden rounded-xl" id="invoice-print">
+            {/* Modal Header with Actions */}
+            <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 rounded-t-xl">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold">Invoice</h2>
+                </div>
+                <div className="flex items-center gap-3">
+                  {/* Action Buttons */}
+                  <button
+                    onClick={() => {
+                      // Calculate outstanding amount
+                      const totalAmount = selectedPatient.billing?.reduce((sum, bill) => sum + (bill.amount || 0), 0) || 0;
+                      const totalPaid = selectedPatient.billing?.reduce((sum, bill) => sum + (bill.paidAmount || 0), 0) || 0;
+                      const outstandingAmount = totalAmount - totalPaid;
+                      
+                      // Create a mock invoice object for payment processing
+                      const mockInvoice = {
+                        invoiceNumber: selectedPatient.billing?.[0]?.invoiceNumber || `INV-${selectedPatient._id.slice(-6)}`,
+                        patientId: selectedPatient._id,
+                        total: totalAmount,
+                        paid: totalPaid,
+                        outstanding: outstandingAmount
+                      };
+                      
+                      // Set the generated invoice for payment processing
+                      setGeneratedInvoice(mockInvoice);
+                      
+                      // Pre-populate payment data
+                      setPaymentData({
+                        amount: outstandingAmount > 0 ? outstandingAmount.toString() : '',
+                        paymentMethod: 'cash',
+                        paymentType: outstandingAmount > 0 ? 'full' : 'partial',
+                        notes: `Payment for patient: ${selectedPatient.name}`,
+                        appointmentTime: '',
+                        consultationType: 'OP'
+                      });
+                      
+                      setShowInvoicePreviewModal(false);
+                      setShowPaymentModal(true);
+                    }}
+                    className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2"
+                  >
+                    <CreditCard className="h-4 w-4" />
+                    Process Payment
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      // Generate optimized PDF invoice for A4 printing
+                      const printWindow = window.open('', '_blank');
+                      const invoiceContent = document.getElementById('invoice-print').innerHTML;
+                      
+                      printWindow.document.write(`
+                        <!DOCTYPE html>
+                        <html>
+                          <head>
+                            <title>Invoice - ${selectedPatient.name}</title>
+                            <style>
+                              * {
+                                box-sizing: border-box;
+                                margin: 0;
+                                padding: 0;
+                              }
+                              
+                              body { 
+                                font-family: Arial, sans-serif; 
+                                margin: 0;
+                                padding: 15px;
+                                color: #000;
+                                background: white;
+                                font-size: 11px;
+                                line-height: 1.4;
+                              }
+                              
+                              .invoice-container {
+                                max-width: 210mm;
+                                margin: 0 auto;
+                                background: white;
+                                position: relative;
+                              }
+                              
+                              /* Watermark */
+                              .invoice-container::before {
+                                content: "DUPLICA";
+                                position: absolute;
+                                top: 50%;
+                                left: 50%;
+                                transform: translate(-50%, -50%) rotate(-45deg);
+                                font-size: 60px;
+                                color: rgba(0, 0, 0, 0.1);
+                                z-index: 1;
+                                pointer-events: none;
+                              }
+                              
+                              /* Content above watermark */
+                              .invoice-content {
+                                position: relative;
+                                z-index: 2;
+                              }
+                              
+                              /* Header Styles */
+                              .text-center { text-align: center; }
+                              .font-bold { font-weight: bold; }
+                              .text-base { font-size: 16px; }
+                              .text-sm { font-size: 14px; }
+                              .text-xs { font-size: 11px; }
+                              .text-\\[10px\\] { font-size: 10px; }
+                              .text-\\[11px\\] { font-size: 11px; }
+                              .leading-tight { line-height: 1.25; }
+                              .mb-6 { margin-bottom: 20px; }
+                              .mb-4 { margin-bottom: 16px; }
+                              .mb-2 { margin-bottom: 8px; }
+                              .mb-1 { margin-bottom: 4px; }
+                              .mt-1 { margin-top: 4px; }
+                              .mt-10 { margin-top: 40px; }
+                              .pt-4 { padding-top: 16px; }
+                              .pb-4 { padding-bottom: 16px; }
+                              .p-6 { padding: 20px; }
+                              .border-b { border-bottom: 1px solid #d1d5db; }
+                              .border-t { border-top: 1px solid #d1d5db; }
+                              .border-slate-300 { border-color: #cbd5e1; }
+                              .border-slate-400 { border-color: #94a3b8; }
+                              .border-slate-200 { border-color: #e2e8f0; }
+                              .text-slate-900 { color: #0f172a; }
+                              .text-slate-700 { color: #334155; }
+                              .text-slate-600 { color: #475569; }
+                              .text-slate-500 { color: #64748b; }
+                              .text-blue-600 { color: #2563eb; }
+                              .underline { text-decoration: underline; }
+                              .uppercase { text-transform: uppercase; }
+                              .grid { display: grid; }
+                              .grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
+                              .gap-x-8 { column-gap: 32px; }
+                              .flex { display: flex; }
+                              .justify-between { justify-content: space-between; }
+                              .justify-end { justify-content: flex-end; }
+                              .items-end { align-items: flex-end; }
+                              .w-80 { width: 320px; }
+                              .w-20 { width: 80px; }
+                              .w-28 { width: 112px; }
+                              .w-32 { width: 128px; }
+                              .w-12 { width: 48px; }
+                              .w-24 { width: 96px; }
+                              .flex-1 { flex: 1; }
+                              .font-medium { font-weight: 500; }
+                              .font-semibold { font-weight: 600; }
+                              .min-w-full { min-width: 100%; }
+                              .border-collapse { border-collapse: collapse; }
+                              .border { border: 1px solid #d1d5db; }
+                              .px-3 { padding-left: 12px; padding-right: 12px; }
+                              .py-2 { padding-top: 8px; padding-bottom: 8px; }
+                              .text-left { text-align: left; }
+                              .text-right { text-align: right; }
+                              .text-center { text-align: center; }
+                              .bg-slate-100 { background-color: #f1f5f9; }
+                              .max-w-xs { max-width: 320px; }
+                              .border-b-2 { border-bottom-width: 2px; }
+                              .border-t-2 { border-top-width: 2px; }
+                              .pt-2 { padding-top: 8px; }
+                              .py-1 { padding-top: 4px; padding-bottom: 4px; }
+                              .pt-1 { padding-top: 4px; }
+                              .h-7 { height: 28px; }
+                              .space-y-1 > * + * { margin-top: 4px; }
+                              
+                              /* Table specific styles */
+                              table { 
+                                width: 100%; 
+                                border-collapse: collapse; 
+                                margin: 15px 0;
+                              }
+                              
+                              th, td { 
+                                border: 1px solid #000; 
+                                padding: 6px 8px; 
+                                text-align: left; 
+                                font-size: 11px;
+                              }
+                              
+                              th { 
+                                background-color: #f5f5f5; 
+                                font-weight: bold; 
+                                text-align: center;
+                              }
+                              
+                              /* Hide elements that shouldn't print */
+                              .no-print,
+                              button,
+                              .action-buttons {
+                                display: none !important;
+                              }
+                              
+                              @media print {
+                                body {
+                                  margin: 0;
+                                  padding: 10mm;
+                                }
+                                
+                                .invoice-container {
+                                  max-width: none;
+                                  margin: 0;
+                                }
+                                
+                                @page {
+                                  size: A4;
+                                  margin: 10mm;
+                                }
+                              }
+                            </style>
+                          </head>
+                          <body>
+                            <div class="invoice-container">
+                              <div class="invoice-content">
+                                ${invoiceContent}
+                              </div>
+                            </div>
+                          </body>
+                        </html>
+                      `);
+                      printWindow.document.close();
+                      
+                      // Wait for content to load then print
+                      setTimeout(() => {
+                        printWindow.print();
+                      }, 500);
+                    }}
+                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    Download PDF
+                  </button>
+                  
+                  <button
+                    onClick={() => setShowInvoicePreviewModal(false)}
+                    className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2"
+                  >
+                    <X className="h-4 w-4" />
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Invoice Content - Inline Implementation */}
+            <div className="overflow-y-auto max-h-[calc(95vh-80px)] p-6">
+              {invoiceData && (
+                <div className="bg-white p-6 max-w-4xl mx-auto relative">
+                  {/* Watermark */}
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
+                    <div className="text-6xl font-bold text-gray-200 transform -rotate-45 select-none">
+                      DUPLICA
+                    </div>
+                  </div>
+                  
+                  {/* Content above watermark */}
+                  <div className="relative z-10">
+                  {/* Header */}
+                  <div className="text-center mb-6">
+                    <h1 className="text-base font-bold text-slate-900 mb-1">
+                      {centerInfo.name}
+                    </h1>
+                    <p className="text-xs text-slate-600 leading-tight">
+                      {centerInfo.address}
+                    </p>
+                    <p className="text-xs text-slate-600">
+                      PH-{centerInfo.phone} | Fax-{centerInfo.fax}
+                    </p>
+                    <p className="text-xs text-slate-600">
+                      Information Website: {centerInfo.website}
+                    </p>
+                    <p className="text-xs text-slate-600">
+                      Online Lab Reports Website: {centerInfo.labWebsite}
+                    </p>
+                  </div>
+
+                  {/* Title */}
+                  <div className="text-center mb-6">
+                    <h2 className="text-lg font-bold text-slate-900 uppercase">
+                      OUTPATIENT BILL
+                    </h2>
+                  </div>
+
+                  {/* Patient and Bill Details */}
+                  <div className="grid grid-cols-2 gap-x-8 mb-6">
+                    <div>
+                      <div className="space-y-1 text-xs">
+                        <div><span className="font-medium">Name:</span> {invoiceData.patient.name}</div>
+                        <div><span className="font-medium">Date:</span> {new Date(invoiceData.date).toLocaleDateString('en-GB')} {new Date(invoiceData.date).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true })}</div>
+                        <div><span className="font-medium">Bill No:</span> {invoiceData.invoiceNumber}</div>
+                        <div><span className="font-medium">File No:</span> {invoiceData.patient.fileNo || invoiceData.patient.uhId}</div>
+                        <div><span className="font-medium">Sex:</span> {invoiceData.patient.gender}</div>
+                        <div><span className="font-medium">Age:</span> {invoiceData.patient.age}Y</div>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="space-y-1 text-xs">
+                        <div><span className="font-medium">Consultant Name:</span> {invoiceData.doctor.name}</div>
+                        <div><span className="font-medium">Department:</span> {invoiceData.doctor.specializations}</div>
+                        <div><span className="font-medium">User Name / Lab ID:</span> {invoiceData.patient.uhId}</div>
+                        <div><span className="font-medium">Password:</span> {invoiceData.password}</div>
+                        <div><span className="font-medium">Ref. Doctor:</span></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Services Table */}
+                  <div className="mb-6">
+                    <table className="min-w-full border-collapse border border-slate-300">
+                      <thead>
+                        <tr className="bg-slate-100">
+                          <th className="border border-slate-300 px-3 py-2 text-left text-xs font-medium text-slate-700 uppercase">S.No</th>
+                          <th className="border border-slate-300 px-3 py-2 text-left text-xs font-medium text-slate-700 uppercase">Service Name</th>
+                          <th className="border border-slate-300 px-3 py-2 text-center text-xs font-medium text-slate-700 uppercase">Quantity</th>
+                          <th className="border border-slate-300 px-3 py-2 text-right text-xs font-medium text-slate-700 uppercase">Charges</th>
+                          <th className="border border-slate-300 px-3 py-2 text-right text-xs font-medium text-slate-700 uppercase">Paid</th>
+                          <th className="border border-slate-300 px-3 py-2 text-right text-xs font-medium text-slate-700 uppercase">Balance</th>
+                          <th className="border border-slate-300 px-3 py-2 text-center text-xs font-medium text-slate-700 uppercase">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(() => {
+                          let serialNumber = 1;
+                          const rows = [];
+                          
+                          // Add registration fee if exists
+                          if (invoiceData.registrationFee > 0) {
+                            const regBill = selectedPatient.billing?.find(bill => bill.type === 'registration');
+                            const regPaid = regBill?.paidAmount || 0;
+                            const regRefunded = regBill?.refundAmount || 0;
+                            const regBalance = invoiceData.registrationFee - regPaid;
+                            let regStatus, regStatusColor;
+                            
+                            if (regBill?.status === 'cancelled') {
+                              regStatus = 'Cancelled';
+                              regStatusColor = 'text-red-600';
+                            } else if (regBill?.status === 'refunded') {
+                              regStatus = 'Refunded';
+                              regStatusColor = 'text-orange-600';
+                            } else {
+                              regStatus = regPaid >= invoiceData.registrationFee ? 'Paid' : regPaid > 0 ? 'Partial' : 'Unpaid';
+                              regStatusColor = regStatus === 'Paid' ? 'text-green-600' : regStatus === 'Partial' ? 'text-orange-600' : 'text-red-600';
+                            }
+                            
+                            rows.push(
+                              <tr key="reg">
+                                <td className="border border-slate-300 px-3 py-2 text-xs">{serialNumber++}</td>
+                                <td className="border border-slate-300 px-3 py-2 text-xs">Registration Fee</td>
+                                <td className="border border-slate-300 px-3 py-2 text-center text-xs">1</td>
+                                <td className="border border-slate-300 px-3 py-2 text-right text-xs">{invoiceData.registrationFee.toFixed(2)}</td>
+                                <td className="border border-slate-300 px-3 py-2 text-right text-xs">{regPaid.toFixed(2)}</td>
+                                <td className="border border-slate-300 px-3 py-2 text-right text-xs">{regBalance.toFixed(2)}</td>
+                                <td className="border border-slate-300 px-3 py-2 text-center text-xs">
+                                  <span className={`font-medium ${regStatusColor}`}>
+                                    {regStatus}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          }
+                          
+                          // Add consultation fee if exists
+                          if (invoiceData.consultationFee > 0) {
+                            const consultBill = selectedPatient.billing?.find(bill => 
+                              bill.type === 'consultation' || bill.description?.toLowerCase().includes('consultation')
+                            );
+                            const consultPaid = consultBill?.paidAmount || 0;
+                            const consultRefunded = consultBill?.refundAmount || 0;
+                            const consultBalance = invoiceData.consultationFee - consultPaid;
+                            let consultStatus, consultStatusColor;
+                            
+                            if (consultBill?.status === 'cancelled') {
+                              consultStatus = 'Cancelled';
+                              consultStatusColor = 'text-red-600';
+                            } else if (consultBill?.status === 'refunded') {
+                              consultStatus = 'Refunded';
+                              consultStatusColor = 'text-orange-600';
+                            } else {
+                              consultStatus = consultPaid >= invoiceData.consultationFee ? 'Paid' : consultPaid > 0 ? 'Partial' : 'Unpaid';
+                              consultStatusColor = consultStatus === 'Paid' ? 'text-green-600' : consultStatus === 'Partial' ? 'text-orange-600' : 'text-red-600';
+                            }
+                            
+                            rows.push(
+                              <tr key="consult">
+                                <td className="border border-slate-300 px-3 py-2 text-xs">{serialNumber++}</td>
+                                <td className="border border-slate-300 px-3 py-2 text-xs">
+                                  {(() => {
+                                    const consultBill = selectedPatient.billing?.find(b => b.type === 'consultation');
+                                    if (consultBill?.consultationType === 'followup') return 'Followup Consultation (Free)';
+                                    if (consultBill?.consultationType === 'IP') return 'IP Consultation Fee';
+                                    return 'OP Consultation Fee';
+                                  })()}
+                                </td>
+                                <td className="border border-slate-300 px-3 py-2 text-center text-xs">1</td>
+                                <td className="border border-slate-300 px-3 py-2 text-right text-xs">{invoiceData.consultationFee.toFixed(2)}</td>
+                                <td className="border border-slate-300 px-3 py-2 text-right text-xs">{consultPaid.toFixed(2)}</td>
+                                <td className="border border-slate-300 px-3 py-2 text-right text-xs">{consultBalance.toFixed(2)}</td>
+                                <td className="border border-slate-300 px-3 py-2 text-center text-xs">
+                                  <span className={`font-medium ${consultStatusColor}`}>
+                                    {consultStatus}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          }
+                          
+                          // Add service charges
+                          invoiceData.serviceCharges.forEach((service, index) => {
+                            const serviceBill = selectedPatient.billing?.find(bill => 
+                              bill.type === 'service' && bill.description === service.name
+                            );
+                            const servicePaid = serviceBill?.paidAmount || 0;
+                            const serviceRefunded = serviceBill?.refundAmount || 0;
+                            const serviceBalance = service.amount - servicePaid;
+                            let serviceStatus, serviceStatusColor;
+                            
+                            if (serviceBill?.status === 'cancelled') {
+                              serviceStatus = 'Cancelled';
+                              serviceStatusColor = 'text-red-600';
+                            } else if (serviceBill?.status === 'refunded') {
+                              serviceStatus = 'Refunded';
+                              serviceStatusColor = 'text-orange-600';
+                            } else {
+                              serviceStatus = servicePaid >= service.amount ? 'Paid' : servicePaid > 0 ? 'Partial' : 'Unpaid';
+                              serviceStatusColor = serviceStatus === 'Paid' ? 'text-green-600' : serviceStatus === 'Partial' ? 'text-orange-600' : 'text-red-600';
+                            }
+                            
+                            rows.push(
+                              <tr key={`service-${index}`}>
+                                <td className="border border-slate-300 px-3 py-2 text-xs">{serialNumber++}</td>
+                                <td className="border border-slate-300 px-3 py-2 text-xs">{service.name}</td>
+                                <td className="border border-slate-300 px-3 py-2 text-center text-xs">1</td>
+                                <td className="border border-slate-300 px-3 py-2 text-right text-xs">{service.amount.toFixed(2)}</td>
+                                <td className="border border-slate-300 px-3 py-2 text-right text-xs">{servicePaid.toFixed(2)}</td>
+                                <td className="border border-slate-300 px-3 py-2 text-right text-xs">{serviceBalance.toFixed(2)}</td>
+                                <td className="border border-slate-300 px-3 py-2 text-center text-xs">
+                                  <span className={`font-medium ${serviceStatusColor}`}>
+                                    {serviceStatus}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          });
+                          
+                          return rows;
+                        })()}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Summary */}
+                  <div className="flex justify-end mb-6">
+                    <div className="w-80">
+                      <div className="space-y-1 text-xs">
+                        <div className="flex justify-between">
+                          <span>Total Amount:</span>
+                          <span>₹{invoiceData.totals.total.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Discount(-):</span>
+                          <span>₹{invoiceData.totals.discount.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Tax Amount:</span>
+                          <span>₹{invoiceData.totals.tax.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between border-t border-slate-300 pt-1">
+                          <span>Grand Total:</span>
+                          <span>₹{invoiceData.totals.total.toFixed(2)}</span>
+                        </div>
+                        {(() => {
+                          const totalPaid = selectedPatient.billing?.reduce((sum, bill) => sum + (bill.paidAmount || 0), 0) || 0;
+                          const totalRefunded = selectedPatient.billing?.reduce((sum, bill) => sum + (bill.refundAmount || 0), 0) || 0;
+                          const hasCancelledBills = selectedPatient.billing?.some(bill => bill.status === 'cancelled');
+                          const hasRefundedBills = selectedPatient.billing?.some(bill => bill.status === 'refunded');
+                          const outstandingAmount = invoiceData.totals.total - totalPaid;
+                          
+                          return (
+                            <>
+                              <div className="flex justify-between border-t border-slate-300 pt-1">
+                                <span>Amount Paid:</span>
+                                <span className="text-green-600 font-medium">₹{totalPaid.toFixed(2)}</span>
+                              </div>
+                              {totalRefunded > 0 && (
+                                <div className="flex justify-between">
+                                  <span>Amount Refunded:</span>
+                                  <span className="text-orange-600 font-medium">₹{totalRefunded.toFixed(2)}</span>
+                                </div>
+                              )}
+                              {outstandingAmount > 0 && !hasCancelledBills && (
+                                <div className="flex justify-between">
+                                  <span>Outstanding:</span>
+                                  <span className="text-orange-600 font-medium">₹{outstandingAmount.toFixed(2)}</span>
+                                </div>
+                              )}
+                              {hasCancelledBills && (
+                                <div className="flex justify-between">
+                                  <span>Status:</span>
+                                  <span className="text-red-600 font-bold">BILL CANCELLED</span>
+                                </div>
+                              )}
+                              {hasRefundedBills && !hasCancelledBills && (
+                                <div className="flex justify-between">
+                                  <span>Status:</span>
+                                  <span className="text-orange-600 font-bold">REFUNDED</span>
+                                </div>
+                              )}
+                              {outstandingAmount === 0 && totalPaid > 0 && !hasCancelledBills && !hasRefundedBills && (
+                                <div className="flex justify-between">
+                                  <span>Status:</span>
+                                  <span className="text-green-600 font-bold">FULLY PAID</span>
+                                </div>
+                              )}
+                            </>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Payment Information */}
+                  <div className="mb-6">
+                    <div className="text-xs">
+                      {(() => {
+                        // Calculate total paid amount from patient billing
+                        const totalPaid = selectedPatient.billing?.reduce((sum, bill) => sum + (bill.paidAmount || 0), 0) || 0;
+                        const totalRefunded = selectedPatient.billing?.reduce((sum, bill) => sum + (bill.refundAmount || 0), 0) || 0;
+                        const hasCancelledBills = selectedPatient.billing?.some(bill => bill.status === 'cancelled');
+                        const hasRefundedBills = selectedPatient.billing?.some(bill => bill.status === 'refunded');
+                        const totalAmount = invoiceData.totals.total;
+                        const outstandingAmount = totalAmount - totalPaid;
+                        
+                        if (hasCancelledBills) {
+                          return (
+                            <div className="text-red-600">
+                              <div><span className="font-medium">Bill Status:</span> CANCELLED</div>
+                              {totalPaid > 0 && (
+                                <div className="mt-1"><span className="font-medium">Amount Paid:</span> (Rs.) {numberToWords(totalPaid)} Only</div>
+                              )}
+                              {totalRefunded > 0 && (
+                                <div className="mt-1"><span className="font-medium">Amount Refunded:</span> (Rs.) {numberToWords(totalRefunded)} Only</div>
+                              )}
+                            </div>
+                          );
+                        } else if (hasRefundedBills) {
+                          return (
+                            <div className="text-orange-600">
+                              <div><span className="font-medium">Bill Status:</span> REFUNDED</div>
+                              {totalPaid > 0 && (
+                                <div className="mt-1"><span className="font-medium">Amount Paid:</span> (Rs.) {numberToWords(totalPaid)} Only</div>
+                              )}
+                              {totalRefunded > 0 && (
+                                <div className="mt-1"><span className="font-medium">Amount Refunded:</span> (Rs.) {numberToWords(totalRefunded)} Only</div>
+                              )}
+                            </div>
+                          );
+                        } else if (totalPaid > 0) {
+                          return (
+                            <div>
+                              <div><span className="font-medium">Paid Amount:</span> (Rs.) {numberToWords(totalPaid)} Only</div>
+                              {outstandingAmount > 0 && (
+                                <div className="text-orange-600 mt-1"><span className="font-medium">Outstanding Amount:</span> (Rs.) {numberToWords(outstandingAmount)} Only</div>
+                              )}
+                              {outstandingAmount === 0 && (
+                                <div className="text-green-600 mt-1"><span className="font-medium">Payment Status:</span> Fully Paid</div>
+                              )}
+                            </div>
+                          );
+                        } else {
+                          return (
+                            <div className="text-orange-600">
+                              <div><span className="font-medium">Amount Due:</span> (Rs.) {numberToWords(totalAmount)} Only</div>
+                            </div>
+                          );
+                        }
+                      })()}
+                    </div>
+                  </div>
+
+                  {/* Payment History Table */}
+                  {selectedPatient.billing && selectedPatient.billing.some(bill => (bill.paidAmount || 0) > 0 || bill.status === 'cancelled' || bill.status === 'refunded') && (
+                    <div className="mb-6">
+                      <h4 className="text-sm font-semibold text-slate-800 mb-3">Payment History</h4>
+                      <table className="min-w-full border-collapse border border-slate-300">
+                        <thead>
+                          <tr className="bg-slate-100">
+                            <th className="border border-slate-300 px-3 py-2 text-left text-xs font-medium text-slate-700 uppercase">Date</th>
+                            <th className="border border-slate-300 px-3 py-2 text-left text-xs font-medium text-slate-700 uppercase">Service</th>
+                            <th className="border border-slate-300 px-3 py-2 text-right text-xs font-medium text-slate-700 uppercase">Amount</th>
+                            <th className="border border-slate-300 px-3 py-2 text-right text-xs font-medium text-slate-700 uppercase">Paid</th>
+                            <th className="border border-slate-300 px-3 py-2 text-right text-xs font-medium text-slate-700 uppercase">Refunded</th>
+                            <th className="border border-slate-300 px-3 py-2 text-right text-xs font-medium text-slate-700 uppercase">Balance</th>
+                            <th className="border border-slate-300 px-3 py-2 text-center text-xs font-medium text-slate-700 uppercase">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {selectedPatient.billing.map((bill, index) => {
+                            const billAmount = bill.amount || 0;
+                            const paidAmount = bill.paidAmount || 0;
+                            const refundedAmount = bill.refundAmount || 0;
+                            const balance = billAmount - paidAmount;
+                            const isFullyPaid = paidAmount >= billAmount;
+                            const isPartiallyPaid = paidAmount > 0 && paidAmount < billAmount;
+                            let statusText, statusColor;
+                            
+                            if (bill.status === 'cancelled') {
+                              statusText = 'Cancelled';
+                              statusColor = 'text-red-600';
+                            } else if (bill.status === 'refunded') {
+                              statusText = 'Refunded';
+                              statusColor = 'text-orange-600';
+                            } else if (isFullyPaid) {
+                              statusText = 'Paid';
+                              statusColor = 'text-green-600';
+                            } else if (isPartiallyPaid) {
+                              statusText = 'Partial';
+                              statusColor = 'text-orange-600';
+                            } else {
+                              statusText = 'Unpaid';
+                              statusColor = 'text-red-600';
+                            }
+                            
+                            return (
+                              <tr key={index}>
+                                <td className="border border-slate-300 px-3 py-2 text-xs">
+                                  {bill.paidAt ? new Date(bill.paidAt).toLocaleDateString('en-GB') : 
+                                   bill.cancelledAt ? new Date(bill.cancelledAt).toLocaleDateString('en-GB') :
+                                   bill.refundedAt ? new Date(bill.refundedAt).toLocaleDateString('en-GB') : '-'}
+                                </td>
+                                <td className="border border-slate-300 px-3 py-2 text-xs">
+                                  {bill.description || bill.type}
+                                </td>
+                                <td className="border border-slate-300 px-3 py-2 text-right text-xs">
+                                  ₹{billAmount.toFixed(2)}
+                                </td>
+                                <td className="border border-slate-300 px-3 py-2 text-right text-xs">
+                                  ₹{paidAmount.toFixed(2)}
+                                </td>
+                                <td className="border border-slate-300 px-3 py-2 text-right text-xs">
+                                  ₹{refundedAmount.toFixed(2)}
+                                </td>
+                                <td className="border border-slate-300 px-3 py-2 text-right text-xs">
+                                  ₹{balance.toFixed(2)}
+                                </td>
+                                <td className="border border-slate-300 px-3 py-2 text-center text-xs">
+                                  <span className={`font-medium ${statusColor}`}>
+                                    {statusText}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {/* Payment Summary */}
+                  {(() => {
+                    const totalPaid = selectedPatient.billing?.reduce((sum, bill) => sum + (bill.paidAmount || 0), 0) || 0;
+                    const totalRefunded = selectedPatient.billing?.reduce((sum, bill) => sum + (bill.refundAmount || 0), 0) || 0;
+                    const hasCancelledBills = selectedPatient.billing?.some(bill => bill.status === 'cancelled');
+                    const hasRefundedBills = selectedPatient.billing?.some(bill => bill.status === 'refunded');
+                    const totalAmount = invoiceData.totals.total;
+                    const outstandingAmount = totalAmount - totalPaid;
+                    const hasPartialPayments = selectedPatient.billing?.some(bill => (bill.paidAmount || 0) > 0 && (bill.paidAmount || 0) < (bill.amount || 0));
+                    
+                    if (totalPaid > 0 || hasCancelledBills || hasRefundedBills) {
+                      return (
+                        <div className="mb-6 p-4 bg-slate-50 border border-slate-200 rounded-lg">
+                          <h4 className="text-sm font-semibold text-slate-800 mb-3">Payment Summary</h4>
+                          <div className="grid grid-cols-2 gap-4 text-xs">
+                            <div>
+                              <div className="flex justify-between mb-1">
+                                <span>Total Bill Amount:</span>
+                                <span className="font-medium">₹{totalAmount.toFixed(2)}</span>
+                              </div>
+                              <div className="flex justify-between mb-1">
+                                <span>Amount Paid:</span>
+                                <span className="font-medium text-green-600">₹{totalPaid.toFixed(2)}</span>
+                              </div>
+                              {totalRefunded > 0 && (
+                                <div className="flex justify-between mb-1">
+                                  <span>Amount Refunded:</span>
+                                  <span className="font-medium text-orange-600">₹{totalRefunded.toFixed(2)}</span>
+                                </div>
+                              )}
+                              {outstandingAmount > 0 && !hasCancelledBills && (
+                                <div className="flex justify-between mb-1">
+                                  <span>Outstanding:</span>
+                                  <span className="font-medium text-orange-600">₹{outstandingAmount.toFixed(2)}</span>
+                                </div>
+                              )}
+                            </div>
+                            <div>
+                              <div className="flex justify-between mb-1">
+                                <span>Bill Status:</span>
+                                <span className={`font-medium ${
+                                  hasCancelledBills ? 'text-red-600' : 
+                                  hasRefundedBills ? 'text-orange-600' : 
+                                  outstandingAmount === 0 ? 'text-green-600' : 
+                                  hasPartialPayments ? 'text-orange-600' : 'text-red-600'
+                                }`}>
+                                  {hasCancelledBills ? 'Cancelled' : 
+                                   hasRefundedBills ? 'Refunded' : 
+                                   outstandingAmount === 0 ? 'Fully Paid' : 
+                                   hasPartialPayments ? 'Partially Paid' : 'Unpaid'}
+                                </span>
+                              </div>
+                              {hasPartialPayments && !hasCancelledBills && !hasRefundedBills && (
+                                <div className="text-orange-600 text-xs mt-1">
+                                  * Some services have partial payments
+                                </div>
+                              )}
+                              {hasCancelledBills && (
+                                <div className="text-red-600 text-xs mt-1">
+                                  * Bill has been cancelled
+                                </div>
+                              )}
+                              {hasRefundedBills && !hasCancelledBills && (
+                                <div className="text-orange-600 text-xs mt-1">
+                                  * Refund has been processed
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
+
+                  {/* Generation Details */}
+                  <div className="flex justify-between items-end mb-6">
+                    <div className="text-xs">
+                      <div><span className="font-medium">Generated By:</span> {invoiceData.generatedBy}</div>
+                      <div><span className="font-medium">Date/Time:</span> {new Date(invoiceData.date).toLocaleDateString('en-GB')} {new Date(invoiceData.date).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true })}</div>
+                      {selectedPatient.billing?.some(bill => bill.paidAt) && (
+                        <div><span className="font-medium">Last Payment:</span> {new Date(Math.max(...selectedPatient.billing.filter(bill => bill.paidAt).map(bill => new Date(bill.paidAt)))).toLocaleDateString('en-GB')}</div>
+                      )}
+                    </div>
+                    <div className="text-xs">
+                      <div className="mb-4">Signature:</div>
+                      <div className="text-center">For {centerInfo.name}</div>
+                    </div>
+                  </div>
+
+                  {/* Footer */}
+                  <div className="text-center text-xs text-slate-600">
+                    <div className="mb-2">
+                      <strong>"For Home Sample Collection"</strong>
+                    </div>
+                    <div>
+                      <span className="font-medium">Miss Call Number:</span> {centerInfo.missCallNumber}
+                    </div>
+                    <div>
+                      <span className="font-medium">Mobile Number:</span> {centerInfo.mobileNumber}
+                    </div>
+                  </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payment Processing Modal */}
       {showPaymentModal && selectedPatient && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-slate-800">
-                Record Payment
+                Process Payment - {selectedPatient.name}
               </h3>
-              <button
+                <button
                 onClick={() => setShowPaymentModal(false)}
-                className="text-slate-400 hover:text-slate-600"
-              >
-                <X className="h-5 w-5" />
-              </button>
+                  className="text-slate-400 hover:text-slate-600"
+                >
+                  <X className="h-5 w-5" />
+                </button>
             </div>
             
-            <div className="mb-4">
-              <p className="text-sm text-slate-600 mb-2">
-                <strong>Patient:</strong> {selectedPatient.name}
-              </p>
-              <p className="text-sm text-slate-600 mb-3">
-                <strong>UH ID:</strong> {selectedPatient.uhId || 'N/A'}
-              </p>
-              
-              {/* Outstanding Payments Overview */}
-              {(() => {
-                const outstanding = getOutstandingPayments(selectedPatient);
-                if (outstanding.totalOutstanding > 0) {
-                  return (
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-                      <h4 className="text-xs font-semibold text-yellow-800 mb-2">Outstanding Payments:</h4>
-                      <div className="text-xs text-yellow-700 space-y-1">
-                        {outstanding.breakdown.consultation > 0 && (
-                          <div>Consultation Fee: ₹{outstanding.breakdown.consultation}</div>
-                        )}
-                        {outstanding.breakdown.registration > 0 && (
-                          <div>Registration Fee: ₹{outstanding.breakdown.registration}</div>
-                        )}
-                        {outstanding.breakdown.services > 0 && (
-                          <div>Service Charges: ₹{outstanding.breakdown.services}</div>
-                        )}
-                        <div className="font-semibold border-t border-yellow-300 pt-1 mt-1">
-                          Total Outstanding: ₹{outstanding.totalOutstanding}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                }
-                return null;
-              })()}
-            </div>
-
             <form onSubmit={handlePaymentSubmit} className="space-y-4">
-              <div>
+              {/* Outstanding Amount Display */}
+              {selectedPatient.billing && selectedPatient.billing.length > 0 && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                  <h4 className="text-sm font-semibold text-blue-800 mb-2">Payment Summary</h4>
+                  <div className="space-y-1 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-blue-700">Total Amount:</span>
+                      <span className="font-semibold">₹{selectedPatient.billing.reduce((sum, bill) => sum + (bill.amount || 0), 0).toLocaleString('en-IN')}</span>
+                  </div>
+                    <div className="flex justify-between">
+                      <span className="text-blue-700">Amount Paid:</span>
+                      <span className="font-semibold text-green-600">₹{selectedPatient.billing.reduce((sum, bill) => sum + (bill.paidAmount || 0), 0).toLocaleString('en-IN')}</span>
+                  </div>
+                    <div className="flex justify-between border-t border-blue-300 pt-1">
+                      <span className="text-blue-700 font-semibold">Amount Due:</span>
+                      <span className="font-bold text-orange-600">₹{selectedPatient.billing.reduce((sum, bill) => sum + (bill.amount || 0) - (bill.paidAmount || 0), 0).toLocaleString('en-IN')}</span>
+                </div>
+              </div>
+                    </div>
+                  )}
+
+                      <div>
                 <label className="block text-xs font-medium text-slate-700 mb-2">
-                  Payment Amount *
-                </label>
-                <input
-                  type="number"
-                  value={paymentData.amount}
-                  onChange={(e) => setPaymentData({...paymentData, amount: e.target.value})}
-                  required
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
-                  placeholder="Enter payment amount"
-                />
+                  Payment Amount (₹) *
+                        </label>
+                <div className="flex gap-2">
+                        <input
+                          type="number"
+                    value={paymentData.amount}
+                    onChange={(e) => setPaymentData({...paymentData, amount: e.target.value})}
+                    required
+                    className="flex-1 px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
+                    placeholder="Enter payment amount"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const outstandingAmount = selectedPatient.billing?.reduce((sum, bill) => sum + (bill.amount || 0) - (bill.paidAmount || 0), 0) || 0;
+                      setPaymentData({
+                        ...paymentData,
+                        amount: outstandingAmount.toString(),
+                        paymentType: 'full'
+                      });
+                    }}
+                    className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-xs font-medium whitespace-nowrap"
+                  >
+                    Pay Full
+                  </button>
+                      </div>
               </div>
 
-              <div>
+                      <div>
                 <label className="block text-xs font-medium text-slate-700 mb-2">
                   Payment Type *
-                </label>
+                        </label>
                 <select
                   value={paymentData.paymentType || 'partial'}
                   onChange={(e) => setPaymentData({...paymentData, paymentType: e.target.value})}
@@ -1503,13 +2891,13 @@ export default function ConsultationBilling() {
                 <div className="mt-1 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-700">
                   <p><strong>Full Payment:</strong> This amount will cover all remaining outstanding charges.</p>
                   <p><strong>Partial Payment:</strong> Records partial amount for later completion.</p>
-                </div>
-              </div>
+                      </div>
+                    </div>
 
-              <div>
+                      <div>
                 <label className="block text-xs font-medium text-slate-700 mb-2">
                   Payment Method *
-                </label>
+                        </label>
                 <select
                   value={paymentData.paymentMethod}
                   onChange={(e) => setPaymentData({...paymentData, paymentMethod: e.target.value})}
@@ -1520,34 +2908,138 @@ export default function ConsultationBilling() {
                   <option value="upi">UPI</option>
                   <option value="netbanking">Net Banking</option>
                 </select>
-              </div>
+                      </div>
 
-              <div>
+                      <div>
+                <label className="block text-xs font-medium text-slate-700 mb-2">
+                  Appointment Time
+                    </label>
+                    <input
+                  type="datetime-local"
+                  value={paymentData.appointmentTime}
+                  onChange={(e) => setPaymentData({...paymentData, appointmentTime: e.target.value})}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
+                  placeholder="Select appointment time"
+                    />
+                    <p className="text-xs text-slate-500 mt-1">
+                      This will schedule the patient's appointment after payment
+                    </p>
+                  </div>
+                  
+                  <div>
+                <label className="block text-xs font-medium text-slate-700 mb-2">
+                  Consultation Type
+                    </label>
+                    <select
+                  value={paymentData.consultationType}
+                  onChange={(e) => setPaymentData({...paymentData, consultationType: e.target.value})}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
+                    >
+                      <option value="OP">OP (Outpatient) - ₹1050</option>
+                      <option value="IP">IP (Inpatient) - ₹1050</option>
+                      <option value="followup" disabled={!selectedPatient?.followupEligible || selectedPatient?.followupUsed}>
+                        Followup (Free within 7 days) - ₹0
+                      </option>
+                    </select>
+                    {selectedPatient?.followupEligible && !selectedPatient?.followupUsed && (
+                      <p className="text-xs text-green-600 mt-1">
+                        ✓ Patient is eligible for free followup consultation
+                      </p>
+                    )}
+                    {selectedPatient?.followupUsed && (
+                      <p className="text-xs text-orange-600 mt-1">
+                        ⚠ Free followup consultation already used
+                      </p>
+                    )}
+                  </div>
+
+                      <div>
                 <label className="block text-xs font-medium text-slate-700 mb-2">
                   Notes
-                </label>
-                <textarea
+                    </label>
+                    <textarea
                   value={paymentData.notes}
                   onChange={(e) => setPaymentData({...paymentData, notes: e.target.value})}
-                  rows={3}
+                      rows={3}
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
                   placeholder="Additional notes..."
+                    />
+                  </div>
+
+              <div className="flex gap-3 pt-4">
+                    <button
+                  type="button"
+                  onClick={() => setShowPaymentModal(false)}
+                  className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-xs"
+                    >
+                  Cancel
+                    </button>
+                    <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-xs font-medium"
+                    >
+                  Record Payment
+                    </button>
+                  </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Bill Modal */}
+      {showCancelBillModal && selectedPatient && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-slate-800">
+                Cancel Bill - {selectedPatient.name}
+              </h3>
+              <button
+                onClick={() => setShowCancelBillModal(false)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleCancelBillSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-2">
+                  Cancellation Reason *
+                </label>
+                <textarea
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  rows={4}
+                  required
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-xs"
+                  placeholder="Please provide a reason for cancelling this bill..."
                 />
+              </div>
+
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                <div className="flex items-start">
+                  <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 mr-2 flex-shrink-0" />
+                  <div className="text-xs text-red-700">
+                    <p className="font-medium mb-1">Warning:</p>
+                    <p>This action will cancel the bill and may initiate a refund if payments were made. This action cannot be undone.</p>
+                  </div>
+                </div>
               </div>
 
               <div className="flex gap-3 pt-4">
                 <button
                   type="button"
-                  onClick={() => setShowPaymentModal(false)}
+                  onClick={() => setShowCancelBillModal(false)}
                   className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-xs"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-xs font-medium"
+                  className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-xs font-medium"
                 >
-                  Record Payment
+                  Cancel Bill
                 </button>
               </div>
             </form>
@@ -1555,94 +3047,44 @@ export default function ConsultationBilling() {
         </div>
       )}
 
-      {/* Partial Payment Modal */}
-      {showPartialPaymentModal && selectedPatient && (
+      {/* Process Refund Modal */}
+      {showRefundModal && selectedPatient && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-lg mx-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-slate-800">
-                Record Partial Payment
+                Process Refund - {selectedPatient.name}
               </h3>
               <button
-                onClick={() => setShowPartialPaymentModal(false)}
+                onClick={() => setShowRefundModal(false)}
                 className="text-slate-400 hover:text-slate-600"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
             
-            <div className="mb-4">
-              <p className="text-sm text-slate-600 mb-2">
-                <strong>Patient:</strong> {selectedPatient.name}
-              </p>
-              <p className="text-sm text-slate-600">
-                <strong>UH ID:</strong> {selectedPatient.uhId || 'N/A'}
-              </p>
-            </div>
-
-            <form onSubmit={handlePartialPaymentSubmit} className="space-y-4">
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-2">
-                    Consultation Paid
-                  </label>
-                  <input
-                    type="number"
-                    value={partialPaymentData.consultationPaid}
-                    onChange={(e) => setPartialPaymentData({...partialPaymentData, consultationPaid: e.target.value})}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
-                    placeholder="0"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-2">
-                    Registration Paid
-                  </label>
-                  <input
-                    type="number"
-                    value={partialPaymentData.registrationPaid}
-                    onChange={(e) => setPartialPaymentData({...partialPaymentData, registrationPaid: e.target.value})}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-xs"
-                    placeholder="0"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-2">
-                    Service Paid
-                  </label>
-                  <input
-                    type="number"
-                    value={partialPaymentData.servicePaid}
-                    onChange={(e) => setPartialPaymentData({...partialPaymentData, servicePaid: e.target.value})}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-xs"
-                    placeholder="0"
-                  />
-                </div>
-              </div>
-
+            <form onSubmit={handleRefundSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-2">
-                  Total Payment Amount 
+                  Refund Amount (₹) *
                 </label>
                 <input
                   type="number"
-                  value={partialPaymentData.totalPaid}
-                  onChange={(e) => setPartialPaymentData({...partialPaymentData, totalPaid: e.target.value})}
+                  value={refundData.amount}
+                  onChange={(e) => setRefundData({...refundData, amount: e.target.value})}
+                  required
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-xs"
-                  placeholder="Auto-calculated from individual payments"
-                  readOnly
+                  placeholder="Enter refund amount"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-2">
-                  Payment Method *
+                  Refund Method *
                 </label>
                 <select
-                  value={partialPaymentData.paymentMethod}
-                  onChange={(e) => setPartialPaymentData({...partialPaymentData, paymentMethod: e.target.value})}
+                  value={refundData.refundMethod}
+                  onChange={(e) => setRefundData({...refundData, refundMethod: e.target.value})}
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-xs"
                 >
                   <option value="cash">Cash</option>
@@ -1654,141 +3096,27 @@ export default function ConsultationBilling() {
 
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-2">
-                  Notes
+                  Refund Reason *
                 </label>
                 <textarea
-                  value={partialPaymentData.notes}
-                  onChange={(e) => setPartialPaymentData({...partialPaymentData, notes: e.target.value})}
+                  value={refundData.reason}
+                  onChange={(e) => setRefundData({...refundData, reason: e.target.value})}
                   rows={3}
+                  required
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-xs"
-                  placeholder="Payment notes..."
+                  placeholder="Please provide a reason for the refund..."
                 />
               </div>
-
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowPartialPaymentModal(false)}
-                  className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-xs"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors text-xs font-medium"
-                >
-                  Record Partial Payment
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Registration Fee Modal */}
-      {showRegistrationModal && selectedPatient && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-slate-800">
-                Add Registration & Service Charges Billing
-              </h3>
-              <button
-                onClick={() => setShowRegistrationModal(false)}
-                className="text-slate-400 hover:text-slate-600"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            
-            <div className="mb-4">
-              <p className="text-sm text-slate-600 mb-2">
-                <strong>Patient:</strong> {selectedPatient.name}
-              </p>
-              <p className="text-sm text-slate-600">
-                <strong>UH ID:</strong> {selectedPatient.uhId || 'N/A'}
-              </p>
-              <div className="mt-2 p-2 bg-purple-50 border border-purple-200 rounded-lg">
-                <p className="text-xs text-purple-700 flex items-center gap-1">
-                  <UserPlus className="h-3 w-3" />
-                  <strong>New Patient Fee:</strong> Registration (₹150) + Service Charges (₹150) = ₹300
-                </p>
-              </div>
-            </div>
-
-            <form onSubmit={handleRegistrationSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-2">
-                    Registration Fee (₹) *
-                  </label>
-                  <input
-                    type="number"
-                    value={registrationData.registrationFee}
-                    onChange={(e) => {
-                      const fee = e.target.value || '0';
-                      const total = parseInt(fee) + parseInt(registrationData.serviceCharges || '0');
-                      setRegistrationData({
-                        ...registrationData,
-                        registrationFee: fee,
-                        amount: total.toString()
-                      });
-                    }}
-                    required
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-xs"
-                    placeholder="150"
-                  />
-                  <p className="text-xs text-slate-500 mt-1">Standard: ₹150</p>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-2">
-                    Service Charges (₹) *
-                  </label>
-                  <input
-                    type="number"
-                    value={registrationData.serviceCharges}
-                    onChange={(e) => {
-                      const charges = e.target.value || '0';
-                      const total = parseInt(registrationData.registrationFee || '0') + parseInt(charges);
-                      setRegistrationData({
-                        ...registrationData,
-                        serviceCharges: charges,
-                        amount: total.toString()
-                      });
-                    }}
-                    required
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-xs"
-                    placeholder="150"
-                  />
-                  <p className="text-xs text-slate-500 mt-1">Standard: ₹150</p>
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-xs font-medium text-slate-700 mb-2">
-                  Total Amount *
-                </label>
-                <input
-                  type="number"
-                  value={registrationData.amount}
-                  readOnly
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-slate-50 text-xs cursor-not-allowed"
-                />
-                <p className="text-xs text-slate-500 mt-1">
-                  Auto-calculated from registration fee and service charges
-                </p>
-              </div>
-
 
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-2">
                   Notes
                 </label>
                 <textarea
-                  value={registrationData.notes}
-                  onChange={(e) => setRegistrationData({...registrationData, notes: e.target.value})}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-xs"
+                  value={refundData.notes}
+                  onChange={(e) => setRefundData({...refundData, notes: e.target.value})}
+                  rows={2}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-xs"
                   placeholder="Additional notes..."
                 />
               </div>
@@ -1796,808 +3124,19 @@ export default function ConsultationBilling() {
               <div className="flex gap-3 pt-4">
                 <button
                   type="button"
-                  onClick={() => setShowRegistrationModal(false)}
+                  onClick={() => setShowRefundModal(false)}
                   className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-xs"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors text-xs font-medium"
+                  className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-xs font-medium"
                 >
-                  Create Registration & Service Billing
+                  Process Refund
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* Service Charges Modal */}
-      {showServiceModal && selectedPatient && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-slate-800">
-                Add Service Charges Billing
-              </h3>
-              <button
-                onClick={() => setShowServiceModal(false)}
-                className="text-slate-400 hover:text-slate-600"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            
-            <div className="mb-4">
-              <p className="text-sm text-slate-600 mb-2">
-                <strong>Patient:</strong> {selectedPatient.name}
-              </p>
-              <p className="text-sm text-slate-600">
-                <strong>UH ID:</strong> {selectedPatient.uhId || 'N/A'}
-              </p>
-            </div>
-
-            <form onSubmit={handleServiceChargesSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-slate-700 mb-2">
-                  Services *
-                </label>
-                <div className="space-y-3">
-                  {serviceData.services.map((service, index) => (
-                    <div key={index} className="border border-slate-200 rounded-lg p-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-medium text-slate-600">Service {index + 1}</span>
-                        {serviceData.services.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => removeServiceField(index)}
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
-                        )}
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <input
-                          type="text"
-                          value={service.name}
-                          onChange={(e) => updateServiceField(index, 'name', e.target.value)}
-                          placeholder="Service name"
-                          className="px-2 py-1 border border-slate-200 rounded text-xs"
-                          required
-                        />
-                        <input
-                          type="number"
-                          value={service.amount}
-                          onChange={(e) => updateServiceField(index, 'amount', e.target.value)}
-                          placeholder="Amount"
-                          className="px-2 py-1 border border-slate-200 rounded text-xs"
-                          required
-                        />
-                      </div>
-                      <div className="mt-2">
-                        <input
-                          type="text"
-                          value={service.description}
-                          onChange={(e) => updateServiceField(index, 'description', e.target.value)}
-                          placeholder="Description"
-                          className="w-full px-2 py-1 border border-slate-200 rounded text-xs"
-                        />
-                      </div>
-                      <div className="mt-2">
-                        <input
-                          type="text"
-                          value={service.details}
-                          onChange={(e) => updateServiceField(index, 'details', e.target.value)}
-                          placeholder="Additional details"
-                          className="w-full px-2 py-1 border border-slate-200 rounded text-xs"
-                        />
-                      </div>
-                    </div>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={addServiceField}
-                    className="w-full py-2 border-2 border-dashed border-slate-300 rounded-lg text-slate-500 hover:border-green-400 hover:text-green-600 transition-colors text-xs"
-                  >
-                    <Plus className="h-4 w-4 inline mr-1" />
-                    Add Another Service
-                  </button>
-                </div>
-              </div>
-
-
-              <div>
-                <label className="block text-xs font-medium text-slate-700 mb-2">
-                  Notes
-                </label>
-                <textarea
-                  value={serviceData.notes}
-                  onChange={(e) => setServiceData({...serviceData, notes: e.target.value})}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-xs"
-                  placeholder="Additional notes..."
-                />
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowServiceModal(false)}
-                  className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-xs"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-xs font-medium"
-                >
-                  Create Service Charges
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Invoice Modal */}
-      {showInvoiceModal && invoiceData && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-slate-800">
-                Patient Invoice
-              </h3>
-              <div className="flex gap-2">
-                <button
-                  onClick={async () => {
-                    const currentPatient = patients.find(p => p._id === invoiceData.patient._id);
-                    if (currentPatient) {
-                      await refreshInvoiceData(currentPatient);
-                      toast.success('Invoice data refreshed');
-                    }
-                  }}
-                  className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-xs font-medium flex items-center gap-1"
-                  title="Refresh invoice data with latest billing information"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                  Refresh
-                </button>
-                <button
-                  onClick={handleEditInvoice}
-                  className="px-3 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-xs font-medium"
-                >
-                  <Settings className="h-4 w-4" />
-                  Edit Invoice
-                </button>
-                <button
-                  onClick={() => {
-                    // Professional invoice download functionality
-                    const printWindow = window.open('', '_blank');
-                    printWindow.document.write(`
-                      <!DOCTYPE html>
-                      <html>
-                        <head>
-                          <title>Invoice ${invoiceData.invoiceNumber}</title>
-                          <meta charset="UTF-8">
-                          <style>
-                            * { margin: 0; padding: 0; box-sizing: border-box; }
-                            body { 
-                              font-family: Arial, sans-serif; 
-                              line-height: 1.4; 
-                              color: #333; 
-                              background: #fff;
-                              padding: 20px;
-                              font-size: 12px;
-                            }
-                            .invoice-container {
-                              max-width: 800px;
-                              margin: 0 auto;
-                              background: white;
-                              border: 2px solid #333;
-                              page-break-inside: avoid;
-                            }
-                            .header {
-                              background: #f8f9fa;
-                              border-bottom: 2px solid #333;
-                              padding: 20px;
-                              display: flex;
-                              justify-content: space-between;
-                              align-items: center;
-                            }
-                            .clinic-info {
-                              flex: 1;
-                            }
-                            .clinic-name {
-                              font-size: 24px;
-                              font-weight: bold;
-                              color: #333;
-                              margin-bottom: 5px;
-                            }
-                            .clinic-tagline {
-                              font-size: 12px;
-                              color: #666;
-                              margin-bottom: 10px;
-                            }
-                            .invoice-info {
-                              text-align: right;
-                              flex: 1;
-                            }
-                            .invoice-title {
-                              font-size: 28px;
-                              font-weight: bold;
-                              color: #333;
-                              margin-bottom: 10px;
-                            }
-                            .invoice-number {
-                              font-size: 14px;
-                              font-weight: bold;
-                              color: #333;
-                            }
-                            .content {
-                              padding: 20px;
-                            }
-                            .invoice-details {
-                              display: flex;
-                              justify-content: space-between;
-                              margin-bottom: 20px;
-                              padding: 15px;
-                              background: #f8f9fa;
-                              border: 1px solid #ddd;
-                            }
-                            .detail-section {
-                              flex: 1;
-                              margin-right: 20px;
-                            }
-                            .detail-section:last-child {
-                              margin-right: 0;
-                            }
-                            .detail-section h3 {
-                              font-size: 14px;
-                              font-weight: bold;
-                              color: #333;
-                              margin-bottom: 10px;
-                              text-transform: uppercase;
-                              border-bottom: 1px solid #333;
-                              padding-bottom: 5px;
-                            }
-                            .detail-section p {
-                              margin-bottom: 5px;
-                              font-size: 12px;
-                            }
-                            .detail-section strong {
-                              font-weight: bold;
-                              min-width: 60px;
-                              display: inline-block;
-                            }
-                            .billing-table {
-                              width: 100%;
-                              border-collapse: collapse;
-                              margin-bottom: 20px;
-                              border: 1px solid #333;
-                            }
-                            .billing-table th {
-                              background: #333;
-                              color: white;
-                              padding: 8px 6px;
-                              text-align: left;
-                              font-weight: bold;
-                              font-size: 11px;
-                              text-transform: uppercase;
-                              border: 1px solid #333;
-                            }
-                            .billing-table td {
-                              padding: 6px;
-                              border: 1px solid #ddd;
-                              font-size: 11px;
-                              vertical-align: top;
-                            }
-                            .billing-table tr:nth-child(even) {
-                              background: #f8f9fa;
-                            }
-                            .type-badge {
-                              padding: 2px 6px;
-                              border-radius: 3px;
-                              font-size: 10px;
-                              font-weight: bold;
-                              text-transform: uppercase;
-                            }
-                            .type-consultation { background: #e3f2fd; color: #1976d2; }
-                            .type-registration { background: #f3e5f5; color: #7b1fa2; }
-                            .type-service { background: #e8f5e8; color: #388e3c; }
-                            .type-test { background: #fff3e0; color: #f57c00; }
-                            .type-medication { background: #fce4ec; color: #c2185b; }
-                            .totals-section {
-                              background: #f8f9fa;
-                              padding: 15px;
-                              border: 1px solid #333;
-                              margin-top: 20px;
-                            }
-                            .totals-section h3 {
-                              font-size: 14px;
-                              font-weight: bold;
-                              color: #333;
-                              margin-bottom: 10px;
-                              text-transform: uppercase;
-                              border-bottom: 1px solid #333;
-                              padding-bottom: 5px;
-                            }
-                            .totals-grid {
-                              max-width: 250px;
-                              margin-left: auto;
-                            }
-                            .total-line {
-                              display: flex;
-                              justify-content: space-between;
-                              align-items: center;
-                              padding: 3px 0;
-                              font-size: 12px;
-                              border-bottom: 1px solid #eee;
-                            }
-                            .total-line.subtotal {
-                              border-top: 2px solid #333;
-                              padding-top: 8px;
-                              margin-top: 5px;
-                              font-weight: bold;
-                            }
-                            .total-line.tax {
-                              color: #dc3545;
-                            }
-                            .total-line.discount {
-                              color: #28a745;
-                            }
-                            .total-line.final {
-                              border-top: 2px solid #333;
-                              padding-top: 8px;
-                              margin-top: 8px;
-                              font-size: 14px;
-                              font-weight: bold;
-                              background: #333;
-                              color: white;
-                              padding: 8px 10px;
-                              margin: 10px -10px -10px -10px;
-                            }
-                            .footer {
-                              margin-top: 20px;
-                              padding: 15px;
-                              background: #f8f9fa;
-                              border-top: 2px solid #333;
-                              text-align: center;
-                              font-size: 11px;
-                              color: #666;
-                            }
-                            .footer .thank-you {
-                              font-size: 14px;
-                              font-weight: bold;
-                              color: #333;
-                              margin: 10px 0;
-                            }
-                            @media print {
-                              body { padding: 0; margin: 0; }
-                              .invoice-container { border: none; }
-                              .invoice-container { page-break-inside: avoid; }
-                            }
-                            @page {
-                              margin: 0.5in;
-                              size: A4;
-                            }
-                          </style>
-                        </head>
-                        <body>
-                          <div class="invoice-container">
-                            <div class="header">
-                              <div class="clinic-info">
-                                <div class="clinic-name">${invoiceData.center.name}</div>
-                                <div class="clinic-tagline">Medical Excellence & Care</div>
-                              </div>
-                              <div class="invoice-info">
-                                <div class="invoice-title">INVOICE</div>
-                                <div class="invoice-number"># ${invoiceData.invoiceNumber}</div>
-                              </div>
-                            </div>
-                            
-                            <div class="content">
-                              <div class="invoice-details">
-                                <div class="detail-section">
-                                  <h3>Patient Information</h3>
-                                  <p><strong>Name:</strong> ${invoiceData.patient.name}</p>
-                                  <p><strong>UH ID:</strong> ${invoiceData.patient.uhId || 'N/A'}</p>
-                                  <p><strong>Phone:</strong> ${invoiceData.patient.phone || 'N/A'}</p>
-                                  <p><strong>Email:</strong> ${invoiceData.patient.email || 'N/A'}</p>
-                                  ${invoiceData.patient.address ? `<p><strong>Address:</strong> ${invoiceData.patient.address}</p>` : ''}
-                                  ${invoiceData.isReassignedEntry ? `
-                                    <div style="margin-top: 10px; padding: 8px; background: #e3f2fd; border: 1px solid #1976d2; border-radius: 4px;">
-                                      <p style="font-size: 11px; color: #1976d2; margin: 0; font-weight: bold;">
-                                        🔄 REASSIGNED PATIENT: This patient has been reassigned to a new doctor
-                                      </p>
-                                      ${invoiceData.patient.reassignmentHistory && invoiceData.patient.reassignmentHistory.length > 0 ? `
-                                        <p style="font-size: 10px; color: #1565c0; margin: 5px 0 0 0;">
-                                          Reason: ${invoiceData.patient.reassignmentHistory[invoiceData.patient.reassignmentHistory.length - 1].reason}
-                                        </p>
-                                      ` : ''}
-                                    </div>
-                                  ` : ''}
-                                </div>
-                                <div class="detail-section">
-                                  <h3>Invoice Details</h3>
-                                  <p><strong>Date:</strong> ${new Date(invoiceData.generatedAt).toLocaleDateString('en-IN', { 
-                                    year: 'numeric', 
-                                    month: 'long', 
-                                    day: 'numeric' 
-                                  })}</p>
-                                  <p><strong>Doctor:</strong> ${invoiceData.doctor}</p>
-                                  <p><strong>Generated By:</strong> ${invoiceData.generatedBy}</p>
-                                  <p><strong>Time:</strong> ${new Date(invoiceData.generatedAt).toLocaleTimeString('en-IN', { 
-                                    hour: '2-digit', 
-                                    minute: '2-digit' 
-                                  })}</p>
-                                  ${invoiceData.isReassignedEntry ? `
-                                    <div style="margin-top: 8px; padding: 6px; background: #fff3e0; border: 1px solid #f57c00; border-radius: 3px;">
-                                      <p style="font-size: 10px; color: #f57c00; margin: 0; font-weight: bold;">
-                                        🔄 REASSIGNED PATIENT INVOICE
-                                      </p>
-                                    </div>
-                                  ` : ''}
-                                </div>
-                              </div>
-                              
-                              <table class="billing-table">
-                                <thead>
-                                  <tr>
-                                    <th>Service Type</th>
-                                    <th>Description</th>
-                                    <th>Amount (₹)</th>
-                                    <th>Payment Method</th>
-                                    <th>Invoice #</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  ${invoiceData.billingRecords.map(bill => `
-                                    <tr>
-                                      <td><span class="type-badge type-${bill.type}">${bill.type}</span></td>
-                                      <td>${bill.description}</td>
-                                      <td style="text-align: right; font-weight: 600;">₹${bill.amount.toLocaleString('en-IN')}</td>
-                                      <td style="text-transform: capitalize;">${bill.paymentMethod}</td>
-                                      <td style="font-family: monospace; font-size: 12px;">${bill.invoiceNumber || 'N/A'}</td>
-                                    </tr>
-                                  `).join('')}
-                                </tbody>
-                              </table>
-                              
-                              <div class="totals-section">
-                                <h3>Payment Summary</h3>
-                                <div class="totals-grid">
-                                  ${Object.entries(invoiceData.totals).filter(([key, value]) => key !== 'total' && value > 0).map(([key, value]) => `
-                                    <div class="total-line">
-                                      <span>${key.charAt(0).toUpperCase() + key.slice(1)}:</span>
-                                      <span>₹${value.toLocaleString('en-IN')}</span>
-                                    </div>
-                                  `).join('')}
-                                  ${invoiceData.totals.subtotal ? `
-                                    <div class="total-line subtotal">
-                                      <span>Subtotal:</span>
-                                      <span>₹${invoiceData.totals.subtotal.toLocaleString('en-IN')}</span>
-                                    </div>
-                                  ` : ''}
-                                  ${invoiceData.totals.tax ? `
-                                    <div class="total-line tax">
-                                      <span>Tax:</span>
-                                      <span>₹${invoiceData.totals.tax.toLocaleString('en-IN')}</span>
-                                    </div>
-                                  ` : ''}
-                                  ${invoiceData.totals.discount ? `
-                                    <div class="total-line discount">
-                                      <span>Discount:</span>
-                                      <span>-₹${invoiceData.totals.discount.toLocaleString('en-IN')}</span>
-                                    </div>
-                                  ` : ''}
-                                  <div class="total-line final">
-                                    <span>Total Amount:</span>
-                                    <span>₹${invoiceData.totals.total.toLocaleString('en-IN')}</span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                            
-                            <div class="footer">
-                              <h4>Thank You for Choosing Our Services!</h4>
-                              <div class="thank-you">We appreciate your trust in our medical care</div>
-                              <p>For any queries regarding this invoice, please contact us</p>
-                              <p>Generated on ${new Date(invoiceData.generatedAt).toLocaleString('en-IN', { 
-                                year: 'numeric', 
-                                month: 'long', 
-                                day: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}</p>
-                              <p style="margin-top: 15px; font-size: 12px; color: #adb5bd;">
-                                This is a computer-generated invoice and does not require a signature
-                              </p>
-                            </div>
-                          </div>
-                        </body>
-                      </html>
-                    `);
-                    printWindow.document.close();
-                    printWindow.print();
-                  }}
-                  className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-xs font-medium flex items-center gap-1"
-                  title="Download PDF"
-                >
-                  <Download className="h-4 w-4" />
-                  Download PDF
-                </button>
-                <button
-                  onClick={() => setShowInvoiceModal(false)}
-                  className="text-slate-400 hover:text-slate-600"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-            </div>
-            
-            <div className="space-y-6">
-              {/* Invoice Header */}
-              <div className="bg-slate-50 rounded-lg p-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <h4 className="font-semibold text-slate-800 mb-2">Patient Information</h4>
-                    <p><strong>Name:</strong> {invoiceData.patient.name}</p>
-                    <p><strong>UH ID:</strong> {invoiceData.patient.uhId || 'N/A'}</p>
-                    <p><strong>Phone:</strong> {invoiceData.patient.phone || 'N/A'}</p>
-                    <p><strong>Email:</strong> {invoiceData.patient.email || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-slate-800 mb-2">Invoice Details</h4>
-                    <p><strong>Invoice #:</strong> {invoiceData.invoiceNumber}</p>
-                    <p><strong>Date:</strong> {new Date(invoiceData.generatedAt).toLocaleDateString()}</p>
-                    <p><strong>Doctor:</strong> {invoiceData.doctor}</p>
-                    <p><strong>Generated By:</strong> {invoiceData.generatedBy}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Billing Details */}
-              <div>
-                <h4 className="font-semibold text-slate-800 mb-3">Billing Details</h4>
-                <div className="overflow-x-auto">
-                  <table className="w-full border border-slate-200 rounded-lg">
-                    <thead className="bg-slate-100">
-                      <tr>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-slate-600">Type</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-slate-600">Description</th>
-                        <th className="px-3 py-2 text-right text-xs font-medium text-slate-600">Amount (₹)</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-slate-600">Payment Method</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-slate-600">Invoice #</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {invoiceData.billingRecords.map((bill, index) => (
-                        <tr key={index} className="border-t border-slate-200">
-                          <td className="px-3 py-2 text-xs">
-                            <span className={`px-2 py-1 rounded text-xs font-medium ${
-                              bill.type === 'consultation' ? 'bg-blue-100 text-blue-800' :
-                              bill.type === 'registration' ? 'bg-purple-100 text-purple-800' :
-                              bill.type === 'service' ? 'bg-green-100 text-green-800' :
-                              'bg-gray-100 text-gray-800'
-                            }`}>
-                              {bill.type}
-                            </span>
-                          </td>
-                          <td className="px-3 py-2 text-xs">{bill.description}</td>
-                          <td className="px-3 py-2 text-xs text-right font-medium">₹{bill.amount}</td>
-                          <td className="px-3 py-2 text-xs">{bill.paymentMethod}</td>
-                          <td className="px-3 py-2 text-xs">{bill.invoiceNumber || 'N/A'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* Payment Summary */}
-              <div className="bg-slate-50 rounded-lg p-4">
-                <h4 className="font-semibold text-slate-800 mb-3">Payment Summary</h4>
-                <div className="space-y-2">
-                  {Object.entries(invoiceData.totals).filter(([key, value]) => key !== 'total' && value > 0).map(([key, value]) => (
-                    <div key={key} className="flex justify-between text-sm">
-                      <span className="capitalize">{key}:</span>
-                      <span className="font-medium">₹{value}</span>
-                    </div>
-                  ))}
-                  {invoiceData.totals.subtotal && (
-                    <div className="flex justify-between text-sm border-t border-slate-300 pt-2">
-                      <span>Subtotal:</span>
-                      <span className="font-medium">₹{invoiceData.totals.subtotal}</span>
-                    </div>
-                  )}
-                  {invoiceData.totals.tax && (
-                    <div className="flex justify-between text-sm">
-                      <span>Tax:</span>
-                      <span className="font-medium">₹{invoiceData.totals.tax}</span>
-                    </div>
-                  )}
-                  {invoiceData.totals.discount && (
-                    <div className="flex justify-between text-sm">
-                      <span>Discount:</span>
-                      <span className="font-medium text-green-600">-₹{invoiceData.totals.discount}</span>
-                    </div>
-                  )}
-                  <div className="border-t border-slate-300 pt-2 flex justify-between text-lg font-bold">
-                    <span>Total Amount:</span>
-                    <span>₹{invoiceData.totals.total}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Edit Invoice Form */}
-              {isEditingInvoice && editedInvoiceData && (
-                <div className="bg-orange-50 rounded-lg p-4 border border-orange-200">
-                  <h4 className="font-semibold text-orange-800 mb-4 flex items-center">
-                    <Settings className="h-4 w-4 mr-2" />
-                    Edit Invoice Details
-                  </h4>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Tax Section */}
-                    <div className="space-y-3">
-                      <h5 className="font-medium text-slate-700">Tax Settings</h5>
-                      <div>
-                        <label className="block text-xs font-medium text-slate-600 mb-1">
-                          Tax Percentage (%)
-                        </label>
-                        <input
-                          type="number"
-                          value={editedInvoiceData.taxPercentage}
-                          onChange={(e) => setEditedInvoiceData({
-                            ...editedInvoiceData,
-                            taxPercentage: parseFloat(e.target.value) || 0,
-                            tax: 0
-                          })}
-                          className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-xs"
-                          placeholder="Enter tax percentage"
-                          min="0"
-                          max="100"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-slate-600 mb-1">
-                          Or Fixed Tax Amount (₹)
-                        </label>
-                        <input
-                          type="number"
-                          value={editedInvoiceData.tax}
-                          onChange={(e) => setEditedInvoiceData({
-                            ...editedInvoiceData,
-                            tax: parseFloat(e.target.value) || 0,
-                            taxPercentage: 0
-                          })}
-                          className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-xs"
-                          placeholder="Enter fixed tax amount"
-                          min="0"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Discount Section */}
-                    <div className="space-y-3">
-                      <h5 className="font-medium text-slate-700">Discount Settings</h5>
-                      <div>
-                        <label className="block text-xs font-medium text-slate-600 mb-1">
-                          Discount Percentage (%)
-                        </label>
-                        <input
-                          type="number"
-                          value={editedInvoiceData.discountPercentage}
-                          onChange={(e) => setEditedInvoiceData({
-                            ...editedInvoiceData,
-                            discountPercentage: parseFloat(e.target.value) || 0,
-                            discount: 0
-                          })}
-                          className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-xs"
-                          placeholder="Enter discount percentage"
-                          min="0"
-                          max="100"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-slate-600 mb-1">
-                          Or Fixed Discount Amount (₹)
-                        </label>
-                        <input
-                          type="number"
-                          value={editedInvoiceData.discount}
-                          onChange={(e) => setEditedInvoiceData({
-                            ...editedInvoiceData,
-                            discount: parseFloat(e.target.value) || 0,
-                            discountPercentage: 0
-                          })}
-                          className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-xs"
-                          placeholder="Enter fixed discount amount"
-                          min="0"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Notes Section */}
-                  <div className="mt-4">
-                    <label className="block text-xs font-medium text-slate-600 mb-1">
-                      Invoice Notes
-                    </label>
-                    <textarea
-                      value={editedInvoiceData.notes}
-                      onChange={(e) => setEditedInvoiceData({
-                        ...editedInvoiceData,
-                        notes: e.target.value
-                      })}
-                      rows={3}
-                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-xs"
-                      placeholder="Additional notes for the invoice..."
-                    />
-                  </div>
-
-                  {/* Preview Section */}
-                  <div className="mt-4 bg-white rounded-lg p-3 border border-slate-200">
-                    <h5 className="font-medium text-slate-700 mb-2">Preview</h5>
-                    <div className="space-y-1 text-xs">
-                      <div className="flex justify-between">
-                        <span>Subtotal:</span>
-                        <span>₹{editedInvoiceData.totals.total}</span>
-                      </div>
-                      {(() => {
-                        const subtotal = editedInvoiceData.totals.total;
-                        const taxAmount = editedInvoiceData.taxPercentage > 0 
-                          ? (subtotal * editedInvoiceData.taxPercentage / 100)
-                          : editedInvoiceData.tax;
-                        const discountAmount = editedInvoiceData.discountPercentage > 0
-                          ? (subtotal * editedInvoiceData.discountPercentage / 100)
-                          : editedInvoiceData.discount;
-                        const finalTotal = subtotal + taxAmount - discountAmount;
-                        
-                        return (
-                          <>
-                            {taxAmount > 0 && (
-                              <div className="flex justify-between">
-                                <span>Tax:</span>
-                                <span>₹{taxAmount.toFixed(2)}</span>
-                              </div>
-                            )}
-                            {discountAmount > 0 && (
-                              <div className="flex justify-between">
-                                <span>Discount:</span>
-                                <span className="text-green-600">-₹{discountAmount.toFixed(2)}</span>
-                              </div>
-                            )}
-                            <div className="flex justify-between font-bold border-t border-slate-300 pt-1">
-                              <span>Total:</span>
-                              <span>₹{finalTotal.toFixed(2)}</span>
-                            </div>
-                          </>
-                        );
-                      })()}
-                    </div>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex gap-3 mt-4">
-                    <button
-                      onClick={handleSaveInvoice}
-                      className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-xs font-medium"
-                    >
-                      Save Changes
-                    </button>
-                    <button
-                      onClick={handleCancelEdit}
-                      className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-xs"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
         </div>
       )}
