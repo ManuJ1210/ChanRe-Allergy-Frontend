@@ -10,16 +10,12 @@ export default function Home() {
 
   const teamData = [
     { name: "Dr.Chandrashekara S.", specialization: "Rheumatology & Autoimmune Diseases", image: "1.png" },
-    { name: "Dr.Sushma Shree B.C", specialization: "Paediatric Rheumatologist", image: "2.png" },
     { name: "Dr.Smitha J N Singh", specialization: "Allergy & Clinical Immunology", image: "3.png" },
-    { name: "Dr.Chaitra S Niranthara", specialization: "Reproductive immunology & High risk pregnancy", image: "4.png" },
-    { name: "Dr. Meera Iyengar", specialization: "CLINICAL IMMUNOLOGY", image: "https://images.unsplash.com/photo-1607990281513-2c110a25bd8c?w=300&h=300&fit=crop&crop=face" },
-    { name: "Dr. Arun Reddy", specialization: "FOOD ALLERGY SPECIALIST", image: "https://images.unsplash.com/photo-1614594895303-fe863a4a0d22?w=300&h=300&fit=crop&crop=face" }
   ];
 
   const testimonialsData = [
     { 
-      quote: "Dr. Sharma helped me manage my severe pollen allergies. The treatment was excellent and I can now enjoy spring without constant sneezing.", 
+      quote: "Dr.Chandrashekara S. helped me manage my severe pollen allergies. The treatment was excellent and I can now enjoy spring without constant sneezing.", 
       name: "Priya Patel", 
       designation: "ALLERGY PATIENT",
       image: "https://images.unsplash.com/photo-1582750433449-648ed127bb54?w=60&h=60&fit=crop&crop=face"
@@ -92,11 +88,17 @@ export default function Home() {
           <div className="flex justify-between items-center">
             {/* Contact Info Section */}
             <div className="flex space-x-6 text-sm">
-              <a href="tel:+1800001658" className="hover:text-blue-200 transition-colors flex items-center">
+              <a href="tel:08042516699" className="hover:text-blue-200 transition-colors flex items-center">
                 <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
                 </svg>
-                <span> +1800-001-658</span>
+                <span> 08 0425 16699</span>
+              </a>
+              <a href="tel:9632533122" className="hover:text-blue-200 transition-colors flex items-center">
+                <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                </svg>
+                <span> 96325 33122</span>
               </a>
               <a href="mailto:info@chanreallergyclinic.com" className="hover:text-blue-200 transition-colors flex items-center">
                 <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
@@ -180,7 +182,7 @@ export default function Home() {
                   {/* CTA Button */}
                   <div className="pt-4">
                     <a
-                      href="/about-us"
+                      href="/about"
                       className="inline-block bg-[#2490eb] hover:bg-[#14457b] text-white font-semibold uppercase px-8 py-4 rounded-md transition-all duration-300"
                       style={{ fontFamily: 'Quicksand, sans-serif', fontSize: '14px', fontWeight: '600' }}
                     >
@@ -251,19 +253,19 @@ export default function Home() {
               <div className="space-y-2 text-gray-200">
                 <div className="flex justify-between">
                   <span>Monday-Friday:</span>
-                  <span>8:00 - 2:00 PM</span>
+                  <span>9:00 AM - 5:00 PM</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Saturday:</span>
-                  <span>6:00 - 5:00 PM</span>
+                  <span>10:00 AM - 2:00 PM</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Sunday:</span>
-                  <span>9:00 - 4:00 PM</span>
+                  <span>Closed</span>
                 </div>
-                <div className="flex justify-between font-semibold">
-                  <span>Emergency:</span>
-                  <span>24HRS 7Days</span>
+                <div className="flex justify-between font-semibold text-gray-300">
+                  <span>Ph:</span>
+                  <span>08 0425 16699</span>
                 </div>
               </div>
             </div>
@@ -302,9 +304,12 @@ export default function Home() {
                   </div>
                 ))}
               </div>
-              <button className="bg-[#2490eb] text-white px-6 py-3 rounded-lg font-semibold mt-6 hover:bg-[#14457b] transition-colors">
+              <a 
+                href="/about"
+                className="inline-block bg-[#2490eb] text-white px-6 py-3 rounded-lg font-semibold mt-6 hover:bg-[#14457b] transition-colors"
+              >
                 READ MORE +
-              </button>
+              </a>
             </div>
           </div>
         </div>
@@ -547,11 +552,7 @@ export default function Home() {
                     <div className="pt-8">
                       <p className="text-gray-700 mb-6">{testimonial.quote}</p>
                       <div className="flex items-center">
-                        <img
-                          src={testimonial.image}
-                          alt={testimonial.name}
-                          className="w-12 h-12 rounded-full object-cover mr-4"
-                        />
+                        
                         <div>
                           <h4 className="font-semibold">{testimonial.name}</h4>
                           <p className="text-gray-600 text-sm">{testimonial.designation}</p>
@@ -581,69 +582,164 @@ export default function Home() {
       <footer className="bg-gray-800 py-16">
         <div className="w-4/5 mx-auto px-4">
           <div className="grid md:grid-cols-4 gap-8 mb-8">
-            {/* Column 1 */}
+            {/* Column 1 - About Clinic */}
             <div>
-              <p className="text-gray-300 mb-6">
-                It helps designers plan out where the content will sit, the content to be written and approved.
+              <h3 className="text-white text-xl font-bold mb-4">ChanRe Allergy Clinic</h3>
+              <p className="text-gray-300 mb-6 leading-relaxed">
+                Your trusted partner in allergy care and clinical immunology. We provide comprehensive diagnosis, 
+                treatment, and management of allergic conditions with state-of-the-art facilities and expert medical care.
               </p>
               <div className="flex space-x-4">
-                {[1, 2, 3, 4].map((index) => (
-                  <a key={index} href="#" className="text-gray-400 hover:text-white transition-colors">
-                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                    </svg>
-                  </a>
-                ))}
+                <a href="https://facebook.com/chanreallergyclinic" className="text-gray-400 hover:text-white transition-colors">
+                  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+                  </svg>
+                </a>
+                <a href="https://twitter.com/chanreallergy" className="text-gray-400 hover:text-white transition-colors">
+                  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M22.46 6c-.77.35-1.6.58-2.46.69.88-.53 1.56-1.37 1.88-2.38-.83.5-1.75.85-2.72 1.05C18.37 4.5 17.26 4 16 4c-2.35 0-4.27 1.92-4.27 4.29 0 .34.04.67.11.98C8.28 9.09 5.11 7.38 3 4.79c-.37.63-.58 1.37-.58 2.15 0 1.49.75 2.81 1.91 3.56-.71 0-1.37-.2-1.95-.5v.03c0 2.08 1.48 3.82 3.44 4.21a4.22 4.22 0 0 1-1.93.07 4.28 4.28 0 0 0 4 2.98 8.521 8.521 0 0 1-5.33 1.84c-.34 0-.68-.02-1.02-.06C3.44 20.29 5.7 21 8.12 21 16 21 20.33 14.46 20.33 8.79c0-.19 0-.37-.01-.56.84-.6 1.56-1.36 2.14-2.23z" />
+                  </svg>
+                </a>
+                <a href="https://instagram.com/chanreallergyclinic" className="text-gray-400 hover:text-white transition-colors">
+                  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 6.62 5.367 11.987 11.988 11.987s11.988-5.367 11.988-11.987C24.005 5.367 18.638.001 12.017.001zM8.449 16.988c-1.297 0-2.348-1.051-2.348-2.348s1.051-2.348 2.348-2.348 2.348 1.051 2.348 2.348-1.051 2.348-2.348 2.348zm7.718 0c-1.297 0-2.348-1.051-2.348-2.348s1.051-2.348 2.348-2.348 2.348 1.051 2.348 2.348-1.051 2.348-2.348 2.348z" />
+                  </svg>
+                </a>
+                <a href="https://linkedin.com/company/chanreallergyclinic" className="text-gray-400 hover:text-white transition-colors">
+                  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                  </svg>
+                </a>
               </div>
             </div>
 
-            {/* Column 2 */}
+            {/* Column 2 - Quick Links */}
             <div>
-              <h3 className="text-white text-lg font-semibold mb-4">Important Links</h3>
-              <ul className="space-y-2 text-gray-300">
-                {['About Us', 'Our Services', 'Doctors 1', 'Doctors 2', 'Events', 'Contact Us'].map((link) => (
-                  <li key={link}>
-                    <a href="#" className="hover:text-white transition-colors">{link}</a>
-                  </li>
-                ))}
+              <h3 className="text-white text-lg font-semibold mb-4">Quick Links</h3>
+              <ul className="space-y-3 text-gray-300">
+                <li>
+                  <a href="#home" className="hover:text-white transition-colors">Home</a>
+                </li>
+                <li>
+                  <a href="#about" className="hover:text-white transition-colors">About Us</a>
+                </li>
+                <li>
+                  <a href="#team" className="hover:text-white transition-colors">Our Team</a>
+                </li>
+                <li>
+                  <a href="#services" className="hover:text-white transition-colors">Our Services</a>
+                </li>
+                <li>
+                  <a href="#patients" className="hover:text-white transition-colors">Patient Feedback</a>
+                </li>
+                <li>
+                  <a href="#contact" className="hover:text-white transition-colors">Contact Us</a>
+                </li>
               </ul>
             </div>
 
-            {/* Column 3 */}
+            {/* Column 3 - Contact Information */}
             <div>
-              <h3 className="text-white text-lg font-semibold mb-4">Recent Posts</h3>
-              <div className="space-y-4">
-                {[
-                  { image: "https://images.unsplash.com/photo-1610958900018-7a5ffaa8f80a?w=60&h=60&fit=crop&crop=face", title: "Get The Exercise Limited Mobility", date: "DECEMBER 12, 2021" },
-                  { image: "https://images.unsplash.com/photo-1551601651-2a8555f1a136?w=60&h=60&fit=crop&crop=face", title: "Transfusion Strategy And Heart Surgery", date: "DECEMBER 12, 2021" }
-                ].map((post, index) => (
-                  <div key={index} className="flex">
-                    <img src={post.image} alt={post.title} className="w-12 h-12 object-cover rounded mr-3" />
-                    <div>
-                      <p className="text-sm text-gray-300">{post.date}</p>
-                      <p className="text-white text-sm">{post.title}</p>
-                    </div>
+              <h3 className="text-white text-lg font-semibold mb-4">Contact Info</h3>
+              <div className="space-y-4 text-gray-300">
+                <div className="flex items-start">
+                  <svg className="w-5 h-5 text-[#2490eb] mt-1 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                    <path d="M8 8.883V14a2 2 0 002 2h4a2 2 0 002-2v-6a1 1 0 00-1.414-.907L10 9.882l-2.586-2.586A1 1 0 006 8.883V10a1 1 0 102 0V8.883z" />
+                  </svg>
+                  <div>
+                    <a href="mailto:info@chanreallergyclinic.com" className="hover:text-white transition-colors">
+                      info@chanreallergyclinic.com
+                    </a>
+                    <br />
+                    <a href="mailto:appointments@chanreallergyclinic.com" className="hover:text-white transition-colors">
+                      appointments@chanreallergyclinic.com
+                    </a>
                   </div>
-                ))}
+                </div>
+                <div className="flex items-center">
+                  <svg className="w-5 h-5 text-[#2490eb] mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                  </svg>
+                  <div>
+                    <a href="tel:08042516699" className="hover:text-white transition-colors block">
+                      08 0425 16699
+                    </a>
+                    <a href="tel:9632533122" className="hover:text-white transition-colors block">
+                      96325 33122
+                    </a>
+                  </div>
+                </div>
+                <div className="flex items-start">
+                  <svg className="w-5 h-5 text-[#2490eb] mt-1 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                  </svg>
+                  <div>
+                    <p>65, Metro Station</p>
+                    <p>414, 20th Main Rd, near Rajajinagar</p>
+                    <p>West of Chord Road 2nd Stage</p>
+                    <p>Bengaluru, Karnataka - 560010</p>
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Column 4 */}
+            {/* Column 4 - Newsletter Subscription */}
             <div>
-              <h3 className="text-white text-lg font-semibold mb-4">Contact Us</h3>
-              <div className="space-y-3 text-gray-300">
-                <p>+1800-001-658</p>
-                <p>info@chanreallergyclinic.com</p>
-                <p>Themeforest, Envato HQ 24 Fifth st, Los Angeles, USA</p>
+              <h3 className="text-white text-lg font-semibold mb-4">Stay Updated</h3>
+              <p className="text-gray-300 mb-4">
+                Subscribe to our newsletter for health tips, allergy alerts, and clinic updates.
+              </p>
+              <form onSubmit={(e) => { e.preventDefault(); console.log('Newsletter subscription'); }} className="space-y-3">
+                <div>
+                  <input
+                    type="email"
+                    placeholder="Enter your email address"
+                    className="w-full bg-gray-700 text-white placeholder-gray-400 rounded-lg border border-gray-600 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#2490eb] focus:border-transparent"
+                    required
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="w-full bg-[#2490eb] hover:bg-[#14457b] text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-300"
+                >
+                  Subscribe Now
+                </button>
+              </form>
+              <div className="mt-6">
+                <h4 className="text-white text-sm font-semibold mb-2">Working Hours</h4>
+                <div className="space-y-1 text-gray-300 text-sm">
+                  <div className="flex justify-between">
+                    <span>Mon - Fri:</span>
+                    <span>9:00 AM - 5:00 PM</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Saturday:</span>
+                    <span>10:00 AM - 2:00 PM</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Sunday:</span>
+                    <span>Closed</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
+        
+        {/* Bottom Border */}
         <div className="border-t border-gray-700">
-          <div className="w-4/5 mx-auto px-4 py-4">
-            <p className="text-gray-400 text-center text-sm">
-              Copyright 2004 ChanRe Allergy Clinic - All Rights Reserved
-            </p>
+          <div className="w-4/5 mx-auto px-4 py-6">
+            <div className="flex flex-col md:flex-row justify-between items-center">
+              <p className="text-gray-400 text-sm mb-2 md:mb-0">
+                © 2024 ChanRe Allergy Clinic. All Rights Reserved.
+              </p>
+              <div className="flex space-x-6 text-gray-400 text-sm">
+                <a href="/privacy-policy" className="hover:text-white transition-colors">Privacy Policy</a>
+                <a href="/terms-of-service" className="hover:text-white transition-colors">Terms of Service</a>
+                <a href="/patient-info" className="hover:text-white transition-colors">Patient Information</a>
+              </div>
+            </div>
           </div>
         </div>
       </footer>

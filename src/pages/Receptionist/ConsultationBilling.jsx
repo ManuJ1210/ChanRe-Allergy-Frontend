@@ -459,7 +459,7 @@ export default function ConsultationBilling() {
 
     try {
       // Get invoice number from generatedInvoice or from patient's billing
-      const invoiceNumber = generatedInvoice?.invoiceNumber || selectedPatient.billing?.[0]?.invoiceNumber || `INV-${selectedPatient._id.slice(-6)}`;
+      const invoiceNumber = generatedInvoice?.invoiceNumber || selectedPatient.billing?.[0]?.invoiceNumber || `INV-${selectedPatient._id.toString().slice(-6)}`;
       
       const paymentPayload = {
         patientId: selectedPatient._id,
@@ -783,7 +783,7 @@ export default function ConsultationBilling() {
     
     // Create a mock invoice object for payment processing
     const mockInvoice = {
-      invoiceNumber: patient.billing?.[0]?.invoiceNumber || `INV-${patient._id.slice(-6)}`,
+      invoiceNumber: patient.billing?.[0]?.invoiceNumber || `INV-${patient._id.toString().slice(-6)}`,
       patientId: patient._id,
       total: outstanding.totalAmount,
       paid: outstanding.totalPaid,
@@ -2060,7 +2060,7 @@ export default function ConsultationBilling() {
                       
                       // Create a mock invoice object for payment processing
                       const mockInvoice = {
-                        invoiceNumber: selectedPatient.billing?.[0]?.invoiceNumber || `INV-${selectedPatient._id.slice(-6)}`,
+                        invoiceNumber: selectedPatient.billing?.[0]?.invoiceNumber || `INV-${selectedPatient._id.toString().slice(-6)}`,
                         patientId: selectedPatient._id,
                         total: totalAmount,
                         paid: totalPaid,
