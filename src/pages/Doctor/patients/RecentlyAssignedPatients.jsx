@@ -30,7 +30,7 @@ export default function RecentlyAssignedPatients() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredPatients, setFilteredPatients] = useState([]);
-  const [dateFilter, setDateFilter] = useState('today'); // today, last7days, last30days
+  const [dateFilter, setDateFilter] = useState('scheduled'); // scheduled, today, last7days, last30days
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -48,16 +48,23 @@ export default function RecentlyAssignedPatients() {
     const now = new Date();
     let filtered = [];
 
-    // Filter by assignment date and viewed status (show all assigned patients)
+    // Filter by assignment date and viewed status (include reassigned patients)
     filtered = (assignedPatients || []).filter(patient => {
       if (!patient.assignedAt) return false; // Only show patients with assignment date
-      if (patient.viewedByDoctor) return false; // Only show unviewed patients
       
       const assignedDate = new Date(patient.assignedAt);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      // Check if patient is reassigned
+      const isReassigned = patient.isReassigned || patient.appointmentStatus === 'reassigned';
       
       switch (dateFilter) {
+        case 'scheduled':
+          // Show patients scheduled for today who haven't been viewed, including reassigned patients
+          return assignedDate.toDateString() === today.toDateString() && !patient.viewedByDoctor;
         case 'today':
-          return assignedDate.toDateString() === now.toDateString();
+          return assignedDate.toDateString() === today.toDateString();
         case 'last7days':
           const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
           return assignedDate >= sevenDaysAgo && assignedDate <= now;
@@ -121,6 +128,7 @@ export default function RecentlyAssignedPatients() {
 
   const getDateFilterLabel = () => {
     switch (dateFilter) {
+      case 'scheduled': return 'Scheduled for Today';
       case 'today': return 'Today';
       case 'last7days': return 'Last 7 Days';
       case 'last30days': return 'Last 30 Days';
@@ -140,7 +148,7 @@ export default function RecentlyAssignedPatients() {
     });
   };
 
-  // Function to get consultation fee status display
+  // Function to get consultation fee status display (simplified - only show paid/unpaid)
   const getConsultationFeeStatus = (patient) => {
     if (!patient.billing || patient.billing.length === 0) {
       return (
@@ -165,35 +173,10 @@ export default function RecentlyAssignedPatients() {
     }
 
     if (consultationFee.status === 'paid' || consultationFee.status === 'completed') {
-      const paidDate = new Date(consultationFee.paidAt || consultationFee.createdAt);
-      const formattedDate = paidDate.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
-      });
-      const formattedTime = paidDate.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-      });
-
       return (
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-            <span className="text-xs text-green-600 font-medium">Paid</span>
-          </div>
-          <div className="text-xs text-slate-500">
-            ₹{consultationFee.amount}
-          </div>
-          <div className="text-xs text-slate-500">
-            {formattedDate} {formattedTime}
-          </div>
-          {consultationFee.paidBy && (
-            <div className="text-xs text-slate-500">
-              by {consultationFee.paidBy}
-            </div>
-          )}
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+          <span className="text-xs text-green-600 font-medium">Paid</span>
         </div>
       );
     } else {
@@ -220,6 +203,9 @@ export default function RecentlyAssignedPatients() {
       // Refresh the patient list to update the view
       dispatch(fetchAssignedPatients());
       
+      // Also refresh receptionist data to update the scheduled color
+      // This will be handled by the backend when the patient is marked as viewed
+      
     } catch (error) {
       console.error('Error marking patient as viewed:', error);
       toast.error('Failed to mark patient as viewed. Please try again.');
@@ -232,10 +218,10 @@ export default function RecentlyAssignedPatients() {
         {/* Header */}
         <div className="mb-6 sm:mb-8">
           <h1 className="text-md font-bold text-slate-800 mb-2 text-center sm:text-left">
-            Recently Assigned Patients
+            Scheduled Patients
           </h1>
           <p className="text-slate-600 text-xs text-center sm:text-left">
-            View unviewed patients assigned to you recently with date filtering options
+            View patients scheduled for today and check consultation payment status
           </p>
         </div>
 
@@ -262,6 +248,7 @@ export default function RecentlyAssignedPatients() {
                     onChange={(e) => setDateFilter(e.target.value)}
                     className="pl-10 pr-4 py-2 sm:py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs bg-white"
                   >
+                    <option value="scheduled">Scheduled for Today</option>
                     <option value="today">Today</option>
                     <option value="last7days">Last 7 Days</option>
                     <option value="last30days">Last 30 Days</option>
@@ -337,10 +324,13 @@ export default function RecentlyAssignedPatients() {
           <div className="p-4 sm:p-6 border-b border-blue-100">
             <h2 className="text-sm font-semibold text-slate-800 flex items-center justify-center sm:justify-start">
               <Users className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-blue-500" />
-              Unviewed Recently Assigned Patients - {getDateFilterLabel()}
+              {getDateFilterLabel()} - {filteredPatients.length} patients
             </h2>
             <p className="text-slate-600 mt-1 text-xs text-center sm:text-left">
-              {filteredPatients.length} unviewed patients assigned in the selected period
+              {dateFilter === 'scheduled' 
+                ? 'Patients scheduled for today who need to be seen'
+                : `${filteredPatients.length} patients in the selected period`
+              }
             </p>
           </div>
           
@@ -355,7 +345,12 @@ export default function RecentlyAssignedPatients() {
               <div className="text-center py-8">
                 <Users className="h-12 w-12 text-slate-400 mx-auto mb-4" />
                 <p className="text-slate-500 text-xs">
-                  {searchTerm ? 'No unviewed patients found matching your search.' : `No unviewed patients assigned ${getDateFilterLabel().toLowerCase()}.`}
+                  {searchTerm 
+                    ? 'No patients found matching your search.' 
+                    : dateFilter === 'scheduled' 
+                      ? 'No patients scheduled for today.' 
+                      : `No patients found for ${getDateFilterLabel().toLowerCase()}.`
+                  }
                 </p>
               </div>
             ) : (
@@ -366,7 +361,14 @@ export default function RecentlyAssignedPatients() {
                   <div key={patient?._id || index} className="bg-slate-50 rounded-lg p-4 space-y-3 border border-slate-200">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="font-semibold text-slate-800 text-sm">{patient?.name || 'N/A'}</h3>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-semibold text-slate-800 text-sm">{patient?.name || 'N/A'}</h3>
+                          {(patient?.isReassigned || patient?.appointmentStatus === 'reassigned') && (
+                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
+                              Reassigned
+                            </span>
+                          )}
+                        </div>
                         <p className="text-slate-500 text-xs">#{globalIndex + 1}</p>
                       </div>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${
@@ -515,7 +517,12 @@ export default function RecentlyAssignedPatients() {
               <div className="text-center py-8">
                 <Users className="h-12 w-12 text-slate-400 mx-auto mb-4" />
                 <p className="text-slate-500 text-xs">
-                  {searchTerm ? 'No unviewed patients found matching your search.' : `No unviewed patients assigned ${getDateFilterLabel().toLowerCase()}.`}
+                  {searchTerm 
+                    ? 'No patients found matching your search.' 
+                    : dateFilter === 'scheduled' 
+                      ? 'No patients scheduled for today.' 
+                      : `No patients found for ${getDateFilterLabel().toLowerCase()}.`
+                  }
                 </p>
               </div>
             ) : (
@@ -556,7 +563,14 @@ export default function RecentlyAssignedPatients() {
                       <tr key={patient?._id || index} className="hover:bg-slate-50 transition-colors">
                         <td className="px-6 py-4">
                           <div>
-                            <div className="font-semibold text-slate-800 text-xs">{patient?.name || 'N/A'}</div>
+                            <div className="flex items-center gap-2">
+                              <div className="font-semibold text-slate-800 text-xs">{patient?.name || 'N/A'}</div>
+                              {(patient?.isReassigned || patient?.appointmentStatus === 'reassigned') && (
+                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
+                                  Reassigned
+                                </span>
+                              )}
+                            </div>
                             <div className="text-xs text-slate-500">#{globalIndex + 1}</div>
                           </div>
                         </td>

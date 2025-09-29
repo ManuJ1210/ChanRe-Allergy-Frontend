@@ -264,6 +264,10 @@ export default function ConsultationBilling() {
       const paidAmount = bill.paidAmount || 0;
       const totalAmount = bill.amount || 0;
       
+      // Check if the bill was originally marked as partial in the database
+      if (bill.status === 'partial' || (paidAmount > 0 && paidAmount < totalAmount)) {
+        return { paidAmount, status: 'partial', totalAmount };
+      }
       if (paidAmount >= totalAmount && totalAmount > 0) return { paidAmount, status: 'paid', totalAmount };
       if (paidAmount > 0) return { paidAmount, status: 'partial', totalAmount };
       return { paidAmount, status: 'unpaid', totalAmount };
@@ -310,10 +314,16 @@ export default function ConsultationBilling() {
       return { status: 'Service Charges Pending', color: 'text-green-600 bg-green-100', icon: <Settings className="h-4 w-4" /> };
     }
     
-    // All payments completed
+    // Check if there are any partial payments
+    const hasPartialPayments = consultationPayment.status === 'partial' || 
+                              (registrationFee && registrationPayment.status === 'partial') ||
+                              hasPartialServiceCharges;
+    
+    // All payments completed (fully paid, not partial)
     const allPaid = consultationPayment.status === 'paid' && 
                   (registrationFee ? registrationPayment.status === 'paid' : true) &&
-                  allServiceChargesPaid;
+                  allServiceChargesPaid &&
+                  !hasPartialPayments;
     
     if (allPaid) {
       return { status: 'Fully Paid', color: 'text-green-600 bg-green-100', icon: <CheckCircle className="h-4 w-4" /> };
@@ -2110,115 +2120,109 @@ export default function ConsultationBilling() {
                               body { 
                                 font-family: Arial, sans-serif; 
                                 margin: 0;
-                                padding: 15px;
+                                padding: 5mm;
                                 color: #000;
                                 background: white;
-                                font-size: 11px;
-                                line-height: 1.4;
+                                font-size: 12px;
+                                line-height: 1.3;
                               }
                               
                               .invoice-container {
-                                max-width: 210mm;
+                                max-width: 190mm;
                                 margin: 0 auto;
                                 background: white;
                                 position: relative;
+                                height: 277mm; /* A4 height */
+                                overflow: hidden;
                               }
                               
-                              /* Watermark */
-                              .invoice-container::before {
-                                content: "DUPLICA";
-                                position: absolute;
-                                top: 50%;
-                                left: 50%;
-                                transform: translate(-50%, -50%) rotate(-45deg);
-                                font-size: 60px;
-                                color: rgba(0, 0, 0, 0.1);
-                                z-index: 1;
-                                pointer-events: none;
-                              }
+                              /* Removed DUPLICA watermark */
                               
-                              /* Content above watermark */
-                              .invoice-content {
-                                position: relative;
-                                z-index: 2;
-                              }
-                              
-                              /* Header Styles */
+                              /* A4 Optimized Styles with Medium Fonts */
                               .text-center { text-align: center; }
                               .font-bold { font-weight: bold; }
                               .text-base { font-size: 16px; }
                               .text-sm { font-size: 14px; }
                               .text-xs { font-size: 11px; }
-                              .text-\\[10px\\] { font-size: 10px; }
-                              .text-\\[11px\\] { font-size: 11px; }
-                              .leading-tight { line-height: 1.25; }
-                              .mb-6 { margin-bottom: 20px; }
-                              .mb-4 { margin-bottom: 16px; }
-                              .mb-2 { margin-bottom: 8px; }
-                              .mb-1 { margin-bottom: 4px; }
-                              .mt-1 { margin-top: 4px; }
-                              .mt-10 { margin-top: 40px; }
-                              .pt-4 { padding-top: 16px; }
-                              .pb-4 { padding-bottom: 16px; }
-                              .p-6 { padding: 20px; }
-                              .border-b { border-bottom: 1px solid #d1d5db; }
-                              .border-t { border-top: 1px solid #d1d5db; }
-                              .border-slate-300 { border-color: #cbd5e1; }
-                              .border-slate-400 { border-color: #94a3b8; }
-                              .border-slate-200 { border-color: #e2e8f0; }
-                              .text-slate-900 { color: #0f172a; }
-                              .text-slate-700 { color: #334155; }
-                              .text-slate-600 { color: #475569; }
-                              .text-slate-500 { color: #64748b; }
-                              .text-blue-600 { color: #2563eb; }
+                              .leading-tight { line-height: 1.2; }
+                              .mb-6 { margin-bottom: 12px; }
+                              .mb-4 { margin-bottom: 8px; }
+                              .mb-3 { margin-bottom: 6px; }
+                              .mb-2 { margin-bottom: 4px; }
+                              .mb-1 { margin-bottom: 2px; }
+                              .mt-1 { margin-top: 2px; }
+                              .mt-10 { margin-top: 15px; }
+                              .pt-4 { padding-top: 8px; }
+                              .pb-4 { padding-bottom: 8px; }
+                              .p-6 { padding: 12px; }
+                              .p-3 { padding: 6px; }
+                              .p-2 { padding: 4px; }
+                              .border-b { border-bottom: 1px solid #000; }
+                              .border-t { border-top: 1px solid #000; }
+                              .border-slate-300 { border-color: #000; }
+                              .border-slate-400 { border-color: #000; }
+                              .border-slate-200 { border-color: #000; }
+                              .text-slate-900 { color: #000; }
+                              .text-slate-700 { color: #000; }
+                              .text-slate-600 { color: #000; }
+                              .text-slate-500 { color: #333; }
+                              .text-blue-600 { color: #000; }
+                              .text-green-600 { color: #000; }
+                              .text-orange-600 { color: #000; }
+                              .text-red-600 { color: #000; }
                               .underline { text-decoration: underline; }
                               .uppercase { text-transform: uppercase; }
                               .grid { display: grid; }
                               .grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
-                              .gap-x-8 { column-gap: 32px; }
+                              .grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
+                              .gap-6 { gap: 8px; }
+                              .gap-4 { gap: 6px; }
+                              .gap-x-8 { column-gap: 8px; }
                               .flex { display: flex; }
                               .justify-between { justify-content: space-between; }
                               .justify-end { justify-content: flex-end; }
                               .items-end { align-items: flex-end; }
-                              .w-80 { width: 320px; }
-                              .w-20 { width: 80px; }
-                              .w-28 { width: 112px; }
-                              .w-32 { width: 128px; }
-                              .w-12 { width: 48px; }
-                              .w-24 { width: 96px; }
+                              .w-80 { width: 200px; }
+                              .w-20 { width: 40px; }
+                              .w-28 { width: 60px; }
+                              .w-32 { width: 70px; }
+                              .w-12 { width: 30px; }
+                              .w-24 { width: 50px; }
                               .flex-1 { flex: 1; }
                               .font-medium { font-weight: 500; }
                               .font-semibold { font-weight: 600; }
                               .min-w-full { min-width: 100%; }
                               .border-collapse { border-collapse: collapse; }
-                              .border { border: 1px solid #d1d5db; }
-                              .px-3 { padding-left: 12px; padding-right: 12px; }
-                              .py-2 { padding-top: 8px; padding-bottom: 8px; }
+                              .border { border: 1px solid #000; }
+                              .px-3 { padding-left: 6px; padding-right: 6px; }
+                              .py-2 { padding-top: 3px; padding-bottom: 3px; }
                               .text-left { text-align: left; }
                               .text-right { text-align: right; }
-                              .text-center { text-align: center; }
-                              .bg-slate-100 { background-color: #f1f5f9; }
-                              .max-w-xs { max-width: 320px; }
+                              .bg-slate-100 { background-color: #f5f5f5; }
+                              .bg-slate-50 { background-color: #f9f9f9; }
+                              .max-w-xs { max-width: 200px; }
                               .border-b-2 { border-bottom-width: 2px; }
                               .border-t-2 { border-top-width: 2px; }
-                              .pt-2 { padding-top: 8px; }
-                              .py-1 { padding-top: 4px; padding-bottom: 4px; }
-                              .pt-1 { padding-top: 4px; }
-                              .h-7 { height: 28px; }
-                              .space-y-1 > * + * { margin-top: 4px; }
+                              .pt-2 { padding-top: 4px; }
+                              .py-1 { padding-top: 2px; padding-bottom: 2px; }
+                              .pt-1 { padding-top: 2px; }
+                              .space-y-1 > * + * { margin-top: 2px; }
+                              .space-y-3 > * + * { margin-top: 6px; }
                               
-                              /* Table specific styles */
+                              /* A4 Optimized Table styles with Medium Fonts */
                               table { 
                                 width: 100%; 
                                 border-collapse: collapse; 
-                                margin: 15px 0;
+                                margin: 8px 0;
+                                font-size: 11px;
                               }
                               
                               th, td { 
                                 border: 1px solid #000; 
-                                padding: 6px 8px; 
+                                padding: 4px 6px; 
                                 text-align: left; 
                                 font-size: 11px;
+                                vertical-align: top;
                               }
                               
                               th { 
@@ -2237,17 +2241,28 @@ export default function ConsultationBilling() {
                               @media print {
                                 body {
                                   margin: 0;
-                                  padding: 10mm;
+                                  padding: 5mm;
+                                  font-size: 11px;
                                 }
                                 
                                 .invoice-container {
                                   max-width: none;
                                   margin: 0;
+                                  height: auto;
+                                  overflow: visible;
+                                }
+                                
+                                table {
+                                  page-break-inside: avoid;
+                                }
+                                
+                                .no-page-break {
+                                  page-break-inside: avoid;
                                 }
                                 
                                 @page {
                                   size: A4;
-                                  margin: 10mm;
+                                  margin: 5mm;
                                 }
                               }
                             </style>
@@ -2289,43 +2304,32 @@ export default function ConsultationBilling() {
             <div className="overflow-y-auto max-h-[calc(95vh-80px)] p-6">
               {invoiceData && (
                 <div className="bg-white p-6 max-w-4xl mx-auto relative">
-                  {/* Watermark */}
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
-                    <div className="text-6xl font-bold text-gray-200 transform -rotate-45 select-none">
-                      DUPLICA
-                    </div>
-                  </div>
-                  
-                  {/* Content above watermark */}
-                  <div className="relative z-10">
-                  {/* Header */}
-                  <div className="text-center mb-6">
-                    <h1 className="text-base font-bold text-slate-900 mb-1">
+                  {/* Content - Watermark removed */}
+                  {/* Header - Compact for A4 */}
+                  <div className="text-center mb-3">
+                    <h1 className="text-sm font-bold text-slate-900 mb-1">
                       {centerInfo.name}
                     </h1>
                     <p className="text-xs text-slate-600 leading-tight">
                       {centerInfo.address}
                     </p>
                     <p className="text-xs text-slate-600">
-                      PH-{centerInfo.phone} | Fax-{centerInfo.fax}
+                      PH: {centerInfo.phone} | Fax: {centerInfo.fax}
                     </p>
                     <p className="text-xs text-slate-600">
-                      Information Website: {centerInfo.website}
-                    </p>
-                    <p className="text-xs text-slate-600">
-                      Online Lab Reports Website: {centerInfo.labWebsite}
+                      Website: {centerInfo.website}
                     </p>
                   </div>
 
                   {/* Title */}
-                  <div className="text-center mb-6">
-                    <h2 className="text-lg font-bold text-slate-900 uppercase">
+                  <div className="text-center mb-3">
+                    <h2 className="text-base font-bold text-slate-900 uppercase">
                       OUTPATIENT BILL
                     </h2>
                   </div>
 
                   {/* Patient and Bill Details */}
-                  <div className="grid grid-cols-2 gap-x-8 mb-6">
+                  <div className="grid grid-cols-2 gap-x-6 mb-4">
                     <div>
                       <div className="space-y-1 text-xs">
                         <div><span className="font-medium">Name:</span> {invoiceData.patient.name}</div>
@@ -2348,7 +2352,7 @@ export default function ConsultationBilling() {
                   </div>
 
                   {/* Services Table */}
-                  <div className="mb-6">
+                  <div className="mb-4 no-page-break">
                     <table className="min-w-full border-collapse border border-slate-300">
                       <thead>
                         <tr className="bg-slate-100">
@@ -2492,8 +2496,8 @@ export default function ConsultationBilling() {
                   </div>
 
                   {/* Summary */}
-                  <div className="flex justify-end mb-6">
-                    <div className="w-80">
+                  <div className="flex justify-end mb-4">
+                    <div className="w-72">
                       <div className="space-y-1 text-xs">
                         <div className="flex justify-between">
                           <span>Total Amount:</span>
@@ -2773,33 +2777,41 @@ export default function ConsultationBilling() {
                     return null;
                   })()}
 
-                  {/* Generation Details */}
-                  <div className="flex justify-between items-end mb-6">
+                  {/* Generation Details - Compact for A4 */}
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    {/* Left - Generation Info */}
                     <div className="text-xs">
                       <div><span className="font-medium">Generated By:</span> {invoiceData.generatedBy}</div>
-                      <div><span className="font-medium">Date/Time:</span> {new Date(invoiceData.date).toLocaleDateString('en-GB')} {new Date(invoiceData.date).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true })}</div>
-                      {selectedPatient.billing?.some(bill => bill.paidAt) && (
-                        <div><span className="font-medium">Last Payment:</span> {new Date(Math.max(...selectedPatient.billing.filter(bill => bill.paidAt).map(bill => new Date(bill.paidAt)))).toLocaleDateString('en-GB')}</div>
-                      )}
+                      <div><span className="font-medium">Date:</span> {new Date(invoiceData.date).toLocaleDateString('en-GB')}</div>
+                      <div><span className="font-medium">Time:</span> {new Date(invoiceData.date).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true })}</div>
                     </div>
-                    <div className="text-xs">
-                      <div className="mb-4">Signature:</div>
-                      <div className="text-center">For {centerInfo.name}</div>
+                    
+                    {/* Right - Invoice Terms & Signature */}
+                    <div className="text-xs bg-slate-50 border border-slate-200 rounded p-2">
+                      <div className="font-semibold text-slate-800 mb-1 text-center">Invoice Terms</div>
+                      <div className="space-y-1 text-slate-700 mb-2">
+                        <div>• Original invoice document</div>
+                        <div>• Payment due upon receipt</div>
+                        <div>• Keep for your records</div>
+                        <div>• No refunds after 7 days</div>
+                      </div>
+                      <div className="border-t border-slate-200 pt-1">
+                        <div className="font-medium">Signature:</div>
+                        <div className="text-center mt-2">For {centerInfo.name}</div>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Footer */}
+                  {/* Footer - Compact */}
                   <div className="text-center text-xs text-slate-600">
-                    <div className="mb-2">
+                    <div className="mb-1">
                       <strong>"For Home Sample Collection"</strong>
                     </div>
                     <div>
-                      <span className="font-medium">Miss Call Number:</span> {centerInfo.missCallNumber}
+                      <span className="font-medium">Miss Call:</span> {centerInfo.missCallNumber} 
+                      <span className="mx-2">|</span>
+                      <span className="font-medium">Mobile:</span> {centerInfo.mobileNumber}
                     </div>
-                    <div>
-                      <span className="font-medium">Mobile Number:</span> {centerInfo.mobileNumber}
-                    </div>
-                  </div>
                   </div>
                 </div>
               )}
@@ -2935,7 +2947,7 @@ export default function ConsultationBilling() {
                   onChange={(e) => setPaymentData({...paymentData, consultationType: e.target.value})}
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
                     >
-                      <option value="OP">OP (Outpatient) - ₹1050</option>
+                      <option value="OP">OP (Outpatient) - ₹850</option>
                       <option value="IP">IP (Inpatient) - ₹1050</option>
                       <option value="followup" disabled={!selectedPatient?.followupEligible || selectedPatient?.followupUsed}>
                         Followup (Free within 7 days) - ₹0
