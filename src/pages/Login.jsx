@@ -43,6 +43,9 @@ export default function Login() {
       else if (role === 'receptionist') {
         navigate('/dashboard/receptionist/dashboard');
       }
+      else if (role === 'accountant') {
+        navigate('/dashboard/accountant/dashboard');
+      }
       else if (role === 'lab technician' || role === 'lab assistant' || role === 'lab manager') {
         navigate('/dashboard/lab/dashboard');
       }

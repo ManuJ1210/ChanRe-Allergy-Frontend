@@ -19,6 +19,7 @@ import {
   FaUserPlus,
   FaPlus,
   FaMoneyBillWave,
+  FaCalculator,
 } from 'react-icons/fa';
 
 export default function Sidebar(props) {
@@ -216,6 +217,17 @@ export default function Sidebar(props) {
                 currentPath={location.pathname}
               />
               <SidebarGroup
+                label="Accountants"
+                icon={<FaCalculator />}
+                open={centerOpen === 'accountants'}
+                toggle={() => setCenterOpen(centerOpen === 'accountants' ? null : 'accountants')}
+                links={[
+                  { to: "/dashboard/centeradmin/accountant/addaccountant", label: "Add Accountant" },
+                  { to: "/dashboard/centeradmin/accountant/manageaccountants", label: "Accountant List" },
+                ]}
+                currentPath={location.pathname}
+              />
+              <SidebarGroup
                 label="Patients"
                 icon={<FaVials />}
                 open={centerOpen === 'patients'}
@@ -257,6 +269,35 @@ export default function Sidebar(props) {
                 currentPath={location.pathname}
               />
 
+            </>
+          )}
+
+          {role === 'accountant' && (
+            <>
+              <SidebarLink
+                to="/dashboard/accountant/dashboard"
+                label="Dashboard"
+                icon={<FaHome />}
+                isActive={isActive("/dashboard/accountant/dashboard")}
+              />
+              <SidebarLink
+                to="/dashboard/accountant/billing"
+                label="Billing"
+                icon={<FaMoneyBillWave />}
+                isActive={isActive("/dashboard/accountant/billing")}
+              />
+              <SidebarLink
+                to="/dashboard/accountant/reports"
+                label="Reports"
+                icon={<FaClipboardList />}
+                isActive={isActive("/dashboard/accountant/reports")}
+              />
+              <SidebarLink
+                to="/dashboard/accountant/profile"
+                label="Profile"
+                icon={<FaUserTie />}
+                isActive={isActive("/dashboard/accountant/profile")}
+              />
             </>
           )}
 

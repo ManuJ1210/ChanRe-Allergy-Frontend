@@ -6,7 +6,7 @@ import {
   MapPin, Mail, Phone, UserCheck, Building2, User, Users, 
   ArrowLeft, AlertCircle, ChevronDown, ChevronUp,
   Calendar, Clock, FileText, Activity, Search, Filter,
-  ChevronLeft, ChevronRight, SortAsc, SortDesc
+  ChevronLeft, ChevronRight, SortAsc, SortDesc, Calculator
 } from 'lucide-react';
 
 // Memoized FilterControls component to prevent re-renders
@@ -90,21 +90,24 @@ export default function ViewCenterInfo() {
   const [expandedSections, setExpandedSections] = useState({
     patients: false,
     doctors: false,
-    receptionists: false
+    receptionists: false,
+    accountants: false
   });
 
   // Pagination state for each section
   const [pagination, setPagination] = useState({
     patients: { currentPage: 1, itemsPerPage: 10 },
     doctors: { currentPage: 1, itemsPerPage: 10 },
-    receptionists: { currentPage: 1, itemsPerPage: 10 }
+    receptionists: { currentPage: 1, itemsPerPage: 10 },
+    accountants: { currentPage: 1, itemsPerPage: 10 }
   });
 
   // Filter state for each section
   const [filters, setFilters] = useState({
     patients: { search: '', sortBy: 'name', sortOrder: 'asc' },
     doctors: { search: '', sortBy: 'name', sortOrder: 'asc' },
-    receptionists: { search: '', sortBy: 'name', sortOrder: 'asc' }
+    receptionists: { search: '', sortBy: 'name', sortOrder: 'asc' },
+    accountants: { search: '', sortBy: 'name', sortOrder: 'asc' }
   });
 
   const { 
@@ -922,6 +925,109 @@ export default function ViewCenterInfo() {
           )}
         </div>
 
+        {/* Accountants Section */}
+        <div className="bg-white rounded-xl shadow-sm border border-blue-100 mb-8">
+          <div 
+            className="p-6 border-b border-blue-100 cursor-pointer hover:bg-slate-50 transition-colors"
+            onClick={() => toggleSection('accountants')}
+          >
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-slate-800 flex items-center">
+                <Calculator className="h-5 w-5 mr-2 text-orange-500" />
+                Accountants ({centerDetailedInfo?.accountants?.length || 0})
+              </h2>
+              {expandedSections.accountants ? (
+                <ChevronUp className="h-5 w-5 text-slate-500" />
+              ) : (
+                <ChevronDown className="h-5 w-5 text-slate-500" />
+              )}
+            </div>
+          </div>
+          {expandedSections.accountants && (
+            <div className="p-6">
+              {centerDetailedInfo?.accountants?.length > 0 ? (
+                <>
+                  <FilterControls 
+                    sectionType="accountants" 
+                    sortOptions={[
+                      { value: 'name', label: 'Name' },
+                      { value: 'email', label: 'Email' },
+                      { value: 'mobile', label: 'Mobile' },
+                      { value: 'username', label: 'Username' },
+                      { value: 'status', label: 'Status' }
+                    ]}
+                    filters={filters}
+                    updateFilter={updateFilter}
+                  />
+                  
+                  {(() => {
+                    const filteredAccountants = filterAndSortData(centerDetailedInfo.accountants, 'accountants');
+                    const paginatedAccountants = getPaginatedData(filteredAccountants, 'accountants');
+                    
+                    return (
+                      <>
+                        <div className="max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-xs">
+                              <thead className="bg-orange-50 sticky top-0">
+                                <tr className="border-b border-orange-200">
+                                  <th className="text-left py-3 px-4 font-semibold text-slate-700">Name</th>
+                                  <th className="text-left py-3 px-4 font-semibold text-slate-700">Email</th>
+                                  <th className="text-left py-3 px-4 font-semibold text-slate-700">Mobile</th>
+                                  <th className="text-left py-3 px-4 font-semibold text-slate-700">Username</th>
+                                  <th className="text-left py-3 px-4 font-semibold text-slate-700">Address</th>
+                                  <th className="text-left py-3 px-4 font-semibold text-slate-700">Status</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {paginatedAccountants.map((accountant, index) => (
+                                  <tr key={accountant._id} className={`border-b border-orange-100 hover:bg-orange-25 ${index % 2 === 0 ? 'bg-white' : 'bg-orange-25'}`}>
+                                    <td className="py-3 px-4 font-medium text-slate-800">
+                                      {accountant.name || 'N/A'}
+                                    </td>
+                                    <td className="py-3 px-4 text-slate-600">
+                                      {accountant.email || 'N/A'}
+                                    </td>
+                                    <td className="py-3 px-4 text-slate-600">
+                                      {accountant.mobile || 'N/A'}
+                                    </td>
+                                    <td className="py-3 px-4 text-slate-600">
+                                      {accountant.username ? `@${accountant.username}` : 'N/A'}
+                                    </td>
+                                    <td className="py-3 px-4 text-slate-600 max-w-xs truncate">
+                                      {accountant.address || 'N/A'}
+                                    </td>
+                                    <td className="py-3 px-4 text-slate-600">
+                                      <span className={`px-2 py-1 rounded text-xs ${
+                                        accountant.status === 'active' ? 'bg-green-100 text-green-800' :
+                                        accountant.status === 'inactive' ? 'bg-red-100 text-red-800' :
+                                        'bg-gray-100 text-gray-800'
+                                      }`}>
+                                        {accountant.status || 'N/A'}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                        
+                        <PaginationControls 
+                          sectionType="accountants" 
+                          totalItems={centerDetailedInfo.accountants.length}
+                          filteredItems={filteredAccountants}
+                        />
+                      </>
+                    );
+                  })()}
+                </>
+              ) : (
+                <p className="text-slate-500 text-xs text-center py-8">No accountants found</p>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Actions */}
         <div className="bg-white rounded-xl shadow-sm border border-blue-100">

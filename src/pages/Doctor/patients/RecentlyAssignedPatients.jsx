@@ -43,6 +43,16 @@ export default function RecentlyAssignedPatients() {
     dispatch(fetchAssignedPatients());
   }, [dispatch]);
 
+  // Auto-refresh patient data every 30 seconds to keep status updated
+  useEffect(() => {
+    const interval = setInterval(() => {
+      console.log('🔄 Auto-refreshing assigned patients...');
+      dispatch(fetchAssignedPatients());
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [dispatch]);
+
   // Filter patients based on assignment date and search term
   useEffect(() => {
     const now = new Date();
@@ -178,6 +188,21 @@ export default function RecentlyAssignedPatients() {
 
   // Function to get consultation fee status display (simplified - only show paid/unpaid)
   const getConsultationFeeStatus = (patient) => {
+    // Check for cancelled bills first
+    const hasCancelledReassignmentBill = patient.reassignedBilling && 
+      patient.reassignedBilling.some(bill => bill.status === 'cancelled');
+    const hasCancelledRegularBill = patient.billing && 
+      patient.billing.some(bill => bill.status === 'cancelled');
+    
+    if (hasCancelledReassignmentBill || hasCancelledRegularBill) {
+      return (
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+          <span className="text-xs text-red-600 font-medium">Bill Cancelled</span>
+        </div>
+      );
+    }
+
     if (!patient.billing || patient.billing.length === 0) {
       return (
         <div className="flex items-center gap-2">
@@ -457,6 +482,26 @@ export default function RecentlyAssignedPatients() {
                     
                     <div className="flex gap-2 pt-3 border-t border-slate-200">
                       {(() => {
+                        // Check for cancelled bills first
+                        const hasCancelledReassignmentBill = patient.reassignedBilling && 
+                          patient.reassignedBilling.some(bill => bill.status === 'cancelled');
+                        const hasCancelledRegularBill = patient.billing && 
+                          patient.billing.some(bill => bill.status === 'cancelled');
+                        const isCancelled = hasCancelledReassignmentBill || hasCancelledRegularBill;
+                        
+                        if (isCancelled) {
+                          return (
+                            <button
+                              disabled
+                              className="flex-1 bg-red-50 text-red-500 px-3 py-2 rounded-lg text-xs font-medium flex items-center justify-center gap-2 cursor-not-allowed"
+                              title="Bill cancelled - actions locked"
+                            >
+                              <Lock className="h-4 w-4" />
+                              Bill Cancelled
+                            </button>
+                          );
+                        }
+                        
                         const hasConsultationFee = patient.billing && patient.billing.some(bill => 
                           bill.type === 'consultation' || bill.description?.toLowerCase().includes('consultation')
                         );
@@ -662,6 +707,25 @@ export default function RecentlyAssignedPatients() {
                         <td className="px-6 py-4">
                           <div className="flex items-center space-x-2">
                             {(() => {
+                              // Check for cancelled bills first
+                              const hasCancelledReassignmentBill = patient.reassignedBilling && 
+                                patient.reassignedBilling.some(bill => bill.status === 'cancelled');
+                              const hasCancelledRegularBill = patient.billing && 
+                                patient.billing.some(bill => bill.status === 'cancelled');
+                              const isCancelled = hasCancelledReassignmentBill || hasCancelledRegularBill;
+                              
+                              if (isCancelled) {
+                                return (
+                                  <button
+                                    disabled
+                                    className="text-red-400 p-1 rounded cursor-not-allowed"
+                                    title="Bill cancelled - actions locked"
+                                  >
+                                    <Lock className="h-4 w-4" />
+                                  </button>
+                                );
+                              }
+                              
                               const hasConsultationFee = patient.billing && patient.billing.some(bill => 
                                 bill.type === 'consultation' || bill.description?.toLowerCase().includes('consultation')
                               );

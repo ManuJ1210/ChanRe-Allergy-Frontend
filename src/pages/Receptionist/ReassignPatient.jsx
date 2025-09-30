@@ -85,6 +85,7 @@ export default function ReassignPatient() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showCancelBillModal, setShowCancelBillModal] = useState(false);
   const [showRefundModal, setShowRefundModal] = useState(false);
+  const [showWorkingHoursReassignModal, setShowWorkingHoursReassignModal] = useState(false);
   
   const [invoiceFormData, setInvoiceFormData] = useState({
     registrationFee: 0,
@@ -116,10 +117,27 @@ export default function ReassignPatient() {
     paymentReference: '',
     notes: ''
   });
+  
+  const [workingHoursReassignData, setWorkingHoursReassignData] = useState({
+    newDoctorId: '',
+    nextConsultationDate: '',
+    reason: 'Working hours violation - not viewed within 7 AM to 8 PM',
+    notes: ''
+  });
 
   useEffect(() => {
     dispatch(fetchReceptionistPatients());
     fetchCenterInfo();
+  }, [dispatch]);
+
+  // Auto-refresh patient data every 30 seconds to keep doctor status updated
+  useEffect(() => {
+    const interval = setInterval(() => {
+      console.log('🔄 Auto-refreshing patient data to update doctor status...');
+      dispatch(fetchReceptionistPatients());
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
   }, [dispatch]);
 
   // Function to get center ID
@@ -404,6 +422,22 @@ export default function ReassignPatient() {
     fetchAvailableDoctors();
   };
 
+  const handleWorkingHoursReassign = (patient) => {
+    console.log('🔄 Opening working hours reassignment modal for patient:', patient);
+    setSelectedPatient(patient);
+    setWorkingHoursReassignData({
+      newDoctorId: '',
+      nextConsultationDate: '',
+      reason: 'Working hours violation - not viewed within 7 AM to 8 PM',
+      notes: ''
+    });
+    // Clear previous doctors list to force refresh
+    setAvailableDoctors([]);
+    setShowWorkingHoursReassignModal(true);
+    // Fetch doctors when opening the modal
+    fetchAvailableDoctors();
+  };
+
   // Create invoice for reassigned patient
   const handleCreateInvoice = (patient) => {
     setSelectedPatient(patient);
@@ -652,7 +686,7 @@ export default function ReassignPatient() {
                   <p className="text-sm font-medium text-slate-600">Already Reassigned</p>
                   <p className="text-lg font-semibold text-slate-900">{stats.alreadyReassigned}</p>
                 </div>
-              </div>
+                </div>
             </div>
           </div>
 
@@ -692,6 +726,7 @@ export default function ReassignPatient() {
                         <th className="px-2 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">UH ID</th>
                         <th className="px-2 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Assigned Doctor</th>
                         <th className="px-2 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Current Doctor</th>
+                        <th className="px-2 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Doctor Status</th>
                         <th className="px-2 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">First Consultation</th>
                         <th className="px-2 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Reassignment Status</th>
                         <th className="px-2 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Invoice Details</th>
@@ -765,6 +800,57 @@ export default function ReassignPatient() {
                                 ) : (
                                   <span className="text-slate-500">Same as Assigned</span>
                                 )}
+                              </div>
+                            </td>
+                            <td className="px-2 py-3 whitespace-nowrap">
+                              <div className="text-xs">
+                                {(() => {
+                                  const isWorkingHoursViolation = patient.workingHoursViolation && patient.requiresReassignment;
+                                  const isViewed = patient.viewedByDoctor;
+                                  const appointmentStatus = patient.appointmentStatus;
+                                  
+                                  if (isWorkingHoursViolation) {
+                                    return (
+                                      <div className="flex items-center gap-1">
+                                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                          <AlertCircle className="h-3 w-3 mr-1" />
+                                          Working Hours Violation
+                                        </span>
+                                      </div>
+                                    );
+                                  }
+                                  
+                                  if (isViewed) {
+                                    return (
+                                      <div className="flex items-center gap-1">
+                                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                          <CheckCircle className="h-3 w-3 mr-1" />
+                                          Viewed
+                                        </span>
+                                      </div>
+                                    );
+                                  }
+                                  
+                                  if (appointmentStatus === 'scheduled') {
+                                    return (
+                                      <div className="flex items-center gap-1">
+                                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                          <Clock className="h-3 w-3 mr-1" />
+                                          Scheduled
+                                        </span>
+                                      </div>
+                                    );
+                                  }
+                                  
+                                  return (
+                                    <div className="flex items-center gap-1">
+                                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-800">
+                                        <Clock className="h-3 w-3 mr-1" />
+                                        Pending
+                                      </span>
+                                    </div>
+                                  );
+                                })()}
                               </div>
                             </td>
                             <td className="px-2 py-3 whitespace-nowrap">
@@ -860,19 +946,34 @@ export default function ReassignPatient() {
                                       billStatus: latestBill?.status
                                     });
 
-                                    // Step 1: Always show Reassign button
-                                    const buttons = [
+                                    // Step 1: Show appropriate reassign button based on working hours violation
+                                    const isWorkingHoursViolation = patient.workingHoursViolation && patient.requiresReassignment;
+                                    const buttons = [];
+                                    
+                                    if (isWorkingHoursViolation) {
+                                      buttons.push(
                                   <button
-                                        key="reassign"
+                                          key="working-hours-reassign"
+                                          onClick={() => handleWorkingHoursReassign(patient)}
+                                          className="text-xs px-2 py-1 bg-red-100 text-red-800 rounded-md hover:bg-red-200 transition-colors flex items-center justify-center gap-1 border border-red-200"
+                                        >
+                                          <AlertCircle className="h-3 w-3" /> Reassign (No Bill)
+                                        </button>
+                                      );
+                                    } else {
+                                      buttons.push(
+                                        <button
+                                          key="reassign"
                                     onClick={() => handleReassignPatient(patient)}
                                     className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-md hover:bg-blue-200 transition-colors flex items-center justify-center gap-1 border border-blue-200"
                                   >
                                     <UserPlus className="h-3 w-3" /> Reassign
                                   </button>
-                                    ];
+                                      );
+                                    }
 
-                                    // Step 2: If reassigned but no bill, show Create Bill
-                                    if (isReassigned && !hasReassignmentBilling) {
+                                    // Step 2: If reassigned but no bill, show Create Bill (skip for working hours violations)
+                                    if (isReassigned && !hasReassignmentBilling && !isWorkingHoursViolation) {
                                       buttons.push(
                                     <button
                                           key="create-bill"
@@ -1613,7 +1714,7 @@ export default function ReassignPatient() {
                             ) : (
                               <span className="text-slate-400">-</span>
                             )}
-                          </td>
+                        </td>
                           <td className="border border-slate-300 px-3 py-2 text-right text-xs">₹0.00</td>
                           <td className="border border-slate-300 px-3 py-2 text-right text-xs">₹{balance.toFixed(2)}</td>
                           <td className="border border-slate-300 px-3 py-2 text-center text-xs">
@@ -2435,6 +2536,185 @@ export default function ReassignPatient() {
                   >
                     <RotateCcw className="h-5 w-5" />
                     Process Refund
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Working Hours Reassignment Modal */}
+      {showWorkingHoursReassignModal && selectedPatient && (
+        <div className="fixed inset-0 bg-slate-900 bg-opacity-75 z-50 overflow-y-auto" onClick={() => setShowWorkingHoursReassignModal(false)}>
+          <div className="flex items-center justify-center min-h-screen px-4 py-8">
+            <div 
+              className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 relative" 
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={() => setShowWorkingHoursReassignModal(false)}
+                className="absolute top-4 right-4 text-slate-500 hover:text-slate-700"
+              >
+                <X className="h-5 w-5" />
+              </button>
+              
+              <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                <AlertCircle className="h-6 w-6 text-red-500" /> Working Hours Reassignment
+              </h2>
+              
+              <div className="bg-red-50 p-3 rounded-lg border border-red-200 mb-4">
+                <p className="text-sm text-red-700 font-medium">⚠️ Working Hours Violation</p>
+                <p className="text-xs text-red-600 mt-1">
+                  Patient <span className="font-semibold">{selectedPatient.name}</span> was not viewed within working hours (7 AM - 8 PM).
+                </p>
+                <p className="text-xs text-red-600 mt-1">
+                  This reassignment will not generate a bill and requires a custom consultation date.
+                </p>
+              </div>
+
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                console.log('🔄 Starting working hours reassignment process...');
+                console.log('Selected patient:', selectedPatient);
+                console.log('Reassign data:', workingHoursReassignData);
+                
+                try {
+                  const requestData = {
+                    patientId: selectedPatient._id,
+                    newDoctorId: workingHoursReassignData.newDoctorId,
+                    nextConsultationDate: workingHoursReassignData.nextConsultationDate,
+                    reason: workingHoursReassignData.reason,
+                    notes: workingHoursReassignData.notes,
+                    centerId: getCenterId()
+                  };
+                  
+                  console.log('Sending request to /working-hours/reassign-custom-date with data:', requestData);
+                  
+                  const response = await API.post('/working-hours/reassign-custom-date', requestData);
+                  
+                  console.log('Working hours reassignment response:', response.data);
+                  
+                  if (response.data.success) {
+                    toast.success('Patient reassigned successfully with custom consultation date');
+                    dispatch(fetchReceptionistPatients());
+                    setShowWorkingHoursReassignModal(false);
+                    setWorkingHoursReassignData({ 
+                      newDoctorId: '', 
+                      nextConsultationDate: '', 
+                      reason: 'Working hours violation - not viewed within 7 AM to 8 PM', 
+                      notes: '' 
+                    });
+                  } else {
+                    toast.error(response.data.message || 'Failed to reassign patient');
+                  }
+                } catch (error) {
+                  console.error('Working hours reassignment error:', error);
+                  console.error('Error response:', error.response?.data);
+                  toast.error(error.response?.data?.message || 'Failed to reassign patient');
+                }
+              }} className="space-y-4">
+                
+                {/* Current Doctor */}
+                <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                  <label className="block text-xs font-medium text-slate-500 mb-1">
+                    Current Doctor
+                  </label>
+                  <p className="text-sm font-semibold text-slate-800">
+                    {selectedPatient.currentDoctor?.name || selectedPatient.assignedDoctor?.name || 'Not Assigned'}
+                  </p>
+                </div>
+
+                {/* New Doctor Selection */}
+                <div>
+                  <label htmlFor="newDoctor" className="block text-sm font-medium text-slate-700 mb-2">
+                    New Doctor *
+                  </label>
+                  <select
+                    id="newDoctor"
+                    value={workingHoursReassignData.newDoctorId}
+                    onChange={(e) => setWorkingHoursReassignData({...workingHoursReassignData, newDoctorId: e.target.value})}
+                    required
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm"
+                  >
+                    <option value="">Select a Doctor</option>
+                    {doctorsLoading ? (
+                      <option disabled>Loading doctors...</option>
+                    ) : (
+                      availableDoctors.map(doctor => (
+                        <option key={doctor._id} value={doctor._id}>
+                          Dr. {doctor.name}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                </div>
+
+                {/* Next Consultation Date */}
+                <div>
+                  <label htmlFor="nextConsultationDate" className="block text-sm font-medium text-slate-700 mb-2">
+                    Next Consultation Date *
+                  </label>
+                  <input
+                    id="nextConsultationDate"
+                    type="datetime-local"
+                    value={workingHoursReassignData.nextConsultationDate}
+                    onChange={(e) => setWorkingHoursReassignData({...workingHoursReassignData, nextConsultationDate: e.target.value})}
+                    required
+                    min={new Date().toISOString().slice(0, 16)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">
+                    Select the date and time for the patient's next consultation
+                  </p>
+                </div>
+
+                {/* Reason for Reassignment */}
+                <div>
+                  <label htmlFor="reason" className="block text-sm font-medium text-slate-700 mb-2">
+                    Reason for Reassignment *
+                  </label>
+                  <input
+                    id="reason"
+                    type="text"
+                    value={workingHoursReassignData.reason}
+                    onChange={(e) => setWorkingHoursReassignData({...workingHoursReassignData, reason: e.target.value})}
+                    required
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm"
+                    placeholder="e.g., Working hours violation - not viewed within 7 AM to 8 PM"
+                  />
+                </div>
+                
+                {/* Notes (Optional) */}
+                <div>
+                  <label htmlFor="notes" className="block text-sm font-medium text-slate-700 mb-2">
+                    Internal Notes
+                  </label>
+                  <textarea
+                    id="notes"
+                    value={workingHoursReassignData.notes}
+                    onChange={(e) => setWorkingHoursReassignData({...workingHoursReassignData, notes: e.target.value})}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm"
+                    placeholder="Any additional details for the record"
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowWorkingHoursReassignModal(false)}
+                    className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-sm"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={!workingHoursReassignData.newDoctorId || !workingHoursReassignData.nextConsultationDate || !workingHoursReassignData.reason}
+                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    <UserCheck className="h-5 w-5" />
+                    Reassign (No Bill)
                   </button>
                 </div>
               </form>

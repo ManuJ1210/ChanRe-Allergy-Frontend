@@ -8,6 +8,7 @@ import About from '../pages/About';
 import DashboardLayout from '../layouts/DashboardLayout';
 import PrivateRoute from '../components/PrivateRoute';
 import ErrorBoundary from '../components/ErrorBoundary';
+import AccountantRouteProtection from '../components/AccountantRouteProtection';
 
 // Superadmin Pages
 import SuperadminDashboard from '../pages/Superadmin/Dashboard';
@@ -195,6 +196,18 @@ import DoctorViewHistory from '../pages/Doctor/ViewHistory';
 import Notifications from '../pages/Doctor/Notifications';
 import Feedback from '../pages/Doctor/Feedback';
 import RecentlyAssignedPatients from '../pages/Doctor/patients/RecentlyAssignedPatients';
+
+// Accountant Pages
+import AccountantDashboard from '../pages/Accountant/Dashboard';
+import AccountantBilling from '../pages/Accountant/Billing';
+import AccountantReports from '../pages/Accountant/Reports';
+import AccountantProfile from '../pages/Accountant/Profile';
+
+// Center Admin Accountant Pages
+import ManageAccountants from '../pages/CenterAdmin/Accountant/ManageAccountants';
+import AddAccountant from '../pages/CenterAdmin/Accountant/AddAccountant';
+import EditAccountant from '../pages/CenterAdmin/Accountant/EditAccountant';
+import ViewAccountant from '../pages/CenterAdmin/Accountant/ViewAccountant';
 
 export default function AppRoutes() {
   return (
@@ -443,6 +456,12 @@ export default function AppRoutes() {
         <Route path="centeradmin/receptionist/addreceptionist" element={<CenterAdminAddReceptionist />} />
         <Route path="centeradmin/receptionist/viewreceptionist/:id" element={<CenterAdminViewReceptionist />} />
         <Route path="centeradmin/receptionist/editreceptionist/:id" element={<EditReceptionist />} />
+
+        {/* Center Admin Accountant Routes */}
+        <Route path="centeradmin/accountant/manageaccountants" element={<ManageAccountants />} />
+        <Route path="centeradmin/accountant/addaccountant" element={<AddAccountant />} />
+        <Route path="centeradmin/accountant/viewaccountant/:id" element={<ViewAccountant />} />
+        <Route path="centeradmin/accountant/editaccountant/:id" element={<EditAccountant />} />
         
         {/* Center Admin Test Request Routes */}
         <Route path="centeradmin/test-requests" element={<ErrorBoundary><CenterAdminTestRequestsList /></ErrorBoundary>} />
@@ -596,6 +615,12 @@ export default function AppRoutes() {
         <Route path="lab/complete-testing/:id" element={<LabRouteProtection><LabCompleteTesting /></LabRouteProtection>} />
         <Route path="lab/generate-report/:id" element={<LabRouteProtection><LabGenerateReport /></LabRouteProtection>} />
         <Route path="lab/send-report/:id" element={<LabRouteProtection><LabSendReport /></LabRouteProtection>} />
+
+        {/* Accountant Routes */}
+        <Route path="accountant/dashboard" element={<AccountantRouteProtection><AccountantDashboard /></AccountantRouteProtection>} />
+        <Route path="accountant/billing" element={<AccountantRouteProtection><AccountantBilling /></AccountantRouteProtection>} />
+        <Route path="accountant/reports" element={<AccountantRouteProtection><AccountantReports /></AccountantRouteProtection>} />
+        <Route path="accountant/profile" element={<AccountantRouteProtection><AccountantProfile /></AccountantRouteProtection>} />
       </Route>
     </Routes>
   );

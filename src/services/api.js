@@ -79,4 +79,56 @@ export const markPatientAsViewed = async (patientId) => {
   }
 };
 
+// Accountant API functions
+export const getAccountantDashboard = async () => {
+  try {
+    const response = await API.get('/accountants/dashboard');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching accountant dashboard:', error);
+    throw error;
+  }
+};
+
+export const getBillingData = async (params = {}) => {
+  try {
+    const response = await API.get('/billing/center', { params });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching billing data:', error);
+    throw error;
+  }
+};
+
+export const getFinancialReports = async (params = {}) => {
+  try {
+    const response = await API.get('/billing/center/reports', { params });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching financial reports:', error);
+    throw error;
+  }
+};
+
+export const generateFinancialReport = async (data) => {
+  try {
+    const response = await API.post('/accountants/reports/generate', data);
+    return response.data;
+  } catch (error) {
+    console.error('Error generating financial report:', error);
+    throw error;
+  }
+};
+
+// Center Admin Accountant API functions
+export const getAccountantStats = async () => {
+  try {
+    const response = await API.get('/accountants/stats');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching accountant stats:', error);
+    throw error;
+  }
+};
+
 export default API;
