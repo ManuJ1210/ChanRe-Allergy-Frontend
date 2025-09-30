@@ -301,6 +301,12 @@ export default function Sidebar(props) {
                 icon={<FaMoneyBillWave />}
                 isActive={isActive("/dashboard/receptionist/billing-tracker")}
               />
+              <SidebarLink
+                to="/dashboard/receptionist/transactions"
+                label="Transaction History"
+                icon={<FaClipboardList />}
+                isActive={isActive("/dashboard/receptionist/transactions")}
+              />
             </>
           )}
 

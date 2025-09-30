@@ -64,6 +64,7 @@ export default function ReassignPatient() {
   const [subSearchTerm, setSubSearchTerm] = useState('');
   const [showSubSearch, setShowSubSearch] = useState(false);
   const [searchField, setSearchField] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [patientsPerPage, setPatientsPerPage] = useState(10);
 
@@ -118,7 +119,6 @@ export default function ReassignPatient() {
 
   useEffect(() => {
     dispatch(fetchReceptionistPatients());
-    fetchAvailableDoctors();
     fetchCenterInfo();
   }, [dispatch]);
 
@@ -166,27 +166,62 @@ export default function ReassignPatient() {
   };
 
   const fetchAvailableDoctors = async () => {
+    console.log('🔄 === FETCHING AVAILABLE DOCTORS ===');
+    console.log('Selected patient for filtering:', selectedPatient);
     setDoctorsLoading(true);
     try {
       const response = await API.get('/doctors');
+      console.log('🔍 Doctors API response status:', response.status);
+      console.log('🔍 Doctors API response data:', response.data);
       const allDoctors = response.data || [];
+      console.log('🔍 Total doctors from API:', allDoctors.length);
+      console.log('🔍 All doctors list:', allDoctors.map(d => ({ id: d._id, name: d.name, centerId: d.centerId })));
       
-      const filtered = allDoctors.filter(doctor => {
-        if (selectedPatient?.assignedDoctor?._id === doctor._id) {
-          return false;
-        }
-        return true;
-      });
+      if (allDoctors.length === 0) {
+        console.log('❌ No doctors found in API response');
+        setAvailableDoctors([]);
+        return;
+      }
       
-      setAvailableDoctors(filtered);
+      // TEMPORARILY DISABLE FILTERING TO TEST
+      console.log('🔍 TEMPORARILY SHOWING ALL DOCTORS (NO FILTERING)');
+      setAvailableDoctors(allDoctors);
+      
+      // Only filter if we have a selected patient
+      // const filtered = selectedPatient ? allDoctors.filter(doctor => {
+      //   console.log('🔍 Checking doctor:', doctor.name, '(ID:', doctor._id, ')');
+      //   console.log('🔍 Against assigned doctor:', selectedPatient?.assignedDoctor?.name, '(ID:', selectedPatient?.assignedDoctor?._id, ')');
+        
+      //   if (selectedPatient?.assignedDoctor?._id === doctor._id) {
+      //     console.log('❌ Filtering out assigned doctor:', doctor.name);
+      //     return false;
+      //   }
+      //   console.log('✅ Keeping doctor:', doctor.name);
+      //   return true;
+      // }) : allDoctors;
+      
+      // console.log('🔍 Filtered doctors count:', filtered.length);
+      // console.log('🔍 Filtered doctors list:', filtered.map(d => ({ id: d._id, name: d.name })));
+      // console.log('🔍 Setting available doctors to:', filtered);
+      // setAvailableDoctors(filtered);
     } catch (error) {
-      console.error('Error fetching doctors:', error);
+      console.error('❌ Error fetching doctors:', error);
+      console.error('❌ Error details:', error.response?.data);
       toast.error('Failed to fetch available doctors');
       setAvailableDoctors([]);
     } finally {
       setDoctorsLoading(false);
+      console.log('🔄 === DOCTORS FETCH COMPLETE ===');
     }
   };
+
+  // Fetch doctors when reassign modal opens
+  useEffect(() => {
+    if (showReassignModal && selectedPatient) {
+      console.log('🔄 Modal opened, fetching doctors...');
+      fetchAvailableDoctors();
+    }
+  }, [showReassignModal, selectedPatient]);
 
   // Primary search filter - Only show patients who completed first consultation
   useEffect(() => {
@@ -212,6 +247,19 @@ export default function ReassignPatient() {
     setShowSubSearch(filtered.length > 0 && searchTerm.trim() !== '');
     setCurrentPage(1);
   }, [patients, searchTerm]);
+
+  // Status filter effect
+  useEffect(() => {
+    let statusFiltered = filteredPatients.filter(patient => {
+      if (statusFilter === 'all') return true;
+      
+      const statusInfo = getReassignmentStatus(patient);
+      return statusInfo.status.toLowerCase().includes(statusFilter.toLowerCase());
+    });
+
+    setFinalFilteredPatients(statusFiltered);
+    setCurrentPage(1);
+  }, [filteredPatients, statusFilter]);
 
   // Sub-search filter
   useEffect(() => {
@@ -256,6 +304,7 @@ export default function ReassignPatient() {
     setSearchTerm('');
     setSubSearchTerm('');
     setSearchField('all');
+    setStatusFilter('all');
     setShowSubSearch(false);
     setCurrentPage(1);
   };
@@ -276,27 +325,61 @@ export default function ReassignPatient() {
 
   // Check if patient is eligible for free reassignment (within 7 days of first consultation)
   const isEligibleForFreeReassignment = (patient) => {
+    console.log('🔍 === ELIGIBILITY TRACE START ===');
+    console.log('🔍 Patient:', patient.name, '(UH ID:', patient.uhId, ')');
+    
     if (!patient.billing || patient.billing.length === 0) {
+      console.log('❌ No billing history found');
       return false;
     }
 
     // Check if patient has already been reassigned
-    if (patient.isReassigned || patient.reassignmentHistory?.length > 0) {
+    const hasBeenReassigned = patient.isReassigned || patient.reassignmentHistory?.length > 0;
+    console.log('🔍 Has been reassigned before:', hasBeenReassigned);
+    console.log('🔍 Reassignment history:', patient.reassignmentHistory?.length || 0, 'entries');
+
+    if (hasBeenReassigned) {
+      console.log('❌ Patient already reassigned - not eligible for free reassignment');
+      return false;
+    }
+
+    // Find the first consultation that was completed (paid) - exclude reassignment bills
+    const firstPaidConsultation = patient.billing.find(bill => 
+      (bill.status === 'paid' || bill.status === 'completed' || 
+      (bill.customData?.totals?.paid > 0) || (bill.paidAmount > 0)) &&
+      !bill.isReassignedEntry // Exclude reassignment bills
+    );
+
+    console.log('🔍 Billing history:', patient.billing.length, 'entries');
+    console.log('🔍 First paid consultation:', firstPaidConsultation ? 'Found' : 'Not found');
+
+    if (!firstPaidConsultation) {
+      console.log('❌ No completed consultation found');
       return false;
     }
 
     // Get the first consultation date
-    const firstConsultationDate = new Date(patient.billing[0]?.createdAt || patient.createdAt);
+    const firstConsultationDate = new Date(firstPaidConsultation.createdAt);
     const currentDate = new Date();
     const daysDifference = Math.floor((currentDate - firstConsultationDate) / (1000 * 60 * 60 * 24));
 
-    return daysDifference <= 7;
+    console.log('🔍 First consultation date:', firstConsultationDate.toLocaleDateString());
+    console.log('🔍 Current date:', currentDate.toLocaleDateString());
+    console.log('🔍 Days difference:', daysDifference);
+    console.log('🔍 Within 7 days:', daysDifference <= 7);
+
+    const isEligible = daysDifference <= 7;
+    console.log('🔍 === FINAL RESULT ===');
+    console.log(isEligible ? '✅ ELIGIBLE for free reassignment' : '❌ NOT ELIGIBLE for free reassignment');
+    console.log('🔍 === ELIGIBILITY TRACE END ===');
+
+    return isEligible;
   };
 
   // Get consultation fee based on reassignment eligibility
   const getConsultationFee = (patient, consultationType) => {
-    if (isEligibleForFreeReassignment(patient)) {
-      return 0; // Free for first reassignment within 7 days
+    if (consultationType === 'followup') {
+      return 0; // Free followup consultation
     }
     
     if (consultationType === 'IP') {
@@ -307,13 +390,18 @@ export default function ReassignPatient() {
   };
 
   const handleReassignPatient = (patient) => {
+    console.log('🔄 Opening reassignment modal for patient:', patient);
     setSelectedPatient(patient);
     setReassignData({
       newDoctorId: '',
       reason: '',
       notes: ''
     });
+    // Clear previous doctors list to force refresh
+    setAvailableDoctors([]);
     setShowReassignModal(true);
+    // Fetch doctors when opening the modal
+    fetchAvailableDoctors();
   };
 
   // Create invoice for reassigned patient
@@ -324,8 +412,8 @@ export default function ReassignPatient() {
     const isFree = isEligibleForFreeReassignment(patient);
     
     // Determine default consultation type and fee
-    let defaultConsultationType = 'OP';
-    let defaultConsultationFee = getConsultationFee(patient, 'OP');
+    let defaultConsultationType = isFree ? 'followup' : 'OP';
+    let defaultConsultationFee = getConsultationFee(patient, defaultConsultationType);
     
     setInvoiceFormData({
       registrationFee: 0, // Reassigned patients don't pay registration fee again
@@ -342,7 +430,7 @@ export default function ReassignPatient() {
 
   // Get reassignment status for patient
   const getReassignmentStatus = (patient) => {
-    const hasReassignmentBilling = patient.billing?.some(bill => bill.isReassignedEntry);
+    const hasReassignmentBilling = patient.reassignedBilling && patient.reassignedBilling.length > 0;
     const isReassigned = patient.isReassigned || patient.reassignmentHistory?.length > 0;
     
     if (!isReassigned) {
@@ -359,9 +447,36 @@ export default function ReassignPatient() {
     }
 
     // Check billing status for reassigned entries
-    const reassignmentBills = patient.billing.filter(bill => bill.isReassignedEntry);
-    const totalAmount = reassignmentBills.reduce((sum, bill) => sum + (bill.amount || 0), 0);
-    const totalPaid = reassignmentBills.reduce((sum, bill) => sum + (bill.paidAmount || 0), 0);
+    const reassignmentBills = patient.reassignedBilling || [];
+    const latestBill = reassignmentBills[reassignmentBills.length - 1];
+    
+    // Debug logging for bill status
+    if (latestBill) {
+      console.log('🔍 Bill Status Debug:', {
+        patientName: patient.name,
+        billStatus: latestBill.status,
+        billId: latestBill._id,
+        invoiceNumber: latestBill.invoiceNumber,
+        cancelledAt: latestBill.cancelledAt,
+        refundedAt: latestBill.refundedAt,
+        customData: latestBill.customData
+      });
+    }
+    
+    // Check if the latest bill is cancelled
+    if (latestBill && latestBill.status === 'cancelled') {
+      console.log('✅ Bill is cancelled, showing cancelled status');
+      return { status: 'Bill Cancelled', color: 'text-red-600 bg-red-100', icon: <X className="h-4 w-4" /> };
+    }
+    
+    // Check if the latest bill is refunded
+    if (latestBill && latestBill.status === 'refunded') {
+      console.log('✅ Bill is refunded, showing refunded status');
+      return { status: 'Bill Refunded', color: 'text-purple-600 bg-purple-100', icon: <RotateCcw className="h-4 w-4" /> };
+    }
+    
+    const totalAmount = reassignmentBills.reduce((sum, bill) => sum + (bill.totals?.total || bill.amount || 0), 0);
+    const totalPaid = reassignmentBills.reduce((sum, bill) => sum + (bill.totals?.paid || bill.paidAmount || 0), 0);
     
     if (totalAmount === 0) {
       return { status: 'Free Consultation', color: 'text-blue-600 bg-blue-100', icon: <CheckCircle className="h-4 w-4" /> };
@@ -419,6 +534,128 @@ export default function ReassignPatient() {
             </div>
           </div>
 
+          {/* Search and Filter Controls */}
+          <div className="bg-white rounded-xl shadow-sm border border-blue-100 mb-6">
+            <div className="p-4 sm:p-6">
+              <div className="flex flex-col lg:flex-row gap-4">
+                {/* Search Input */}
+                <div className="flex-1">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
+                    <input
+                      type="text"
+                      placeholder="Search patients by name, UH ID, phone, email, or doctor..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    />
+                    {searchTerm && (
+                      <button
+                        onClick={() => setSearchTerm('')}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Status Filter */}
+                <div className="lg:w-48">
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  >
+                    <option value="all">All Status</option>
+                    <option value="not reassigned">Not Reassigned</option>
+                    <option value="free reassignment available">Free Reassignment Available</option>
+                    <option value="no invoice">No Invoice</option>
+                    <option value="pending payment">Pending Payment</option>
+                    <option value="partial payment">Partial Payment</option>
+                    <option value="fully paid">Fully Paid</option>
+                    <option value="free consultation">Free Consultation</option>
+                    <option value="bill cancelled">Bill Cancelled</option>
+                    <option value="bill refunded">Bill Refunded</option>
+                  </select>
+                </div>
+
+                {/* Clear Filters */}
+                {(searchTerm || statusFilter !== 'all') && (
+                  <button
+                    onClick={clearAllSearches}
+                    className="px-4 py-2 text-slate-600 hover:text-slate-800 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors text-sm flex items-center gap-2"
+                  >
+                    <X className="h-4 w-4" />
+                    Clear
+                  </button>
+                )}
+              </div>
+
+              {/* Results Summary */}
+              <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-slate-600">
+                <span>Total: {finalFilteredPatients.length} patients</span>
+                {searchTerm && (
+                  <span className="text-blue-600">Search: "{searchTerm}"</span>
+                )}
+                {statusFilter !== 'all' && (
+                  <span className="text-blue-600">Status: {statusFilter}</span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
+              <div className="flex items-center">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <Users className="h-5 w-5 text-blue-600" />
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm font-medium text-slate-600">Total Patients</p>
+                  <p className="text-lg font-semibold text-slate-900">{stats.totalPatients}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
+              <div className="flex items-center">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm font-medium text-slate-600">Free Reassignment</p>
+                  <p className="text-lg font-semibold text-slate-900">{stats.eligibleForFree}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
+              <div className="flex items-center">
+                <div className="p-2 bg-orange-100 rounded-lg">
+                  <AlertCircle className="h-5 w-5 text-orange-600" />
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm font-medium text-slate-600">Pending Billing</p>
+                  <p className="text-lg font-semibold text-slate-900">{stats.pendingBilling}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
+              <div className="flex items-center">
+                <div className="p-2 bg-purple-100 rounded-lg">
+                  <UserCheck className="h-5 w-5 text-purple-600" />
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm font-medium text-slate-600">Already Reassigned</p>
+                  <p className="text-lg font-semibold text-slate-900">{stats.alreadyReassigned}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Patients List */}
           <div className="bg-white rounded-xl shadow-sm border border-blue-100">
             <div className="p-4 sm:p-6 border-b border-blue-100">
@@ -430,7 +667,7 @@ export default function ReassignPatient() {
               </p>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto min-w-[1200px]">
               {loading ? (
                 <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
@@ -447,16 +684,18 @@ export default function ReassignPatient() {
               ) : (
                 <>
                   {/* Desktop Table */}
-                  <table className="w-full">
+                  <table className="w-full min-w-[1200px]">
                     <thead className="bg-slate-50">
                       <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Patient</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Contact</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">UH ID</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Assigned Doctor</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">First Consultation</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Reassignment Status</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
+                        <th className="px-2 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Patient</th>
+                        <th className="px-2 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Contact</th>
+                        <th className="px-2 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">UH ID</th>
+                        <th className="px-2 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Assigned Doctor</th>
+                        <th className="px-2 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Current Doctor</th>
+                        <th className="px-2 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">First Consultation</th>
+                        <th className="px-2 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Reassignment Status</th>
+                        <th className="px-2 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Invoice Details</th>
+                        <th className="px-2 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-slate-200">
@@ -464,11 +703,24 @@ export default function ReassignPatient() {
                         const statusInfo = getReassignmentStatus(patient);
                         const firstConsultationDate = patient.billing?.[0]?.createdAt ? new Date(patient.billing[0].createdAt) : null;
                         const isFree = isEligibleForFreeReassignment(patient);
-                        const hasReassignmentBilling = patient.billing?.some(bill => bill.isReassignedEntry);
+                        const hasReassignmentBilling = patient.reassignedBilling && patient.reassignedBilling.length > 0;
+                        
+                        // Debug logging for patient data
+                        if (patient.isReassigned) {
+                          console.log('Reassigned patient data:', {
+                            name: patient.name,
+                            isReassigned: patient.isReassigned,
+                            assignedDoctor: patient.assignedDoctor,
+                            currentDoctor: patient.currentDoctor,
+                            reassignmentHistory: patient.reassignmentHistory,
+                            reassignedBilling: patient.reassignedBilling,
+                            hasReassignmentBilling: hasReassignmentBilling
+                          });
+                        }
                         
                         return (
                           <tr key={patient._id} className="hover:bg-slate-50">
-                            <td className="px-4 py-4 whitespace-nowrap">
+                            <td className="px-2 py-3 whitespace-nowrap">
                               <div className="flex items-center">
                                 <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
                                   <Users className="h-4 w-4 text-blue-500" />
@@ -479,7 +731,7 @@ export default function ReassignPatient() {
                                 </div>
                               </div>
                             </td>
-                            <td className="px-4 py-4 whitespace-nowrap">
+                            <td className="px-2 py-3 whitespace-nowrap">
                               <div className="text-xs text-slate-900">
                                 <div className="flex items-center gap-1">
                                     <Mail className="h-3 w-3 text-slate-400" /> {patient.email || 'No email'}
@@ -492,12 +744,30 @@ export default function ReassignPatient() {
                             <td className="px-4 py-4 whitespace-nowrap text-xs text-slate-900">
                               {patient.uhId || 'No UH ID'}
                             </td>
-                            <td className="px-4 py-4 whitespace-nowrap">
+                            <td className="px-2 py-3 whitespace-nowrap">
                               <div className="text-xs text-slate-900">
                                 {patient.assignedDoctor?.name || 'Not Assigned'}
                               </div>
                             </td>
-                            <td className="px-4 py-4 whitespace-nowrap">
+                            <td className="px-2 py-3 whitespace-nowrap">
+                              <div className="text-xs text-slate-900">
+                                {patient.isReassigned ? (
+                                  <div className="flex items-center gap-1">
+                                    {patient.currentDoctor?.name ? (
+                                      <>
+                                        <span className="text-blue-600 font-medium">{patient.currentDoctor.name}</span>
+                                        <span className="text-xs text-slate-500">(Reassigned)</span>
+                                      </>
+                                    ) : (
+                                      <span className="text-orange-600 font-medium">Reassigned (Doctor not loaded)</span>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-slate-500">Same as Assigned</span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-2 py-3 whitespace-nowrap">
                               <div className="text-xs">
                                 {firstConsultationDate ? (
                                   <>
@@ -522,33 +792,108 @@ export default function ReassignPatient() {
                                 )}
                               </div>
                             </td>
-                            <td className="px-4 py-4 whitespace-nowrap">
+                            <td className="px-2 py-3 whitespace-nowrap">
                                 <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${statusInfo.color}`}>
                                   {statusInfo.icon}
                                   {statusInfo.status}
                                 </span>
                             </td>
-                              <td className="px-4 py-4 whitespace-nowrap">
-                                <div className="text-xs flex flex-col gap-1">
-                                  {/* Reassign Button */}
+                            <td className="px-2 py-3 whitespace-nowrap">
+                              <div className="text-xs text-slate-600">
+                                {hasReassignmentBilling ? (
+                                  <div className="space-y-0.5">
+                                    {(() => {
+                                      const latestBill = patient.reassignedBilling?.[patient.reassignedBilling.length - 1];
+                                      if (!latestBill) return null;
+                                      
+                                      const totalAmount = latestBill.customData?.totals?.total || latestBill.amount || 0;
+                                      const paidAmount = latestBill.customData?.totals?.paid || latestBill.paidAmount || 0;
+                                      const isRefunded = latestBill.status === 'refunded';
+                                      const refundAmount = latestBill.refunds?.reduce((sum, refund) => sum + (refund.amount || 0), 0) || 0;
+                                      
+                                      
+                                      // For refunded bills, show refund amount instead of balance
+                                      const displayAmount = isRefunded ? refundAmount : (totalAmount - paidAmount);
+                                      const displayLabel = isRefunded ? 'Refunded' : 'Bal';
+                                      const displayColor = isRefunded ? 'text-purple-600' : (displayAmount > 0 ? 'text-orange-600' : 'text-green-600');
+                                      
+                                      return (
+                                        <>
+                                          <div className="font-medium text-slate-800 text-xs">
+                                            {latestBill.invoiceNumber}
+                                          </div>
+                                          <div className="text-slate-600 text-xs">
+                                            ₹{totalAmount.toFixed(0)}
+                                          </div>
+                                          <div className="text-slate-600 text-xs">
+                                            Paid: ₹{paidAmount.toFixed(0)}
+                                          </div>
+                                          <div className={`font-medium text-xs ${displayColor}`}>
+                                            {displayLabel}: ₹{displayAmount.toFixed(0)}
+                                          </div>
+                                        </>
+                                      );
+                                    })()}
+                                  </div>
+                                ) : (
+                                  <div className="text-slate-400 text-xs">
+                                    No invoice
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                              <td className="px-2 py-3 whitespace-nowrap">
+                                <div className="text-xs flex flex-col gap-0.5">
+                                  {(() => {
+                                    const isReassigned = patient.isReassigned || patient.reassignmentHistory?.length > 0;
+                                    const latestBill = patient.reassignedBilling?.[patient.reassignedBilling.length - 1];
+                                    const isCancelled = latestBill?.status === 'cancelled';
+                                    const isRefunded = latestBill?.status === 'refunded';
+                                    const hasPayment = latestBill && (latestBill.customData?.totals?.paid || latestBill.paidAmount || 0) > 0;
+                                    
+                                    console.log(`🔍 Button logic for ${patient.name}:`, {
+                                      isReassigned,
+                                      hasReassignmentBilling,
+                                      isCancelled,
+                                      isRefunded,
+                                      hasPayment,
+                                      billStatus: latestBill?.status
+                                    });
+
+                                    // Step 1: Always show Reassign button
+                                    const buttons = [
                                   <button
+                                        key="reassign"
                                     onClick={() => handleReassignPatient(patient)}
                                     className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-md hover:bg-blue-200 transition-colors flex items-center justify-center gap-1 border border-blue-200"
                                   >
                                     <UserPlus className="h-3 w-3" /> Reassign
                                   </button>
+                                    ];
 
-                                  {/* Create Bill / View Bill button */}
-                                  {!hasReassignmentBilling ? (
+                                    // Step 2: If reassigned but no bill, show Create Bill
+                                    if (isReassigned && !hasReassignmentBilling) {
+                                      buttons.push(
                                     <button
-                                      onClick={() => handleCreateInvoice(patient)}
+                                          key="create-bill"
+                                          onClick={() => {
+                                            console.log('📝 Create Bill clicked for:', patient.name);
+                                            handleCreateInvoice(patient);
+                                          }}
                                       className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-md hover:bg-green-200 transition-colors flex items-center justify-center gap-1 border border-green-200"
                                     >
                                       <Calculator className="h-3 w-3" /> Create Bill
                                     </button>
-                                  ) : (
+                                      );
+                                    }
+
+                                    // Step 3: If bill exists, show View Bill and Pay buttons
+                                    if (hasReassignmentBilling && !isCancelled && !isRefunded) {
+                                      buttons.push(
                                     <button
+                                          key="view-bill"
                                       onClick={() => {
+                                            console.log('👁️ View Bill clicked for:', patient.name);
                                         setSelectedPatient(patient);
                                         setShowInvoicePreviewModal(true);
                                       }}
@@ -556,11 +901,30 @@ export default function ReassignPatient() {
                                     >
                                       <Eye className="h-3 w-3" /> View Bill
                                     </button>
-                                  )}
+                                      );
 
-                                  {/* Cancel Bill button */}
-                                  {hasReassignmentBilling && (
+                                      buttons.push(
                                     <button
+                                          key="pay"
+                                          onClick={() => {
+                                            console.log('💳 Process Payment clicked from table for:', patient.name);
+                                            const latestBill = patient.reassignedBilling?.[patient.reassignedBilling.length - 1];
+                                            setGeneratedInvoice(latestBill);
+                                            setSelectedPatient(patient);
+                                            setShowPaymentModal(true);
+                                          }}
+                                          className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-md hover:bg-green-200 transition-colors flex items-center justify-center gap-1 border border-green-200"
+                                        >
+                                          <CreditCard className="h-3 w-3" /> Pay
+                                        </button>
+                                      );
+                                    }
+
+                                    // Step 4: If bill is paid, show Cancel button
+                                    if (hasReassignmentBilling && hasPayment && !isCancelled && !isRefunded) {
+                                      buttons.push(
+                                        <button
+                                          key="cancel-bill"
                                       onClick={() => {
                                         setSelectedPatient(patient);
                                         setShowCancelBillModal(true);
@@ -569,11 +933,14 @@ export default function ReassignPatient() {
                                     >
                                       <Ban className="h-3 w-3" /> Cancel Bill
                                     </button>
-                                  )}
+                                      );
+                                    }
 
-                                  {/* Refund button */}
-                                  {hasReassignmentBilling && patient.billing?.some(bill => bill.isReassignedEntry && bill.totals?.paid > 0) && (
+                                    // Step 5: If bill is cancelled AND was paid, show Refund button
+                                    if (hasReassignmentBilling && isCancelled && !isRefunded && hasPayment) {
+                                      buttons.push(
                                     <button
+                                          key="refund"
                                       onClick={() => {
                                         setSelectedPatient(patient);
                                         setShowRefundModal(true);
@@ -582,7 +949,11 @@ export default function ReassignPatient() {
                                     >
                                       <RotateCcw className="h-3 w-3" /> Refund
                                     </button>
-                                  )}
+                                      );
+                                    }
+
+                                    return buttons;
+                                  })()}
                               </div>
                             </td>
                           </tr>
@@ -595,41 +966,51 @@ export default function ReassignPatient() {
             </div>
 
             {/* Pagination */}
-            {finalFilteredPatients.length > patientsPerPage && (
-              <div className="flex justify-between items-center p-4 sm:p-6 border-t border-slate-200">
-                <div className="text-xs text-slate-600">
-                  Showing {startIndex + 1} to {Math.min(endIndex, finalFilteredPatients.length)} of {finalFilteredPatients.length} patients
-                </div>
+            {finalFilteredPatients.length > 0 && (
+              <div className="flex justify-between items-center p-4 sm:p-6 border-t border-slate-200 bg-slate-50">
                 <div className="flex items-center gap-4">
+                  <div className="text-sm text-slate-600">
+                    Showing {startIndex + 1} to {Math.min(endIndex, finalFilteredPatients.length)} of {finalFilteredPatients.length} results
+                  </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-600">Rows per page:</span>
+                    <span className="text-sm text-slate-600">Show:</span>
                     <select
                       value={patientsPerPage}
                       onChange={(e) => handlePatientsPerPageChange(e.target.value)}
-                      className="px-2 py-1 border border-slate-200 rounded-md text-xs focus:ring-blue-500 focus:border-blue-500"
+                      className="px-3 py-1 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
                     >
+                      <option value={5}>5</option>
                       <option value={10}>10</option>
                       <option value={25}>25</option>
                       <option value={50}>50</option>
                     </select>
+                    <span className="text-sm text-slate-600">per page</span>
                   </div>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-slate-600">
+                    Page {currentPage} of {totalPages}
+                  </span>
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => handlePageChange(currentPage - 1)}
                       disabled={currentPage === 1}
-                      className="p-2 border border-slate-200 rounded-md text-slate-600 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-3 py-1 border border-slate-300 rounded-md text-sm text-slate-600 hover:bg-white hover:border-slate-400 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-slate-50 bg-white"
                     >
-                      <ChevronLeft className="h-4 w-4" />
+                      Previous
                     </button>
-                    <span className="text-xs text-slate-700 font-medium">
-                      Page {currentPage} of {totalPages}
-                    </span>
+                    <button
+                      className="px-3 py-1 bg-blue-600 text-white rounded-md text-sm font-medium"
+                    >
+                      {currentPage}
+                    </button>
                     <button
                       onClick={() => handlePageChange(currentPage + 1)}
                       disabled={currentPage === totalPages}
-                      className="p-2 border border-slate-200 rounded-md text-slate-600 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-3 py-1 border border-slate-300 rounded-md text-sm text-slate-600 hover:bg-white hover:border-slate-400 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-slate-50 bg-white"
                     >
-                      <ChevronRight className="h-4 w-4" />
+                      Next
                     </button>
                   </div>
                 </div>
@@ -664,14 +1045,25 @@ export default function ReassignPatient() {
 
               <form onSubmit={async (e) => {
                 e.preventDefault();
+                console.log('🔄 Starting reassignment process...');
+                console.log('Selected patient:', selectedPatient);
+                console.log('Reassign data:', reassignData);
+                console.log('Center ID:', getCenterId());
+                
                 try {
-                  const response = await API.post('/patients/reassign', {
+                  const requestData = {
                     patientId: selectedPatient._id,
                     newDoctorId: reassignData.newDoctorId,
                     reason: reassignData.reason,
                     notes: reassignData.notes,
                     centerId: getCenterId()
-                  });
+                  };
+                  
+                  console.log('Sending request to /patients/reassign with data:', requestData);
+                  
+                  const response = await API.post('/patients/reassign', requestData);
+                  
+                  console.log('Reassignment response:', response.data);
                   
                   if (response.data.success) {
                     toast.success('Patient reassigned successfully');
@@ -683,6 +1075,7 @@ export default function ReassignPatient() {
                   }
                 } catch (error) {
                   console.error('Reassignment error:', error);
+                  console.error('Error response:', error.response?.data);
                   toast.error(error.response?.data?.message || 'Failed to reassign patient');
                 }
               }} className="space-y-4">
@@ -691,7 +1084,9 @@ export default function ReassignPatient() {
                   <label className="block text-xs font-medium text-slate-500 mb-1">
                     Current Doctor
                   </label>
-                  <p className="text-sm font-semibold text-slate-800">{selectedPatient.assignedDoctor?.name || 'Not Assigned'}</p>
+                  <p className="text-sm font-semibold text-slate-800">
+                    {selectedPatient.currentDoctor?.name || selectedPatient.assignedDoctor?.name || 'Not Assigned'}
+                  </p>
                 </div>
 
                 {/* New Doctor Selection */}
@@ -774,149 +1169,542 @@ export default function ReassignPatient() {
       )}
 
       {/* Invoice Preview Modal */}
-      {showInvoicePreviewModal && selectedPatient && generatedInvoice && (
-        <div className="fixed inset-0 bg-slate-900 bg-opacity-75 z-50 overflow-y-auto" onClick={() => setShowInvoicePreviewModal(false)}>
-          <div className="flex items-center justify-center min-h-screen px-4 py-8">
-            <div 
-              className="bg-white rounded-xl shadow-2xl w-full max-w-4xl p-6 relative" 
-              onClick={(e) => e.stopPropagation()}
-            >
+      {showInvoicePreviewModal && selectedPatient && (() => {
+        const latestBill = selectedPatient.reassignedBilling?.[selectedPatient.reassignedBilling.length - 1];
+        if (!latestBill) return null;
+        
+        const totalAmount = latestBill.customData?.totals?.total || latestBill.amount || 0;
+        const paidAmount = latestBill.customData?.totals?.paid || latestBill.paidAmount || 0;
+        const balance = totalAmount - paidAmount;
+        const isFullyPaid = balance <= 0;
+        const isCancelled = latestBill.status === 'cancelled';
+        const isRefunded = latestBill.status === 'refunded';
+        
+        // Debug logging
+        console.log('Invoice Preview - Payment Status:', {
+          totalAmount,
+          paidAmount,
+          balance,
+          isFullyPaid,
+          latestBill: latestBill,
+          customData: latestBill.customData,
+          totals: latestBill.customData?.totals
+        });
+        
+        return (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white shadow-2xl w-full max-w-4xl max-h-[95vh] overflow-hidden rounded-xl" id="invoice-print">
+              {/* Modal Header with Actions */}
+              <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 rounded-t-xl">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-xl font-bold">Invoice</h2>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {/* Action Buttons */}
+                    {!isCancelled && !isRefunded && (
+                      <button
+                        onClick={() => {
+                          console.log('💳 Process Payment clicked');
+                          console.log('latestBill:', latestBill);
+                          console.log('selectedPatient:', selectedPatient);
+                          setGeneratedInvoice(latestBill);
+                          setShowInvoicePreviewModal(false);
+                          setShowPaymentModal(true);
+                        }}
+                        className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2"
+                      >
+                        <CreditCard className="h-4 w-4" />
+                        Process Payment
+                      </button>
+                    )}
+                    
+                    <button
+                      onClick={() => {
+                        // Generate optimized PDF invoice for A4 printing
+                        const printWindow = window.open('', '_blank');
+                        const invoiceContent = document.getElementById('invoice-print').innerHTML;
+                        
+                        printWindow.document.write(`
+                          <!DOCTYPE html>
+                          <html>
+                            <head>
+                              <title>Invoice - ${selectedPatient.name}</title>
+                              <style>
+                                * {
+                                  box-sizing: border-box;
+                                  margin: 0;
+                                  padding: 0;
+                                }
+                                
+                                body { 
+                                  font-family: Arial, sans-serif; 
+                                  margin: 0;
+                                  padding: 5mm;
+                                  color: #000;
+                                  background: white;
+                                  font-size: 12px;
+                                  line-height: 1.3;
+                                }
+                                
+                                .invoice-container {
+                                  max-width: 190mm;
+                                  margin: 0 auto;
+                                  background: white;
+                                  position: relative;
+                                  height: 277mm; /* A4 height */
+                                  overflow: hidden;
+                                }
+                                
+                                /* A4 Optimized Styles with Medium Fonts */
+                                .text-center { text-align: center; }
+                                .font-bold { font-weight: bold; }
+                                .text-base { font-size: 16px; }
+                                .text-sm { font-size: 14px; }
+                                .text-xs { font-size: 11px; }
+                                .leading-tight { line-height: 1.2; }
+                                .mb-6 { margin-bottom: 12px; }
+                                .mb-4 { margin-bottom: 8px; }
+                                .mb-3 { margin-bottom: 6px; }
+                                .mb-2 { margin-bottom: 4px; }
+                                .mb-1 { margin-bottom: 2px; }
+                                .mt-1 { margin-top: 2px; }
+                                .mt-10 { margin-top: 15px; }
+                                .pt-4 { padding-top: 8px; }
+                                .pb-4 { padding-bottom: 8px; }
+                                .p-6 { padding: 12px; }
+                                .p-3 { padding: 6px; }
+                                .p-2 { padding: 4px; }
+                                .border-b { border-bottom: 1px solid #000; }
+                                .border-t { border-top: 1px solid #000; }
+                                .border-slate-300 { border-color: #000; }
+                                .border-slate-400 { border-color: #000; }
+                                .border-slate-200 { border-color: #000; }
+                                .text-slate-900 { color: #000; }
+                                .text-slate-700 { color: #000; }
+                                .text-slate-600 { color: #000; }
+                                .text-slate-500 { color: #333; }
+                                .text-blue-600 { color: #000; }
+                                .text-green-600 { color: #000; }
+                                .text-orange-600 { color: #000; }
+                                .text-red-600 { color: #000; }
+                                .underline { text-decoration: underline; }
+                                .uppercase { text-transform: uppercase; }
+                                .grid { display: grid; }
+                                .grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
+                                .grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
+                                .gap-6 { gap: 8px; }
+                                .gap-4 { gap: 6px; }
+                                .gap-x-8 { column-gap: 8px; }
+                                .flex { display: flex; }
+                                .justify-between { justify-content: space-between; }
+                                .justify-end { justify-content: flex-end; }
+                                .items-end { align-items: flex-end; }
+                                .w-80 { width: 200px; }
+                                .w-20 { width: 40px; }
+                                .w-28 { width: 60px; }
+                                .w-32 { width: 70px; }
+                                .w-12 { width: 30px; }
+                                .w-24 { width: 50px; }
+                                .flex-1 { flex: 1; }
+                                .font-medium { font-weight: 500; }
+                                .font-semibold { font-weight: 600; }
+                                .min-w-full { min-width: 100%; }
+                                .border-collapse { border-collapse: collapse; }
+                                .border { border: 1px solid #000; }
+                                .px-3 { padding-left: 6px; padding-right: 6px; }
+                                .py-2 { padding-top: 3px; padding-bottom: 3px; }
+                                .text-left { text-align: left; }
+                                .text-right { text-align: right; }
+                                .bg-slate-100 { background-color: #f5f5f5; }
+                                .bg-slate-50 { background-color: #f9f9f9; }
+                                .max-w-xs { max-width: 200px; }
+                                .border-b-2 { border-bottom-width: 2px; }
+                                .border-t-2 { border-top-width: 2px; }
+                                .pt-2 { padding-top: 4px; }
+                                .py-1 { padding-top: 2px; padding-bottom: 2px; }
+                                .pt-1 { padding-top: 2px; }
+                                .space-y-1 > * + * { margin-top: 2px; }
+                                .space-y-3 > * + * { margin-top: 6px; }
+                                
+                                /* A4 Optimized Table styles with Medium Fonts */
+                                table { 
+                                  width: 100%; 
+                                  border-collapse: collapse; 
+                                  margin: 8px 0;
+                                  font-size: 11px;
+                                }
+                                
+                                th, td { 
+                                  border: 1px solid #000; 
+                                  padding: 4px 6px; 
+                                  text-align: left; 
+                                  font-size: 11px;
+                                  vertical-align: top;
+                                }
+                                
+                                th { 
+                                  background-color: #f5f5f5; 
+                                  font-weight: bold; 
+                                  text-align: center;
+                                }
+                                
+                                /* Hide elements that shouldn't print */
+                                .no-print,
+                                button,
+                                .action-buttons {
+                                  display: none !important;
+                                }
+                                
+                                @media print {
+                                  body {
+                                    margin: 0;
+                                    padding: 5mm;
+                                    font-size: 11px;
+                                  }
+                                  
+                                  .invoice-container {
+                                    max-width: none;
+                                    margin: 0;
+                                    height: auto;
+                                    overflow: visible;
+                                  }
+                                  
+                                  table {
+                                    page-break-inside: avoid;
+                                  }
+                                  
+                                  .no-page-break {
+                                    page-break-inside: avoid;
+                                  }
+                                  
+                                  @page {
+                                    size: A4;
+                                    margin: 5mm;
+                                  }
+                                }
+                              </style>
+                            </head>
+                            <body>
+                              <div class="invoice-container">
+                                <div class="invoice-content">
+                                  ${invoiceContent}
+                                </div>
+                              </div>
+                            </body>
+                          </html>
+                        `);
+                        printWindow.document.close();
+                        
+                        // Wait for content to load then print
+                        setTimeout(() => {
+                          printWindow.print();
+                        }, 500);
+                      }}
+                      className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2"
+                    >
+                      <Download className="h-4 w-4" />
+                      Download PDF
+                    </button>
+                    
               <button
                 onClick={() => setShowInvoicePreviewModal(false)}
-                className="absolute top-4 right-4 text-slate-500 hover:text-slate-700"
+                      className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2"
               >
-                <X className="h-5 w-5" />
+                      <X className="h-4 w-4" />
+                      Close
               </button>
-              
-              <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-                <FileText className="h-6 w-6 text-blue-500" /> Invoice Preview
-              </h2>
-              
-              {/* Invoice Header */}
-              <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 mb-6">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <h3 className="font-semibold text-slate-800">{centerInfo.name}</h3>
-                    <p className="text-sm text-slate-600">{centerInfo.address}</p>
-                    <p className="text-sm text-slate-600">Phone: {centerInfo.phone}</p>
-                    <p className="text-sm text-slate-600">Email: {centerInfo.email}</p>
-                  </div>
-                  <div className="text-right">
-                    <h3 className="font-semibold text-slate-800">Invoice #{generatedInvoice.invoiceNumber}</h3>
-                    <p className="text-sm text-slate-600">Date: {new Date(generatedInvoice.createdAt).toLocaleDateString('en-GB')}</p>
-                    <p className="text-sm text-slate-600">Patient: {selectedPatient.name}</p>
-                    <p className="text-sm text-slate-600">UH ID: {selectedPatient.uhId}</p>
                   </div>
                 </div>
               </div>
 
-              {/* Invoice Details */}
-              <div className="space-y-4 mb-6">
-                <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
-                  <table className="w-full">
-                    <thead className="bg-slate-50">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-slate-700">Description</th>
-                        <th className="px-4 py-3 text-right text-sm font-medium text-slate-700">Amount</th>
+              {/* Invoice Content - Inline Implementation */}
+              <div className="overflow-y-auto max-h-[calc(95vh-80px)] p-6">
+                <div className="bg-white p-6 max-w-4xl mx-auto relative">
+                  {/* Header - Compact for A4 */}
+                  <div className="text-center mb-3">
+                    <h1 className="text-sm font-bold text-slate-900 mb-1">
+                      {centerInfo.name}
+                    </h1>
+                    <p className="text-xs text-slate-600 leading-tight">
+                      {centerInfo.address}
+                    </p>
+                    <p className="text-xs text-slate-600">
+                      PH: {centerInfo.phone} | Fax: {centerInfo.fax || '080-42516600'}
+                    </p>
+                    <p className="text-xs text-slate-600">
+                      Website: {centerInfo.website || 'www.chanreallergy.com'}
+                    </p>
+                  </div>
+
+                  {/* Title */}
+                  <div className="text-center mb-3">
+                    <h2 className="text-base font-bold text-slate-900 uppercase">
+                      IN PATIENT BILL
+              </h2>
+                  </div>
+              
+                  {/* Patient and Bill Details */}
+                  <div className="grid grid-cols-2 gap-x-6 mb-4">
+                  <div>
+                      <div className="space-y-1 text-xs">
+                        <div><span className="font-medium">Name:</span> {selectedPatient.name}</div>
+                        <div><span className="font-medium">Date:</span> {new Date(latestBill.createdAt).toLocaleDateString('en-GB')} {new Date(latestBill.createdAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true })}</div>
+                        <div><span className="font-medium">Bill No:</span> {latestBill.invoiceNumber}</div>
+                        <div><span className="font-medium">File No:</span> {selectedPatient.uhId}</div>
+                        <div><span className="font-medium">Sex:</span> {selectedPatient.gender || 'Not specified'}</div>
+                        <div><span className="font-medium">Age:</span> {selectedPatient.age ? `${selectedPatient.age}Y` : 'Not specified'}</div>
+                  </div>
+                    </div>
+                    <div>
+                      <div className="space-y-1 text-xs">
+                        <div><span className="font-medium">Consultant Name:</span> {selectedPatient.currentDoctor?.name || selectedPatient.assignedDoctor?.name || 'Not Assigned'}</div>
+                        <div><span className="font-medium">Department:</span> {selectedPatient.currentDoctor?.specializations || selectedPatient.assignedDoctor?.specializations || 'General Medicine'}</div>
+                        <div><span className="font-medium">User Name / Lab ID:</span> {selectedPatient.uhId}</div>
+                        <div><span className="font-medium">Password:</span> {selectedPatient.uhId}m</div>
+                        <div><span className="font-medium">Ref. Doctor:</span></div>
+                  </div>
+                </div>
+              </div>
+
+                  {/* Services Table */}
+                  <div className="mb-4 no-page-break">
+                    <table className="min-w-full border-collapse border border-slate-300">
+                      <thead>
+                        <tr className="bg-slate-100">
+                          <th className="border border-slate-300 px-3 py-2 text-left text-xs font-medium text-slate-700 uppercase">S.No</th>
+                          <th className="border border-slate-300 px-3 py-2 text-left text-xs font-medium text-slate-700 uppercase">Service Name</th>
+                          <th className="border border-slate-300 px-3 py-2 text-center text-xs font-medium text-slate-700 uppercase">Quantity</th>
+                          <th className="border border-slate-300 px-3 py-2 text-right text-xs font-medium text-slate-700 uppercase">Charges</th>
+                          <th className="border border-slate-300 px-3 py-2 text-right text-xs font-medium text-slate-700 uppercase">Paid</th>
+                          <th className="border border-slate-300 px-3 py-2 text-right text-xs font-medium text-slate-700 uppercase">Balance</th>
+                          <th className="border border-slate-300 px-3 py-2 text-center text-xs font-medium text-slate-700 uppercase">Status</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-200">
-                      <tr>
-                        <td className="px-4 py-3 text-sm text-slate-900">
-                          {generatedInvoice.consultationType} Consultation
-                        </td>
-                        <td className="px-4 py-3 text-sm text-slate-900 text-right">
-                          ₹{(generatedInvoice.consultationFee || 0).toFixed(2)}
+                      <tbody>
+                        <tr>
+                          <td className="border border-slate-300 px-3 py-2 text-xs">1</td>
+                          <td className="border border-slate-300 px-3 py-2 text-xs">{latestBill.consultationType} Consultation Fee</td>
+                          <td className="border border-slate-300 px-3 py-2 text-center text-xs">1</td>
+                          <td className="border border-slate-300 px-3 py-2 text-right text-xs">{(latestBill.customData?.consultationFee || 0).toFixed(2)}</td>
+                          <td className="border border-slate-300 px-3 py-2 text-right text-xs">{paidAmount.toFixed(2)}</td>
+                          <td className="border border-slate-300 px-3 py-2 text-right text-xs">{balance.toFixed(2)}</td>
+                          <td className="border border-slate-300 px-3 py-2 text-center text-xs">
+                            <span className={`font-medium ${
+                              isCancelled ? 'text-red-600' : 
+                              isRefunded ? 'text-purple-600' : 
+                              isFullyPaid ? 'text-green-600' : 
+                              balance > 0 ? 'text-orange-600' : 'text-red-600'
+                            }`}>
+                              {isCancelled ? 'Cancelled' : 
+                               isRefunded ? 'Refunded' : 
+                               isFullyPaid ? 'Paid' : 
+                               balance > 0 ? 'Pending' : 'Unpaid'}
+                            </span>
                         </td>
                       </tr>
-                      {generatedInvoice.serviceCharges?.map((service, index) => (
+                        {latestBill.customData?.serviceCharges?.map((service, index) => {
+                          const serviceAmount = parseFloat(service.amount);
+                          const servicePaid = paidAmount > 0 ? Math.min(serviceAmount, paidAmount) : 0;
+                          const serviceBalance = serviceAmount - servicePaid;
+                          const serviceStatus = serviceBalance <= 0 ? 'Paid' : 'Pending';
+                          
+                          return (
                         <tr key={index}>
-                          <td className="px-4 py-3 text-sm text-slate-900">{service.name}</td>
-                          <td className="px-4 py-3 text-sm text-slate-900 text-right">
-                            ₹{(parseFloat(service.amount) || 0).toFixed(2)}
+                              <td className="border border-slate-300 px-3 py-2 text-xs">{index + 2}</td>
+                              <td className="border border-slate-300 px-3 py-2 text-xs">{service.name}</td>
+                              <td className="border border-slate-300 px-3 py-2 text-center text-xs">1</td>
+                              <td className="border border-slate-300 px-3 py-2 text-right text-xs">{serviceAmount.toFixed(2)}</td>
+                              <td className="border border-slate-300 px-3 py-2 text-right text-xs">{servicePaid.toFixed(2)}</td>
+                              <td className="border border-slate-300 px-3 py-2 text-right text-xs">{serviceBalance.toFixed(2)}</td>
+                              <td className="border border-slate-300 px-3 py-2 text-center text-xs">
+                                <span className={`font-medium ${
+                                  isCancelled ? 'text-red-600' : 
+                                  isRefunded ? 'text-purple-600' : 
+                                  serviceStatus === 'Paid' ? 'text-green-600' : 'text-orange-600'
+                                }`}>
+                                  {isCancelled ? 'Cancelled' : 
+                                   isRefunded ? 'Refunded' : 
+                                   serviceStatus}
+                                </span>
                           </td>
                         </tr>
-                      ))}
-                      {generatedInvoice.totals?.taxAmount > 0 && (
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Summary */}
+                  <div className="flex justify-end mb-4">
+                    <div className="w-72">
+                      <div className="space-y-1 text-xs">
+                        <div className="flex justify-between">
+                          <span>Total Amount:</span>
+                          <span>₹{totalAmount.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Discount(-):</span>
+                          <span>₹0.00</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Tax Amount:</span>
+                          <span>₹0.00</span>
+                        </div>
+                        <div className="flex justify-between border-t border-slate-300 pt-1">
+                          <span>Grand Total:</span>
+                          <span>₹{totalAmount.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between border-t border-slate-300 pt-1">
+                          <span>Amount Paid:</span>
+                          <span className="text-green-600 font-medium">₹{paidAmount.toFixed(2)}</span>
+                        </div>
+                        {balance > 0 && (
+                          <div className="flex justify-between">
+                            <span>Outstanding:</span>
+                            <span className="text-orange-600 font-medium">₹{balance.toFixed(2)}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between">
+                          <span>Status:</span>
+                          <span className={`font-bold ${isFullyPaid ? 'text-green-600' : 'text-orange-600'}`}>
+                            {isFullyPaid ? 'FULLY PAID' : 'PENDING'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Payment Information */}
+                  <div className="mb-6">
+                    <div className="text-xs">
+                      <div><span className="font-medium">Paid Amount:</span> (Rs.) {paidAmount > 0 ? `${paidAmount.toFixed(0)} Only` : 'Zero Only'}</div>
+                      <div className="mt-1"><span className="font-medium">Payment Status:</span> {isFullyPaid ? 'Fully Paid' : 'Pending'}</div>
+                    </div>
+                  </div>
+
+                  {/* Payment History Table */}
+                  <div className="mb-6">
+                    <h4 className="text-sm font-semibold text-slate-800 mb-3">Payment History</h4>
+                    <table className="min-w-full border-collapse border border-slate-300">
+                      <thead>
+                        <tr className="bg-slate-100">
+                          <th className="border border-slate-300 px-3 py-2 text-left text-xs font-medium text-slate-700 uppercase">Date</th>
+                          <th className="border border-slate-300 px-3 py-2 text-left text-xs font-medium text-slate-700 uppercase">Service</th>
+                          <th className="border border-slate-300 px-3 py-2 text-right text-xs font-medium text-slate-700 uppercase">Amount</th>
+                          <th className="border border-slate-300 px-3 py-2 text-right text-xs font-medium text-slate-700 uppercase">Paid</th>
+                          <th className="border border-slate-300 px-3 py-2 text-center text-xs font-medium text-slate-700 uppercase">Payment Method</th>
+                          <th className="border border-slate-300 px-3 py-2 text-right text-xs font-medium text-slate-700 uppercase">Refunded</th>
+                          <th className="border border-slate-300 px-3 py-2 text-right text-xs font-medium text-slate-700 uppercase">Balance</th>
+                          <th className="border border-slate-300 px-3 py-2 text-center text-xs font-medium text-slate-700 uppercase">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
                         <tr>
-                          <td className="px-4 py-3 text-sm text-slate-900">Tax ({generatedInvoice.taxPercentage}%)</td>
-                          <td className="px-4 py-3 text-sm text-slate-900 text-right">
-                            ₹{(generatedInvoice.totals.taxAmount || 0).toFixed(2)}
+                          <td className="border border-slate-300 px-3 py-2 text-xs">{new Date(latestBill.createdAt).toLocaleDateString('en-GB')}</td>
+                          <td className="border border-slate-300 px-3 py-2 text-xs">{latestBill.consultationType} Consultation Fee</td>
+                          <td className="border border-slate-300 px-3 py-2 text-right text-xs">₹{totalAmount.toFixed(2)}</td>
+                          <td className="border border-slate-300 px-3 py-2 text-right text-xs">₹{paidAmount.toFixed(2)}</td>
+                          <td className="border border-slate-300 px-3 py-2 text-center text-xs">
+                            {latestBill.paymentMethod ? (
+                              <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                                {latestBill.paymentMethod.charAt(0).toUpperCase() + latestBill.paymentMethod.slice(1)}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400">-</span>
+                            )}
                           </td>
-                        </tr>
-                      )}
-                      {generatedInvoice.totals?.discountAmount > 0 && (
-                        <tr>
-                          <td className="px-4 py-3 text-sm text-slate-900">Discount ({generatedInvoice.discountPercentage}%)</td>
-                          <td className="px-4 py-3 text-sm text-slate-900 text-right text-red-600">
-                            -₹{(generatedInvoice.totals.discountAmount || 0).toFixed(2)}
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                    <tfoot className="bg-slate-50">
-                      <tr>
-                        <td className="px-4 py-3 text-sm font-semibold text-slate-900">Total</td>
-                        <td className="px-4 py-3 text-sm font-semibold text-slate-900 text-right">
-                          ₹{(generatedInvoice.totals?.total || 0).toFixed(2)}
+                          <td className="border border-slate-300 px-3 py-2 text-right text-xs">₹0.00</td>
+                          <td className="border border-slate-300 px-3 py-2 text-right text-xs">₹{balance.toFixed(2)}</td>
+                          <td className="border border-slate-300 px-3 py-2 text-center text-xs">
+                            <span className={`font-medium ${
+                              isCancelled ? 'text-red-600' : 
+                              isRefunded ? 'text-purple-600' : 
+                              isFullyPaid ? 'text-green-600' : 'text-orange-600'
+                            }`}>
+                              {isCancelled ? 'Cancelled' : 
+                               isRefunded ? 'Refunded' : 
+                               isFullyPaid ? 'Paid' : 'Pending'}
+                            </span>
                         </td>
                       </tr>
-                      <tr>
-                        <td className="px-4 py-3 text-sm text-slate-600">Paid</td>
-                        <td className="px-4 py-3 text-sm text-slate-600 text-right">
-                          ₹{(generatedInvoice.totals?.paid || 0).toFixed(2)}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td className="px-4 py-3 text-sm font-semibold text-slate-900">Amount Due</td>
-                        <td className="px-4 py-3 text-sm font-semibold text-slate-900 text-right">
-                          ₹{(generatedInvoice.totals?.due || 0).toFixed(2)}
-                        </td>
-                      </tr>
-                    </tfoot>
+                      </tbody>
                   </table>
                 </div>
 
-                {generatedInvoice.notes && (
-                  <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
-                    <p className="text-sm text-blue-800">{generatedInvoice.notes}</p>
+                  {/* Payment Summary */}
+                  <div className="mb-6 p-4 bg-slate-50 border border-slate-200 rounded-lg">
+                    <h4 className="text-sm font-semibold text-slate-800 mb-3">Payment Summary</h4>
+                    <div className="grid grid-cols-2 gap-4 text-xs">
+                      <div>
+                        <div className="flex justify-between mb-1">
+                          <span>Total Bill Amount:</span>
+                          <span className="font-medium">₹{totalAmount.toFixed(2)}</span>
                   </div>
-                )}
+                        <div className="flex justify-between mb-1">
+                          <span>Amount Paid:</span>
+                          <span className="font-medium text-green-600">₹{paidAmount.toFixed(2)}</span>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex justify-between mb-1">
+                          <span>Bill Status:</span>
+                          <span className={`font-medium ${
+                            isCancelled ? 'text-red-600' : 
+                            isRefunded ? 'text-purple-600' : 
+                            isFullyPaid ? 'text-green-600' : 'text-orange-600'
+                          }`}>
+                            {isCancelled ? 'Cancelled' : 
+                             isRefunded ? 'Refunded' : 
+                             isFullyPaid ? 'Fully Paid' : 'Pending'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex gap-3 pt-4 border-t border-slate-200">
-                <button
-                  onClick={() => setShowInvoicePreviewModal(false)}
-                  className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-sm"
-                >
-                  Close
-                </button>
-                <button
-                  onClick={() => {
-                    setShowInvoicePreviewModal(false);
-                    setShowPaymentModal(true);
-                  }}
-                  className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium flex items-center justify-center gap-2"
-                >
-                  <CreditCard className="h-5 w-5" />
-                  Process Payment
-                </button>
-                <button
-                  onClick={() => {
-                    // TODO: Implement invoice download
-                    toast.info('Invoice download functionality will be implemented');
-                  }}
-                  className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm font-medium flex items-center justify-center gap-2"
-                >
-                  <Download className="h-5 w-5" />
-                  Download PDF
-                </button>
+                  {/* Generation Details - Compact for A4 */}
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    {/* Left - Generation Info */}
+                    <div className="text-xs">
+                      <div><span className="font-medium">Generated By:</span> {user?.name || 'System'}</div>
+                      <div><span className="font-medium">Date:</span> {new Date().toLocaleDateString('en-GB')}</div>
+                      <div><span className="font-medium">Time:</span> {new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true })}</div>
+              </div>
+                    
+                    {/* Right - Invoice Terms & Signature */}
+                    <div className="text-xs bg-slate-50 border border-slate-200 rounded p-2">
+                      <div className="font-semibold text-slate-800 mb-1 text-center">Invoice Terms</div>
+                      <div className="space-y-1 text-slate-700 mb-2">
+                        <div>• Original invoice document</div>
+                        <div>• Payment due upon receipt</div>
+                        <div>• Keep for your records</div>
+                        <div>• No refunds after 7 days</div>
+            </div>
+                      <div className="border-t border-slate-200 pt-1">
+                        <div className="font-medium">Signature:</div>
+                        <div className="text-center mt-2">For {centerInfo.name}</div>
+          </div>
+        </div>
+                  </div>
+
+                  {/* Footer - Compact */}
+                  <div className="text-center text-xs text-slate-600">
+                    <div className="mb-1">
+                      <strong>"For Home Sample Collection"</strong>
+                    </div>
+                    <div>
+                      <span className="font-medium">Miss Call:</span> {centerInfo.missCallNumber || '080-42516666'} 
+                      <span className="mx-2">|</span>
+                      <span className="font-medium">Mobile:</span> {centerInfo.mobileNumber || '9686197153'}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Create Invoice Modal */}
       {showCreateInvoiceModal && selectedPatient && (
@@ -979,13 +1767,15 @@ export default function ReassignPatient() {
                     }
                   };
 
-                  const response = await API.post('/billing/create-invoice', invoiceData);
+                  const response = await API.post('/reassignment-billing/create-invoice', invoiceData);
                   
                   if (response.data.success) {
                     setGeneratedInvoice(response.data.invoice);
                     setShowCreateInvoiceModal(false);
                     setShowInvoicePreviewModal(true);
                     toast.success('Invoice created successfully');
+                    // Refresh patient data
+                    dispatch(fetchReceptionistPatients());
                   } else {
                     toast.error(response.data.message || 'Failed to create invoice');
                   }
@@ -1018,9 +1808,7 @@ export default function ReassignPatient() {
                     >
                       <option value="OP">OP Consultation (₹850)</option>
                       <option value="IP">IP Consultation (₹1050)</option>
-                      {isEligibleForFreeReassignment(selectedPatient) && (
-                        <option value="followup">Followup Consultation (Free)</option>
-                      )}
+                      <option value="followup">Free Follow-up Visit (₹0)</option>
                     </select>
                   </div>
 
@@ -1170,6 +1958,14 @@ export default function ReassignPatient() {
       )}
 
       {/* Payment Modal */}
+      {showPaymentModal && selectedPatient && generatedInvoice && (() => {
+        // Auto-populate payment data when modal opens
+        const amountDue = generatedInvoice.customData?.totals?.due || (generatedInvoice.amount - (generatedInvoice.paidAmount || 0)) || 0;
+        if (paymentData.amount === '' && paymentData.paymentType === 'full') {
+          setPaymentData(prev => ({...prev, amount: amountDue.toFixed(2)}));
+        }
+        return null;
+      })()}
       {showPaymentModal && selectedPatient && generatedInvoice && (
         <div className="fixed inset-0 bg-slate-900 bg-opacity-75 z-50 overflow-y-auto" onClick={() => setShowPaymentModal(false)}>
           <div className="flex items-center justify-center min-h-screen px-4 py-8">
@@ -1193,9 +1989,34 @@ export default function ReassignPatient() {
               </p>
 
               <div className="bg-blue-50 p-3 rounded-lg border border-blue-200 mb-4">
-                <p className="text-xs font-medium text-blue-700">Invoice Total: ₹{generatedInvoice.totals?.total?.toFixed(2) || '0.00'}</p>
-                <p className="text-xs font-medium text-blue-700">Total Paid: ₹{generatedInvoice.totals?.paid?.toFixed(2) || '0.00'}</p>
-                <p className="text-lg font-bold text-blue-800 mt-2">Amount Due: ₹{(generatedInvoice.totals?.due || 0).toFixed(2)}</p>
+                <p className="text-xs font-medium text-blue-700">Invoice Total: ₹{(generatedInvoice.customData?.totals?.total || generatedInvoice.amount || 0).toFixed(2)}</p>
+                <p className="text-xs font-medium text-blue-700">Total Paid: ₹{(generatedInvoice.customData?.totals?.paid || generatedInvoice.paidAmount || 0).toFixed(2)}</p>
+                <p className="text-lg font-bold text-blue-800 mt-2">Amount Due: ₹{(generatedInvoice.customData?.totals?.due || (generatedInvoice.amount - (generatedInvoice.paidAmount || 0)) || 0).toFixed(2)}</p>
+              </div>
+
+              {/* Payment Type Selection */}
+              <div className="mb-4">
+                <label htmlFor="paymentType" className="block text-sm font-medium text-slate-700 mb-2">
+                  Payment Type *
+                </label>
+                <select
+                  id="paymentType"
+                  value={paymentData.paymentType}
+                  onChange={(e) => {
+                    const newPaymentType = e.target.value;
+                    if (newPaymentType === 'full') {
+                      const amountDue = generatedInvoice.customData?.totals?.due || (generatedInvoice.amount - (generatedInvoice.paidAmount || 0)) || 0;
+                      setPaymentData({...paymentData, amount: amountDue.toFixed(2), paymentType: newPaymentType});
+                    } else {
+                      setPaymentData({...paymentData, amount: '', paymentType: newPaymentType});
+                    }
+                  }}
+                  required
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                >
+                  <option value="full">Pay Full Amount</option>
+                  <option value="partial">Partial Payment</option>
+                </select>
               </div>
 
               <form onSubmit={async (e) => {
@@ -1206,23 +2027,27 @@ export default function ReassignPatient() {
                     patientId: selectedPatient._id,
                     amount: parseFloat(paymentData.amount),
                     paymentMethod: paymentData.paymentMethod,
+                    paymentType: paymentData.paymentType || 'full',
                     notes: paymentData.notes,
                     appointmentTime: paymentData.appointmentTime || null,
                     centerId: getCenterId()
                   };
 
-                  const response = await API.post('/billing/process-payment', paymentDataToSubmit);
+                  const response = await API.post('/reassignment-billing/process-payment', paymentDataToSubmit);
                   
                   if (response.data.success) {
                     toast.success('Payment processed successfully');
                     dispatch(fetchReceptionistPatients());
                     setShowPaymentModal(false);
-                    setPaymentData({ amount: '', paymentMethod: 'cash', notes: '', appointmentTime: '' });
+                    setPaymentData({ amount: '', paymentMethod: 'cash', paymentType: 'full', notes: '', appointmentTime: '' });
                     
                     // If appointment was scheduled, show success message
                     if (paymentData.appointmentTime) {
                       toast.info('Appointment scheduled successfully');
                     }
+                    
+                    // Close invoice preview modal
+                    setShowInvoicePreviewModal(false);
                   } else {
                     toast.error(response.data.message || 'Failed to process payment');
                   }
@@ -1244,9 +2069,17 @@ export default function ReassignPatient() {
                     required
                     min="0.01"
                     step="0.01"
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    max={generatedInvoice.customData?.totals?.due || (generatedInvoice.amount - (generatedInvoice.paidAmount || 0)) || 0}
+                    className={`w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${paymentData.paymentType === 'full' ? 'bg-slate-50' : ''}`}
                     placeholder="e.g., 850.00"
+                    readOnly={paymentData.paymentType === 'full'}
                   />
+                  {paymentData.paymentType === 'full' && (
+                    <p className="text-xs text-slate-500 mt-1">Amount automatically set to full amount due</p>
+                  )}
+                  {paymentData.paymentType === 'partial' && (
+                    <p className="text-xs text-slate-500 mt-1">Enter amount to pay (max: ₹{(generatedInvoice.customData?.totals?.due || (generatedInvoice.amount - (generatedInvoice.paidAmount || 0)) || 0).toFixed(2)})</p>
+                  )}
                 </div>
 
                 <div>
@@ -1350,18 +2183,50 @@ export default function ReassignPatient() {
               <form onSubmit={async (e) => {
                 e.preventDefault();
                 try {
-                  const response = await API.post('/billing/cancel-bill', {
-                    patientId: selectedPatient._id,
-                    reason: cancelReason,
-                    centerId: getCenterId()
+                  const centerId = getCenterId();
+                  console.log('🔍 Center ID check:', {
+                    user: user,
+                    userCenterId: user?.centerId,
+                    storedCenterId: localStorage.getItem('centerId'),
+                    finalCenterId: centerId
                   });
                   
+                  if (!centerId) {
+                    toast.error('Center ID not found. Please log in again.');
+                    return;
+                  }
+                  
+                  const requestData = {
+                    patientId: selectedPatient._id,
+                    reason: cancelReason,
+                    centerId: centerId
+                  };
+                  
+                  console.log('🚀 Sending cancel bill request:', requestData);
+                  console.log('🔍 Request validation:', {
+                    patientId: requestData.patientId,
+                    reason: requestData.reason,
+                    centerId: requestData.centerId,
+                    patientIdType: typeof requestData.patientId,
+                    reasonType: typeof requestData.reason,
+                    centerIdType: typeof requestData.centerId,
+                    patientIdExists: !!requestData.patientId,
+                    reasonExists: !!requestData.reason,
+                    centerIdExists: !!requestData.centerId
+                  });
+                  
+                  const response = await API.post('/reassignment-billing/cancel-bill', requestData);
+                  
                   if (response.data.success) {
+                    console.log('✅ Cancel bill response:', response.data);
                     toast.success('Bill cancelled successfully');
+                    console.log('🔄 Refreshing patient data...');
                     dispatch(fetchReceptionistPatients());
                     setShowCancelBillModal(false);
                     setCancelReason('');
+                    console.log('✅ Cancel bill modal closed and form reset');
                   } else {
+                    console.log('❌ Cancel bill failed:', response.data);
                     toast.error(response.data.message || 'Failed to cancel bill');
                   }
                 } catch (error) {
@@ -1408,6 +2273,15 @@ export default function ReassignPatient() {
       )}
 
       {/* Refund Modal */}
+      {showRefundModal && selectedPatient && (() => {
+        // Auto-populate refund amount when modal opens
+        const latestBill = selectedPatient.reassignedBilling?.[selectedPatient.reassignedBilling.length - 1];
+        const paidAmount = latestBill?.customData?.totals?.paid || latestBill?.paidAmount || 0;
+        if (refundData.amount === '' && paidAmount > 0) {
+          setRefundData(prev => ({...prev, amount: paidAmount.toFixed(2)}));
+        }
+        return null;
+      })()}
       {showRefundModal && selectedPatient && (
         <div className="fixed inset-0 bg-slate-900 bg-opacity-75 z-50 overflow-y-auto" onClick={() => setShowRefundModal(false)}>
           <div className="flex items-center justify-center min-h-screen px-4 py-8">
@@ -1430,18 +2304,29 @@ export default function ReassignPatient() {
                 Patient: <span className="font-semibold text-blue-600">{selectedPatient.name}</span>
               </p>
 
+              {(() => {
+                const latestBill = selectedPatient.reassignedBilling?.[selectedPatient.reassignedBilling.length - 1];
+                const paidAmount = latestBill?.customData?.totals?.paid || latestBill?.paidAmount || 0;
+                const totalAmount = latestBill?.customData?.totals?.total || latestBill?.amount || 0;
+                
+                return (
               <div className="bg-orange-50 p-3 rounded-lg border border-orange-200 mb-4">
-                <p className="text-xs font-medium text-orange-700">💰 Refund will be processed for the paid amount.</p>
+                    <p className="text-xs font-medium text-orange-700">💰 Refund Information:</p>
+                    <p className="text-xs text-orange-600 mt-1">Total Bill: ₹{totalAmount.toFixed(2)}</p>
+                    <p className="text-xs text-orange-600">Amount Paid: ₹{paidAmount.toFixed(2)}</p>
+                    <p className="text-xs text-orange-600">Max Refund: ₹{paidAmount.toFixed(2)}</p>
                 <p className="text-xs text-orange-600 mt-1">This action cannot be undone.</p>
               </div>
+                );
+              })()}
 
               <form onSubmit={async (e) => {
                 e.preventDefault();
                 try {
-                  const response = await API.post('/billing/process-refund', {
+                  const response = await API.post('/reassignment-billing/process-refund', {
                     patientId: selectedPatient._id,
                     amount: parseFloat(refundData.amount),
-                    method: refundData.method,
+                    method: refundData.refundMethod,
                     reason: refundData.reason,
                     notes: refundData.notes,
                     centerId: getCenterId()
@@ -1451,7 +2336,7 @@ export default function ReassignPatient() {
                     toast.success('Refund processed successfully');
                     dispatch(fetchReceptionistPatients());
                     setShowRefundModal(false);
-                    setRefundData({ amount: '', method: 'cash', reason: '', notes: '' });
+                    setRefundData({ amount: '', refundMethod: 'cash', reason: '', notes: '' });
                   } else {
                     toast.error(response.data.message || 'Failed to process refund');
                   }
@@ -1473,9 +2358,19 @@ export default function ReassignPatient() {
                     required
                     min="0.01"
                     step="0.01"
+                    max={(() => {
+                      const latestBill = selectedPatient.reassignedBilling?.[selectedPatient.reassignedBilling.length - 1];
+                      return latestBill?.customData?.totals?.paid || latestBill?.paidAmount || 0;
+                    })()}
                     className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
                     placeholder="e.g., 850.00"
                   />
+                  <p className="text-xs text-slate-500 mt-1">
+                    Maximum refund: ₹{(() => {
+                      const latestBill = selectedPatient.reassignedBilling?.[selectedPatient.reassignedBilling.length - 1];
+                      return (latestBill?.customData?.totals?.paid || latestBill?.paidAmount || 0).toFixed(2);
+                    })()}
+                  </p>
                 </div>
 
                 <div>
@@ -1484,8 +2379,8 @@ export default function ReassignPatient() {
                   </label>
                   <select
                     id="refundMethod"
-                    value={refundData.method}
-                    onChange={(e) => setRefundData({...refundData, method: e.target.value})}
+                    value={refundData.refundMethod}
+                    onChange={(e) => setRefundData({...refundData, refundMethod: e.target.value})}
                     required
                     className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
                   >

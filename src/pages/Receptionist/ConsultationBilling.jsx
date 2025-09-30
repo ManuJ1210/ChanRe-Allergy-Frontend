@@ -2635,6 +2635,7 @@ export default function ConsultationBilling() {
                             <th className="border border-slate-300 px-3 py-2 text-left text-xs font-medium text-slate-700 uppercase">Service</th>
                             <th className="border border-slate-300 px-3 py-2 text-right text-xs font-medium text-slate-700 uppercase">Amount</th>
                             <th className="border border-slate-300 px-3 py-2 text-right text-xs font-medium text-slate-700 uppercase">Paid</th>
+                            <th className="border border-slate-300 px-3 py-2 text-center text-xs font-medium text-slate-700 uppercase">Payment Method</th>
                             <th className="border border-slate-300 px-3 py-2 text-right text-xs font-medium text-slate-700 uppercase">Refunded</th>
                             <th className="border border-slate-300 px-3 py-2 text-right text-xs font-medium text-slate-700 uppercase">Balance</th>
                             <th className="border border-slate-300 px-3 py-2 text-center text-xs font-medium text-slate-700 uppercase">Status</th>
@@ -2682,6 +2683,15 @@ export default function ConsultationBilling() {
                                 </td>
                                 <td className="border border-slate-300 px-3 py-2 text-right text-xs">
                                   ₹{paidAmount.toFixed(2)}
+                                </td>
+                                <td className="border border-slate-300 px-3 py-2 text-center text-xs">
+                                  {bill.paymentMethod ? (
+                                    <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                                      {bill.paymentMethod.charAt(0).toUpperCase() + bill.paymentMethod.slice(1)}
+                                    </span>
+                                  ) : (
+                                    <span className="text-slate-400">-</span>
+                                  )}
                                 </td>
                                 <td className="border border-slate-300 px-3 py-2 text-right text-xs">
                                   ₹{refundedAmount.toFixed(2)}

@@ -50,9 +50,15 @@ export default function RecentlyAssignedPatients() {
 
     // Filter by assignment date and viewed status (include reassigned patients)
     filtered = (assignedPatients || []).filter(patient => {
-      if (!patient.assignedAt) return false; // Only show patients with assignment date
+      // For reassigned patients, use lastReassignedAt; for regular patients, use assignedAt
+      const relevantDate = patient.isReassigned && patient.lastReassignedAt 
+        ? new Date(patient.lastReassignedAt)
+        : patient.assignedAt 
+          ? new Date(patient.assignedAt)
+          : null;
       
-      const assignedDate = new Date(patient.assignedAt);
+      if (!relevantDate) return false; // Only show patients with assignment/reassignment date
+      
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
@@ -61,16 +67,16 @@ export default function RecentlyAssignedPatients() {
       
       switch (dateFilter) {
         case 'scheduled':
-          // Show patients scheduled for today who haven't been viewed, including reassigned patients
-          return assignedDate.toDateString() === today.toDateString() && !patient.viewedByDoctor;
+          // Show all patients scheduled for today, including reassigned patients (regardless of viewed status)
+          return relevantDate.toDateString() === today.toDateString();
         case 'today':
-          return assignedDate.toDateString() === today.toDateString();
+          return relevantDate.toDateString() === today.toDateString();
         case 'last7days':
           const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-          return assignedDate >= sevenDaysAgo && assignedDate <= now;
+          return relevantDate >= sevenDaysAgo && relevantDate <= now;
         case 'last30days':
           const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-          return assignedDate >= thirtyDaysAgo && assignedDate <= now;
+          return relevantDate >= thirtyDaysAgo && relevantDate <= now;
         default:
           return true;
       }
@@ -86,8 +92,16 @@ export default function RecentlyAssignedPatients() {
       patient?.assignedDoctor?.name?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    // Sort by most recently assigned first
-    filtered.sort((a, b) => new Date(b.assignedAt) - new Date(a.assignedAt));
+    // Sort by most recently assigned/reassigned first
+    filtered.sort((a, b) => {
+      const dateA = a.isReassigned && a.lastReassignedAt 
+        ? new Date(a.lastReassignedAt)
+        : new Date(a.assignedAt);
+      const dateB = b.isReassigned && b.lastReassignedAt 
+        ? new Date(b.lastReassignedAt)
+        : new Date(b.assignedAt);
+      return dateB - dateA;
+    });
 
     setFilteredPatients(filtered);
   }, [searchTerm, assignedPatients, dateFilter]);
@@ -136,9 +150,16 @@ export default function RecentlyAssignedPatients() {
     }
   };
 
-  const formatAssignmentDate = (dateString) => {
+  const formatAssignmentDate = (patient) => {
+    // For reassigned patients, show lastReassignedAt; for regular patients, show assignedAt
+    const dateString = patient.isReassigned && patient.lastReassignedAt 
+      ? patient.lastReassignedAt
+      : patient.assignedAt;
+    
+    if (!dateString) return 'N/A';
+    
     const date = new Date(dateString);
-    return date.toLocaleString('en-US', {
+    const formattedDate = date.toLocaleString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -146,6 +167,13 @@ export default function RecentlyAssignedPatients() {
       minute: '2-digit',
       hour12: true
     });
+    
+    // Add indicator for reassigned patients
+    if (patient.isReassigned) {
+      return `${formattedDate} (Reassigned)`;
+    }
+    
+    return formattedDate;
   };
 
   // Function to get consultation fee status display (simplified - only show paid/unpaid)
@@ -328,7 +356,7 @@ export default function RecentlyAssignedPatients() {
             </h2>
             <p className="text-slate-600 mt-1 text-xs text-center sm:text-left">
               {dateFilter === 'scheduled' 
-                ? 'Patients scheduled for today who need to be seen'
+                ? 'All patients scheduled for today (assigned and reassigned)'
                 : `${filteredPatients.length} patients in the selected period`
               }
             </p>
@@ -348,7 +376,7 @@ export default function RecentlyAssignedPatients() {
                   {searchTerm 
                     ? 'No patients found matching your search.' 
                     : dateFilter === 'scheduled' 
-                      ? 'No patients scheduled for today.' 
+                      ? 'No patients scheduled for today (assigned or reassigned).' 
                       : `No patients found for ${getDateFilterLabel().toLowerCase()}.`
                   }
                 </p>
@@ -405,7 +433,7 @@ export default function RecentlyAssignedPatients() {
                     <div className="flex items-center gap-2 bg-white p-2 rounded-lg border border-slate-200">
                       <Calendar className="h-4 w-4 text-green-500" />
                       <span className="text-slate-700 text-xs font-medium">
-                        Assigned: {patient?.assignedAt ? formatAssignmentDate(patient.assignedAt) : 'N/A'}
+                        {patient?.isReassigned ? 'Reassigned' : 'Assigned'}: {formatAssignmentDate(patient)}
                       </span>
                     </div>
                     
@@ -520,7 +548,7 @@ export default function RecentlyAssignedPatients() {
                   {searchTerm 
                     ? 'No patients found matching your search.' 
                     : dateFilter === 'scheduled' 
-                      ? 'No patients scheduled for today.' 
+                      ? 'No patients scheduled for today (assigned or reassigned).' 
                       : `No patients found for ${getDateFilterLabel().toLowerCase()}.`
                   }
                 </p>
@@ -612,7 +640,7 @@ export default function RecentlyAssignedPatients() {
                           <div className="flex items-center gap-2">
                             <Calendar className="h-3 w-3 text-green-500" />
                             <span className="text-xs text-slate-600">
-                              {patient?.assignedAt ? formatAssignmentDate(patient.assignedAt) : 'N/A'}
+                              {formatAssignmentDate(patient)}
                             </span>
                           </div>
                         </td>
