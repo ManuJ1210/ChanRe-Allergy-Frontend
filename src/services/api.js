@@ -92,7 +92,7 @@ export const getAccountantDashboard = async () => {
 
 export const getBillingData = async (params = {}) => {
   try {
-    const response = await API.get('/billing/center', { params });
+    const response = await API.get('/accountants/bills-transactions', { params });
     return response.data;
   } catch (error) {
     console.error('Error fetching billing data:', error);
@@ -102,7 +102,7 @@ export const getBillingData = async (params = {}) => {
 
 export const getFinancialReports = async (params = {}) => {
   try {
-    const response = await API.get('/billing/center/reports', { params });
+    const response = await API.get('/accountants/reports', { params });
     return response.data;
   } catch (error) {
     console.error('Error fetching financial reports:', error);
@@ -112,7 +112,7 @@ export const getFinancialReports = async (params = {}) => {
 
 export const generateFinancialReport = async (data) => {
   try {
-    const response = await API.post('/accountants/reports/generate', data);
+    const response = await API.get('/accountants/reports', { params: data });
     return response.data;
   } catch (error) {
     console.error('Error generating financial report:', error);

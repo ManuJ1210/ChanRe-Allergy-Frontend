@@ -39,7 +39,9 @@ import {
   deleteNotification,
   deleteAllNotifications,
   fetchTestRequestFeedback,
-  fetchTestRequestsWithFeedback
+  fetchTestRequestsWithFeedback,
+  fetchLabTests,
+  fetchAllLabTests
 } from './doctorThunks';
 
 const initialState = {
@@ -103,6 +105,17 @@ const initialState = {
   testRequestsWithFeedback: [],
   feedbackLoading: false,
   feedbackError: null,
+  
+  // Lab Tests Catalog state
+  labTests: [],
+  labTestsLoading: false,
+  labTestsError: null,
+  labTestsPagination: {
+    page: 1,
+    limit: 100,
+    total: 0,
+    totalPages: 0
+  },
 };
 
 const doctorSlice = createSlice({
@@ -706,6 +719,37 @@ const doctorSlice = createSlice({
         state.testSubmitting = false;
         state.testSubmitError = action.payload || 'Failed to submit test reports';
         state.testSubmitSuccess = false;
+      })
+
+      // Fetch lab tests (search)
+      .addCase(fetchLabTests.pending, (state) => {
+        state.labTestsLoading = true;
+        state.labTestsError = null;
+      })
+      .addCase(fetchLabTests.fulfilled, (state, action) => {
+        state.labTestsLoading = false;
+        state.labTests = action.payload?.data || [];
+        state.labTestsError = null;
+      })
+      .addCase(fetchLabTests.rejected, (state, action) => {
+        state.labTestsLoading = false;
+        state.labTestsError = action.payload || 'Failed to fetch lab tests';
+      })
+
+      // Fetch all lab tests (with pagination)
+      .addCase(fetchAllLabTests.pending, (state) => {
+        state.labTestsLoading = true;
+        state.labTestsError = null;
+      })
+      .addCase(fetchAllLabTests.fulfilled, (state, action) => {
+        state.labTestsLoading = false;
+        state.labTests = action.payload?.data || [];
+        state.labTestsPagination = action.payload?.pagination || state.labTestsPagination;
+        state.labTestsError = null;
+      })
+      .addCase(fetchAllLabTests.rejected, (state, action) => {
+        state.labTestsLoading = false;
+        state.labTestsError = action.payload || 'Failed to fetch lab tests';
       });
   },
 });

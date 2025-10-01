@@ -174,7 +174,15 @@ const AccountantDashboard = () => {
 
       {/* Recent Activity */}
       <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Recent Activity</h2>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">Recent Activity</h2>
+          <button
+            onClick={() => navigate('/dashboard/accountant/billing')}
+            className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+          >
+            View All →
+          </button>
+        </div>
         <div className="space-y-4">
           <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
             <div className="flex items-center">

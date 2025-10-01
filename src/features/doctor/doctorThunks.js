@@ -474,6 +474,44 @@ export const fetchPatientTestRequests = createAsyncThunk(
   }
 );
 
+// ✅ Fetch lab tests from catalog (for test request dropdown)
+export const fetchLabTests = createAsyncThunk(
+  'doctor/fetchLabTests',
+  async (searchQuery = '', { rejectWithValue }) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await API.get(`/lab-tests/search?q=${encodeURIComponent(searchQuery)}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch lab tests');
+    }
+  }
+);
+
+// ✅ Fetch all lab tests with pagination
+export const fetchAllLabTests = createAsyncThunk(
+  'doctor/fetchAllLabTests',
+  async ({ search = '', category = '', page = 1, limit = 100 } = {}, { rejectWithValue }) => {
+    try {
+      const token = localStorage.getItem('token');
+      const params = new URLSearchParams({
+        search,
+        category,
+        page: page.toString(),
+        limit: limit.toString()
+      });
+      const response = await API.get(`/lab-tests/all?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch lab tests');
+    }
+  }
+);
+
 // ✅ Create test request (for doctors)
 export const createTestRequest = createAsyncThunk(
   'doctor/createTestRequest',

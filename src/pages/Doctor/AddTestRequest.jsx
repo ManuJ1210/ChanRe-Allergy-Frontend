@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
-import { fetchAssignedPatients, createTestRequest } from '../../features/doctor/doctorThunks';
+import { fetchAssignedPatients, createTestRequest, fetchLabTests } from '../../features/doctor/doctorThunks';
 import { 
   ArrowLeft, 
   Plus, 
@@ -14,7 +14,9 @@ import {
   Save,
   Search,
   Loader2,
-  X
+  X,
+  ShoppingCart,
+  Trash2
 } from 'lucide-react';
 
 const AddTestRequest = () => {
@@ -34,16 +36,28 @@ const AddTestRequest = () => {
     testType: '',
     testDescription: '',
     urgency: 'Normal',
-    notes: ''
+    notes: '',
+    selectedTests: [] // Array of selected tests from catalog
   });
+  
+  // State for test search
+  const [testSearchTerm, setTestSearchTerm] = useState('');
+  const [showTestList, setShowTestList] = useState(false);
+  const [debouncedTestSearch, setDebouncedTestSearch] = useState('');
   
   // State for patient search
   const [searchTerm, setSearchTerm] = useState('');
   const [showPatientList, setShowPatientList] = useState(false);
   const [filteredPatients, setFilteredPatients] = useState([]);
   
-  // Get patients from Redux store
-  const { assignedPatients, patientsLoading, patientsError } = useSelector((state) => state.doctor);
+  // Get patients and lab tests from Redux store
+  const { 
+    assignedPatients, 
+    patientsLoading, 
+    patientsError,
+    labTests,
+    labTestsLoading 
+  } = useSelector((state) => state.doctor);
   
   // Fetch patients when component mounts
   useEffect(() => {
@@ -52,6 +66,9 @@ const AddTestRequest = () => {
   
   // Ref to track which patients we've already shown toast for
   const shownToastForPatientRef = useRef(new Set());
+  
+  // Ref for test dropdown to handle click outside
+  const testDropdownRef = useRef(null);
   
   // Pre-select patient if patientId is provided in URL
   useEffect(() => {
@@ -134,6 +151,80 @@ const AddTestRequest = () => {
     }
   }, [searchTerm, assignedPatients]);
   
+  // Debounce test search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedTestSearch(testSearchTerm);
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [testSearchTerm]);
+  
+  // Fetch lab tests when debounced search changes OR when dropdown opens
+  useEffect(() => {
+    if (debouncedTestSearch && debouncedTestSearch.length >= 2) {
+      dispatch(fetchLabTests(debouncedTestSearch));
+    } else if (showTestList && !testSearchTerm) {
+      // When dropdown opens without search, fetch first 20 tests
+      dispatch(fetchLabTests(''));
+    }
+  }, [debouncedTestSearch, showTestList, testSearchTerm, dispatch]);
+  
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (testDropdownRef.current && !testDropdownRef.current.contains(event.target)) {
+        setShowTestList(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+  
+  // Handle test selection from dropdown
+  const handleTestSelect = (test) => {
+    // Check if test is already selected
+    const isAlreadySelected = formData.selectedTests.some(t => t.testId === test._id);
+    
+    if (isAlreadySelected) {
+      toast.info(`${test.testName} is already added`);
+      return;
+    }
+    
+    // Add test to selected tests
+    const newTest = {
+      testId: test._id,
+      testCode: test.testCode,
+      testName: test.testName,
+      cost: test.cost,
+      quantity: 1
+    };
+    
+    setFormData(prev => ({
+      ...prev,
+      selectedTests: [...prev.selectedTests, newTest]
+    }));
+    
+    // Clear search and close dropdown
+    setTestSearchTerm('');
+    setShowTestList(false);
+    toast.success(`Added ${test.testName}`);
+  };
+  
+  // Handle removing a selected test
+  const handleRemoveTest = (testId) => {
+    setFormData(prev => ({
+      ...prev,
+      selectedTests: prev.selectedTests.filter(t => t.testId !== testId)
+    }));
+  };
+  
+  // Calculate total cost of selected tests
+  const calculateTotalCost = () => {
+    return formData.selectedTests.reduce((total, test) => total + (test.cost * test.quantity), 0);
+  };
+  
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -144,19 +235,24 @@ const AddTestRequest = () => {
       return;
     }
     
-    if (!formData.testType.trim()) {
-      toast.error('Please enter a test type');
+    if (formData.selectedTests.length === 0) {
+      toast.error('Please select at least one test');
       return;
     }
     
-    if (!formData.testDescription.trim()) {
-      toast.error('Please enter a test description');
-      return;
-    }
+    // Auto-generate testType and testDescription from selected tests
+    const testNames = formData.selectedTests.map(t => t.testName).join(', ');
+    const testCodes = formData.selectedTests.map(t => t.testCode).join(', ');
+    
+    const submissionData = {
+      ...formData,
+      testType: testCodes, // Use test codes as test type
+      testDescription: `Tests requested: ${testNames}` // Use test names as description
+    };
     
     try {
       // Create test request using the existing thunk
-      await dispatch(createTestRequest(formData)).unwrap();
+      await dispatch(createTestRequest(submissionData)).unwrap();
       // Note: Success toast is already shown by the thunk
       navigate('/dashboard/Doctor/TestRequests');
     } catch (error) {
@@ -451,36 +547,130 @@ const AddTestRequest = () => {
               </div>
             </div>
             
-            {/* Test Type */}
+            {/* Test Selection from Catalog */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Test Type <span className="text-red-500">*</span>
+                Select Tests <span className="text-red-500">*</span>
               </label>
-              <input
-                type="text"
-                name="testType"
-                value={formData.testType}
-                onChange={handleInputChange}
-                placeholder="e.g., Blood Test, Allergy Panel, CBC, etc."
-                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                required
-              />
-            </div>
-            
-            {/* Test Description */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Test Description <span className="text-red-500">*</span>
-              </label>
-              <textarea
-                name="testDescription"
-                value={formData.testDescription}
-                onChange={handleInputChange}
-                placeholder="Provide detailed description of the tests required..."
-                rows={4}
-                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                required
-              />
+              
+              <div className="relative" ref={testDropdownRef}>
+                <div className="flex items-center border border-slate-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent">
+                  <Search className="h-4 w-4 text-slate-400 ml-3" />
+                  <input
+                    type="text"
+                    placeholder="Search for tests by name or code..."
+                    value={testSearchTerm}
+                    onChange={(e) => {
+                      setTestSearchTerm(e.target.value);
+                      setShowTestList(true);
+                    }}
+                    onFocus={() => setShowTestList(true)}
+                    className="flex-1 px-3 py-3 border-0 focus:ring-0 focus:outline-none text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowTestList(!showTestList)}
+                    className="px-3 py-3 text-slate-400 hover:text-slate-600"
+                    title="Select test"
+                  >
+                    <ShoppingCart className="h-4 w-4" />
+                  </button>
+                </div>
+                
+                {/* Test List Dropdown */}
+                {showTestList && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    {labTestsLoading ? (
+                      <div className="px-4 py-3 text-center">
+                        <Loader2 className="h-5 w-5 animate-spin text-blue-500 mx-auto" />
+                        <p className="text-sm text-slate-500 mt-2">
+                          {testSearchTerm ? 'Searching tests...' : 'Loading tests...'}
+                        </p>
+                      </div>
+                    ) : labTests && labTests.length > 0 ? (
+                      <>
+                        {!testSearchTerm && (
+                          <div className="px-4 py-2 bg-slate-50 border-b border-slate-200">
+                            <p className="text-xs text-slate-600">
+                              Showing {labTests.length} tests. Type to search for specific tests.
+                            </p>
+                          </div>
+                        )}
+                        {labTests.map((test) => (
+                          <button
+                            key={test._id}
+                            type="button"
+                            onClick={() => handleTestSelect(test)}
+                            className="w-full px-4 py-3 text-left border-b border-slate-100 last:border-b-0 hover:bg-blue-50 transition-colors"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <div className="font-medium text-slate-800">{test.testName}</div>
+                                <div className="text-sm text-slate-500">Code: {test.testCode}</div>
+                              </div>
+                              <div className="text-right ml-4">
+                                <div className="font-semibold text-blue-600">₹{test.cost}</div>
+                                {test.category && (
+                                  <div className="text-xs text-slate-500">{test.category}</div>
+                                )}
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      </>
+                    ) : (
+                      <div className="px-4 py-3 text-slate-500 text-sm text-center">
+                        {testSearchTerm 
+                          ? `No tests found matching "${testSearchTerm}"` 
+                          : 'No tests available. Click to load tests.'}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              
+              {/* Selected Tests Display */}
+              {formData.selectedTests.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="text-sm font-medium text-slate-700">
+                      Selected Tests ({formData.selectedTests.length})
+                    </h4>
+                    <div className="text-sm font-semibold text-blue-600">
+                      Total: ₹{calculateTotalCost()}
+                    </div>
+                  </div>
+                  
+                  {formData.selectedTests.map((test) => (
+                    <div
+                      key={test.testId}
+                      className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg"
+                    >
+                      <div className="flex-1">
+                        <div className="font-medium text-slate-800">{test.testName}</div>
+                        <div className="text-sm text-slate-600">Code: {test.testCode}</div>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <div className="text-right">
+                          <div className="font-semibold text-blue-600">₹{test.cost}</div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveTest(test.testId)}
+                          className="p-2 text-red-500 hover:bg-red-100 rounded-lg transition-colors"
+                          title="Remove test"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              <div className="mt-2 text-xs text-slate-500">
+                Search from our catalog of 1000+ lab tests
+              </div>
             </div>
             
             {/* Urgency Level */}

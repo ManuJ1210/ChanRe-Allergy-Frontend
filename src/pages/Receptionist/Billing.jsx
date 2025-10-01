@@ -95,6 +95,13 @@ function ReceptionistBilling() {
   const [discounts, setDiscounts] = useState(0);
   const [notes, setNotes] = useState('');
   
+  // ✅ NEW: Lab test search state
+  const [testSearchTerm, setTestSearchTerm] = useState('');
+  const [showTestDropdown, setShowTestDropdown] = useState(false);
+  const [activeItemIndex, setActiveItemIndex] = useState(null);
+  const [labTests, setLabTests] = useState([]);
+  const [labTestsLoading, setLabTestsLoading] = useState(false);
+  
   // ✅ NEW: Payment details state
   const [paymentDetails, setPaymentDetails] = useState({
     paymentMethod: '',
@@ -334,13 +341,66 @@ function ReceptionistBilling() {
 
   const openBillModal = (req) => {
     setSelected(req);
+    
+    console.log('📋 Opening bill modal for test request:', {
+      id: req._id,
+      testType: req.testType,
+      hasSelectedTests: !!req.selectedTests,
+      selectedTestsLength: req.selectedTests?.length,
+      selectedTests: req.selectedTests,
+      hasBillingItems: !!req.billing?.items?.length
+    });
+    
+    // ✅ NEW: Check for selectedTests first, then billing items, then fallback to testType
     if (req.billing?.items?.length) {
-      setItems(req.billing.items.map(it => ({ name: it.name, code: it.code, quantity: it.quantity, unitPrice: it.unitPrice })));
+      // If bill already exists, use existing items
+      console.log('✅ Using existing billing items');
+      setItems(req.billing.items.map(it => ({ 
+        name: it.name, 
+        code: it.code, 
+        quantity: it.quantity, 
+        unitPrice: it.unitPrice 
+      })));
       setTaxes(req.billing.taxes || 0);
       setDiscounts(req.billing.discounts || 0);
       setNotes(req.billing.notes || '');
+    } else if (req.selectedTests && Array.isArray(req.selectedTests) && req.selectedTests.length > 0) {
+      // ✅ NEW: If selectedTests exist, automatically populate items
+      console.log('✅ Using selectedTests from catalog:', req.selectedTests);
+      setItems(req.selectedTests.map(test => ({
+        name: test.testName,
+        code: test.testCode,
+        quantity: test.quantity || 1,
+        unitPrice: test.cost || 0
+      })));
+      setTaxes(0);
+      setDiscounts(0);
+      setNotes('');
+      toast.success(`Automatically loaded ${req.selectedTests.length} test(s) from request`);
     } else {
-      setItems([{ name: req.testType || '', code: '', quantity: 1, unitPrice: '' }]);
+      // Fallback to old method with testType
+      console.log('⚠️ No selectedTests found, using testType fallback:', req.testType);
+      const testNames = req.testType ? req.testType.split(',').map(t => t.trim()) : [''];
+      
+      if (testNames.length > 1) {
+        // If multiple tests in testType, create separate items
+        setItems(testNames.map(name => ({ 
+          name, 
+          code: '', 
+          quantity: 1, 
+          unitPrice: '' 
+        })));
+        toast.warning(`⚠️ Old test request detected! ${testNames.length} tests loaded. Click on each test name to search and add codes & prices from catalog.`, {
+          autoClose: 5000
+        });
+      } else {
+        // Single test
+        setItems([{ name: req.testType || '', code: '', quantity: 1, unitPrice: '' }]);
+        toast.warning('⚠️ Old test request detected! Click on the test name to search and add code & price from catalog.', {
+          autoClose: 5000
+        });
+      }
+      
       setTaxes(0);
       setDiscounts(0);
       setNotes('');
@@ -349,7 +409,74 @@ function ReceptionistBilling() {
 
   const closeBillModal = () => {
     setSelected(null);
+    setTestSearchTerm('');
+    setShowTestDropdown(false);
+    setActiveItemIndex(null);
   };
+
+  // ✅ NEW: Search lab tests
+  const searchLabTests = async (searchTerm) => {
+    if (!searchTerm || searchTerm.length < 2) {
+      setLabTests([]);
+      return;
+    }
+    
+    setLabTestsLoading(true);
+    try {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/lab-tests/search?q=${encodeURIComponent(searchTerm)}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setLabTests(data.data || []);
+      }
+    } catch (error) {
+      console.error('Error searching lab tests:', error);
+    } finally {
+      setLabTestsLoading(false);
+    }
+  };
+
+  // ✅ NEW: Handle test selection from dropdown
+  const handleTestSelect = (test, idx) => {
+    updateItem(idx, {
+      name: test.testName,
+      code: test.testCode,
+      unitPrice: test.cost
+    });
+    setTestSearchTerm('');
+    setShowTestDropdown(false);
+    setActiveItemIndex(null);
+    toast.success(`Added ${test.testName}`);
+  };
+
+  // ✅ NEW: Debounced search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (testSearchTerm && showTestDropdown) {
+        searchLabTests(testSearchTerm);
+      }
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [testSearchTerm, showTestDropdown]);
+
+  // ✅ NEW: Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showTestDropdown && !event.target.closest('.relative')) {
+        setShowTestDropdown(false);
+        setActiveItemIndex(null);
+        setTestSearchTerm('');
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showTestDropdown]);
 
   // ✅ NEW: Open payment modal
   const openPaymentModal = (req) => {
@@ -1187,13 +1314,62 @@ function ReceptionistBilling() {
                       <tbody className="divide-y divide-slate-100">
                         {items.map((it, idx) => (
                           <tr key={idx} className="text-sm hover:bg-slate-50 transition-colors duration-150">
-                            <td className="py-3 px-4">
+                            <td className="py-3 px-4 relative">
                               <input 
                                 className={`w-full border border-slate-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${!it.name ? 'border-red-300 focus:ring-red-500' : ''}`} 
-                                value={it.name} 
-                                onChange={(e) => updateItem(idx, { name: e.target.value })} 
-                                placeholder="Item name *" 
+                                value={activeItemIndex === idx && showTestDropdown ? testSearchTerm : it.name} 
+                                onChange={(e) => {
+                                  setActiveItemIndex(idx);
+                                  setTestSearchTerm(e.target.value);
+                                  setShowTestDropdown(true);
+                                  updateItem(idx, { name: e.target.value });
+                                }}
+                                onFocus={() => {
+                                  setActiveItemIndex(idx);
+                                  setTestSearchTerm(it.name);
+                                  setShowTestDropdown(true);
+                                }}
+                                placeholder="Type to search tests..." 
                               />
+                              
+                              {/* Test Search Dropdown */}
+                              {activeItemIndex === idx && showTestDropdown && (
+                                <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                  {labTestsLoading ? (
+                                    <div className="px-4 py-3 text-center">
+                                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mx-auto"></div>
+                                      <p className="text-xs text-slate-500 mt-2">Searching...</p>
+                                    </div>
+                                  ) : labTests && labTests.length > 0 ? (
+                                    labTests.map((test) => (
+                                      <button
+                                        key={test._id}
+                                        type="button"
+                                        onClick={() => handleTestSelect(test, idx)}
+                                        className="w-full px-4 py-2 text-left border-b border-slate-100 last:border-b-0 hover:bg-blue-50 transition-colors"
+                                      >
+                                        <div className="flex items-center justify-between">
+                                          <div className="flex-1">
+                                            <div className="font-medium text-slate-800 text-sm">{test.testName}</div>
+                                            <div className="text-xs text-slate-500">Code: {test.testCode}</div>
+                                          </div>
+                                          <div className="text-right ml-4">
+                                            <div className="font-semibold text-blue-600 text-sm">{currencySymbol}{test.cost}</div>
+                                          </div>
+                                        </div>
+                                      </button>
+                                    ))
+                                  ) : testSearchTerm && testSearchTerm.length >= 2 ? (
+                                    <div className="px-4 py-3 text-slate-500 text-xs text-center">
+                                      No tests found. Type at least 2 characters to search.
+                                    </div>
+                                  ) : (
+                                    <div className="px-4 py-3 text-slate-500 text-xs text-center">
+                                      Type at least 2 characters to search for tests
+                                    </div>
+                                  )}
+                                </div>
+                              )}
                             </td>
                             <td className="py-3 px-4">
                               <input 
