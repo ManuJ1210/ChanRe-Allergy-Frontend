@@ -112,7 +112,6 @@ const AddAccountant = () => {
 
       navigate('/dashboard/centeradmin/accountant/manageaccountants');
     } catch (error) {
-      console.error('Error adding accountant:', error);
       const errorMessage = error.response?.data?.message || 'Failed to add accountant';
       toast.error(errorMessage, {
         position: "top-right",

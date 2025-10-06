@@ -7,7 +7,8 @@ import {
   FaCalendarAlt,
   FaMoneyBillWave,
   FaFileAlt,
-  FaChartPie
+  FaChartPie,
+  FaBuilding
 } from 'react-icons/fa';
 import { getFinancialReports } from '../../services/api';
 import { toast } from 'react-toastify';
@@ -70,80 +71,80 @@ const AccountantReports = () => {
         // Header section
         {
           'CHANRE HOSPITAL - FINANCIAL REPORT': '',
-          '': '',
-          '': '',
-          '': '',
-          '': '',
-          '': '',
-          '': ''
+          'col2': '',
+          'col3': '',
+          'col4': '',
+          'col5': '',
+          'col6': '',
+          'col7': ''
         },
         {
           'Report Type': getReportTypeLabel(reportData.reportType),
           'Period': formatDateRange(reportData.dateRange),
           'Generated On': new Date().toLocaleString(),
-          '': '',
-          '': '',
-          '': '',
-          '': ''
+          'col4': '',
+          'col5': '',
+          'col6': '',
+          'col7': ''
         },
         {}, // Empty row
         // Summary section
         {
           'SUMMARY': '',
-          '': '',
-          '': '',
-          '': '',
-          '': '',
-          '': '',
-          '': ''
+          'col2': '',
+          'col3': '',
+          'col4': '',
+          'col5': '',
+          'col6': '',
+          'col7': ''
         },
         {
           'Category': 'Total Revenue',
           'Amount (₹)': reportData.summary?.totalRevenue || 0,
           'Transactions': reportData.summary?.totalTransactions || 0,
           'Percentage': '100%',
-          '': '',
-          '': '',
-          '': ''
+          'col5': '',
+          'col6': '',
+          'col7': ''
         },
         {
           'Category': 'Consultation',
           'Amount (₹)': reportData.summary?.consultationRevenue || 0,
           'Transactions': reportData.summary?.consultationCount || 0,
           'Percentage': `${reportData.breakdown?.consultation?.percentage || 0}%`,
-          '': '',
-          '': '',
-          '': ''
+          'col5': '',
+          'col6': '',
+          'col7': ''
         },
         {
           'Category': 'Reassignment',
           'Amount (₹)': reportData.summary?.reassignmentRevenue || 0,
           'Transactions': reportData.summary?.reassignmentCount || 0,
           'Percentage': `${reportData.breakdown?.reassignment?.percentage || 0}%`,
-          '': '',
-          '': '',
-          '': ''
+          'col5': '',
+          'col6': '',
+          'col7': ''
         },
         {
           'Category': 'Lab/Test',
           'Amount (₹)': reportData.summary?.labRevenue || 0,
           'Transactions': reportData.summary?.labCount || 0,
           'Percentage': `${reportData.breakdown?.lab?.percentage || 0}%`,
-          '': '',
-          '': '',
-          '': ''
+          'col5': '',
+          'col6': '',
+          'col7': ''
         },
         {}, // Empty row
         {}, // Empty row
         // Detailed transactions header
         {
           'DETAILED TRANSACTIONS': '',
-          '': '',
-          '': '',
-          '': '',
-          '': '',
-          '': '',
-          '': ''
+          'col2': '',
+          'col3': '',
+          'col4': '',
+          'col5': '',
+          'col6': '',
+          'col7': ''
         },
         {
           'Date': 'Date',
@@ -546,6 +547,14 @@ const AccountantReports = () => {
         <p className="text-gray-600 mt-2">
           Generate and view daily, weekly, monthly, and yearly financial reports
         </p>
+        {user?.centerId && (
+          <div className="mt-2">
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+              <FaBuilding className="mr-1" />
+              {user?.centerId?.name || 'Center'}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Report Type Selection */}

@@ -49,10 +49,8 @@ const ActiveSessions = () => {
   const fetchCenters = async () => {
     try {
       const response = await API.get('/centers');
-      console.log('Centers response:', response.data); // Debug log
       setCenters(response.data);
     } catch (error) {
-      console.error('Error fetching centers:', error);
     }
   };
 

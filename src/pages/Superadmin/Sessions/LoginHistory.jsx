@@ -53,10 +53,8 @@ const LoginHistory = () => {
       const response = await API.get('/login-history/recent', {
         params: { limit: 200 }
       });
-      console.log('Login history response:', response.data); // Debug log
       setLoginHistory(response.data.recentLogins || []);
     } catch (error) {
-      console.error('Error fetching login history:', error);
       setError('Failed to fetch login history');
     } finally {
       setLoading(false);
@@ -66,10 +64,8 @@ const LoginHistory = () => {
   const fetchCenters = async () => {
     try {
       const response = await API.get('/centers');
-      console.log('Centers response:', response.data); // Debug log
       setCenters(response.data);
     } catch (error) {
-      console.error('Error fetching centers:', error);
     }
   };
 
@@ -80,7 +76,6 @@ const LoginHistory = () => {
         await dispatch(deleteLoginHistory(recordId));
         fetchLoginHistory(); // Refresh the list
       } catch (error) {
-        console.error('Error deleting record:', error);
         toast.error('Failed to delete record');
       } finally {
         setDeleting(false);

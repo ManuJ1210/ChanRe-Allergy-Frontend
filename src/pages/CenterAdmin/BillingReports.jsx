@@ -43,7 +43,6 @@ const CenterAdminBillingReports = () => {
         paymentCount: payments.length
       };
     } catch (error) {
-      console.error('Error reading partial payment data:', error);
       return { payments: [], totalPaid: 0, paymentCount: 0 };
     }
   };
@@ -132,14 +131,12 @@ const CenterAdminBillingReports = () => {
 
       dispatch(fetchCenterBillingReports(params));
     } catch (error) {
-      console.error('Error in fetchReports:', error);
       toast.error('Failed to fetch reports. Please try again.');
     }
   };
 
   // Handle period change
   const handlePeriodChange = (period) => {
-    console.log('🔄 Center Period changed to:', period);
     setSelectedPeriod(period);
     setShowCustomRange(period === 'custom');
     // Clear previous data when changing periods
@@ -155,7 +152,6 @@ const CenterAdminBillingReports = () => {
         };
         dispatch(fetchCenterBillingReports(params));
       } catch (error) {
-        console.error('Error fetching reports for period:', period, error);
         toast.error('Failed to fetch reports. Please try again.');
       }
     }
@@ -194,7 +190,6 @@ const CenterAdminBillingReports = () => {
       };
       dispatch(fetchCenterBillingReports(params));
     } catch (error) {
-      console.error('Error fetching custom date range reports:', error);
       toast.error('Failed to fetch reports for the selected date range. Please try again.');
     }
   };
@@ -824,12 +819,6 @@ const CenterAdminBillingReports = () => {
                   // Get all partial payment keys from localStorage
                   const partialPaymentKeys = Object.keys(localStorage).filter(key => key.startsWith('partial_payment_'));
                   
-                  // Debug logging for localStorage
-                  console.log('🔍 CenterAdmin Partial Payment Keys:', partialPaymentKeys);
-                  partialPaymentKeys.forEach(key => {
-                    const data = JSON.parse(localStorage.getItem(key) || '[]');
-                    console.log(`🔍 ${key}:`, data);
-                  });
 
                   // Get enhanced billing data with partial payment information (same as Superadmin)
                   const enhancedBillingData = reportsData.billingData?.map(item => {
@@ -854,18 +843,6 @@ const CenterAdminBillingReports = () => {
                     const backendPaidAmount = item.billing?.paidAmount || 0;
                     const totalPaidFromStorage = partialData.totalPaid;
                     
-                    // Debug logging for Chethan's bill
-                    if (item.patientName === 'Chethan') {
-                      console.log('🔍 Chethan Bill Debug:', {
-                        requestId: item._id,
-                        totalAmount,
-                        backendPaidAmount,
-                        totalPaidFromStorage,
-                        paymentCount: partialData.paymentCount,
-                        payments: partialData.payments,
-                        status: item.billing?.status
-                      });
-                    }
                     
                     // Check if bill is fully paid by status
                     const isFullyPaidByStatus = item.billing?.status === 'paid' || 
@@ -891,16 +868,6 @@ const CenterAdminBillingReports = () => {
                                          totalAmount > 0 && 
                                          item.billing?.status !== 'cancelled' && 
                                          item.billing?.status !== 'refunded';
-                    
-                    // Debug logging for Chethan's bill
-                    if (item.patientName === 'Chethan') {
-                      console.log('🔍 Chethan Bill Filter Result:', {
-                        actualPaidAmount,
-                        shouldInclude,
-                        reason: partialData.paymentCount > 1 ? 'multiple payments' : 
-                               (actualPaidAmount > 0 && actualPaidAmount < totalAmount) ? 'partial payment' : 'not partial'
-                      });
-                    }
                     
                     return shouldInclude;
                   });

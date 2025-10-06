@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
 import ReceptionistLayout from './ReceptionistLayout';
 import { fetchReceptionistBillingRequests, generateReceptionistBill, markReceptionistBillPaid } from '../../features/receptionist/receptionistThunks';
-import { Search, Filter, Plus, CheckCircle, FileText, IndianRupee, Hash, X, CreditCard, Receipt, Upload, Clock, Download, DollarSign } from 'lucide-react';
+import { Search, Filter, Plus, CheckCircle, FileText, IndianRupee, Hash, X, CreditCard, Receipt, Upload, Clock, Download, DollarSign, Building } from 'lucide-react';
 import { API_CONFIG } from '../../config/environment';
 
 const currencySymbol = '₹';
@@ -367,19 +367,10 @@ function ReceptionistBilling() {
   const openBillModal = (req) => {
     setSelected(req);
     
-    console.log('📋 Opening bill modal for test request:', {
-      id: req._id,
-      testType: req.testType,
-      hasSelectedTests: !!req.selectedTests,
-      selectedTestsLength: req.selectedTests?.length,
-      selectedTests: req.selectedTests,
-      hasBillingItems: !!req.billing?.items?.length
-    });
     
     // ✅ NEW: Check for selectedTests first, then billing items, then fallback to testType
     if (req.billing?.items?.length) {
       // If bill already exists, use existing items
-      console.log('✅ Using existing billing items');
       setItems(req.billing.items.map(it => ({ 
         name: it.name, 
         code: it.code, 
@@ -391,7 +382,6 @@ function ReceptionistBilling() {
       setNotes(req.billing.notes || '');
     } else if (req.selectedTests && Array.isArray(req.selectedTests) && req.selectedTests.length > 0) {
       // ✅ NEW: If selectedTests exist, automatically populate items
-      console.log('✅ Using selectedTests from catalog:', req.selectedTests);
       setItems(req.selectedTests.map(test => ({
         name: test.testName || test.name,
         code: test.testCode || test.code || '',
@@ -459,7 +449,6 @@ function ReceptionistBilling() {
     
     setLabTestsLoading(true);
     try {
-      console.log('🔍 Searching for tests with term:', searchTerm);
       const response = await fetch(`${API_CONFIG.BASE_URL}/lab-tests/search?q=${encodeURIComponent(searchTerm)}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -468,16 +457,12 @@ function ReceptionistBilling() {
       
       if (response.ok) {
         const data = await response.json();
-        console.log('📊 Lab tests search response:', data);
         setLabTests(data.data || []);
       } else {
-        console.error('❌ Search response not ok:', response.status, response.statusText);
         const errorData = await response.json().catch(() => ({}));
-        console.error('Error data:', errorData);
         toast.error('Failed to search lab tests');
       }
     } catch (error) {
-      console.error('❌ Error searching lab tests:', error);
       toast.error('Network error while searching tests');
     } finally {
       setLabTestsLoading(false);
@@ -492,7 +477,6 @@ function ReceptionistBilling() {
     setAutoFetchingItems(prev => new Set([...prev, itemIndex]));
     
     try {
-      console.log('🔍 Auto-fetching details for:', testName);
       const response = await fetch(`${API_CONFIG.BASE_URL}/lab-tests/search?q=${encodeURIComponent(testName.trim())}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -527,19 +511,15 @@ function ReceptionistBilling() {
         }
         
         if (exactMatch) {
-          console.log('✅ Found match for auto-fetch:', exactMatch);
           updateItem(itemIndex, {
             code: exactMatch.testCode,
             unitPrice: exactMatch.cost
           });
           // Remove the toast notification to make it seamless
-          console.log(`Auto-filled: ${exactMatch.testCode} - ₹${exactMatch.cost}`);
         } else {
-          console.log('⚠️ No match found for:', testName);
         }
       }
     } catch (error) {
-      console.error('❌ Error auto-fetching test details:', error);
     } finally {
       // Remove this item from auto-fetching state
       setAutoFetchingItems(prev => {
@@ -552,7 +532,6 @@ function ReceptionistBilling() {
 
   // ✅ NEW: Handle test selection from dropdown
   const handleTestSelect = (test, idx) => {
-    console.log('🔍 Selected test:', test); // Debug log
     updateItem(idx, {
       name: test.testName,
       code: test.testCode,
@@ -750,7 +729,6 @@ function ReceptionistBilling() {
       
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('❌ API Error:', errorData);
         throw new Error(errorData.message || 'Failed to record payment');
       }
       
@@ -789,7 +767,6 @@ function ReceptionistBilling() {
       closePaymentModal();
       dispatch(fetchReceptionistBillingRequests());
     } catch (e) {
-      console.error('❌ Payment error:', e);
       toast.error(e.message || 'Failed to record payment');
     }
   };
@@ -875,7 +852,6 @@ function ReceptionistBilling() {
         }, 1000);
       }
     } catch (error) {
-      console.error('❌ Error cancelling bill:', error);
       toast.error(`Failed to cancel bill: ${error.message}`);
     }
   };
@@ -942,7 +918,6 @@ function ReceptionistBilling() {
       // Refresh the billing requests to show updated status
       dispatch(fetchReceptionistBillingRequests());
     } catch (error) {
-      console.error('❌ Error processing refund:', error);
       toast.error(`Failed to process refund: ${error.message}`);
     }
   };
@@ -950,7 +925,6 @@ function ReceptionistBilling() {
   // ✅ NEW: View invoice PDF in browser
   const handleViewInvoice = async (testRequestId) => {
     try {
-      console.log('🔍 Fetching invoice for test request:', testRequestId);
       const response = await fetch(`${API_CONFIG.BASE_URL}/billing/test-requests/${testRequestId}/invoice`, {
         method: 'GET',
         headers: {
@@ -958,11 +932,9 @@ function ReceptionistBilling() {
         }
       });
       
-      console.log('📊 Invoice response status:', response.status);
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('❌ Invoice generation failed:', errorData);
         throw new Error(errorData.message || `Server error: ${response.status}`);
       }
       
@@ -973,7 +945,6 @@ function ReceptionistBilling() {
       
       toast.success('Invoice opened in new tab!');
     } catch (error) {
-      console.error('❌ Error viewing invoice:', error);
       toast.error(`Failed to view invoice: ${error.message}`);
     }
   };
@@ -1011,7 +982,6 @@ function ReceptionistBilling() {
       
       toast.success('Invoice downloaded successfully!');
     } catch (error) {
-      console.error('Error downloading invoice:', error);
       toast.error('Failed to download invoice');
     }
   };
@@ -1030,6 +1000,14 @@ function ReceptionistBilling() {
                    <div>
                      <h1 className="text-2xl font-bold text-slate-800 mb-2">Billing Management</h1>
                      <p className="text-slate-600 text-sm">Generate bills, track payments, and manage test request workflow</p>
+                     {user?.centerId && (
+                       <div className="mt-2">
+                         <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                           <Building className="mr-1 h-4 w-4" />
+                           {user?.centerId?.name || 'Center'}
+                         </span>
+                       </div>
+                     )}
                    </div>
                                      <div className="flex items-center space-x-3">
                      <button 

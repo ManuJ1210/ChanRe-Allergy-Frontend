@@ -20,7 +20,8 @@ import {
   TestTube,
   MapPin,
   UserCheck,
-  Activity
+  Activity,
+  Building
 } from 'lucide-react';
 
 export default function ReceptionistDashboard() {
@@ -265,6 +266,14 @@ export default function ReceptionistDashboard() {
             <p className="text-slate-600 text-sm">
               Manage your patients and daily tasks
             </p>
+            {user?.centerId && (
+              <div className="mt-2">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                  <Building className="mr-1 h-4 w-4" />
+                  {user?.centerId?.name || 'Center'}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Stats Cards */}

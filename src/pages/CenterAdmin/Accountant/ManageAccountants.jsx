@@ -77,7 +77,6 @@ const ManageAccountants = () => {
         total: response.data.total || 0
       });
     } catch (error) {
-      console.error('Error fetching accountants:', error);
       setError('Failed to fetch accountants');
     } finally {
       setLoading(false);
@@ -89,7 +88,6 @@ const ManageAccountants = () => {
       const response = await getAccountantStats();
       setStats(response);
     } catch (error) {
-      console.error('Error fetching stats:', error);
     }
   };
 

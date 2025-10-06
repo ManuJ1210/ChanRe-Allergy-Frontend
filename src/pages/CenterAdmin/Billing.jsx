@@ -173,7 +173,6 @@ const CenterAdminBilling = () => {
       
       // Safety check: ensure user is authenticated
       if (!user || !localUser) {
-        console.log('User not authenticated, skipping billing data fetch');
         setBillingData([]);
         setLoading(false);
         return;
@@ -181,7 +180,6 @@ const CenterAdminBilling = () => {
       
       // Safety check: ensure localUser exists
       if (!localUser) {
-        console.error('localUser is not available');
         toast.error('User data not available. Please refresh the page.');
         setLoading(false);
         return;
@@ -220,18 +218,14 @@ const CenterAdminBilling = () => {
       const cacheParam = forceRefresh ? `&force=${timestamp}` : '';
       const response = await API.get(`/billing/center?t=${timestamp}${cacheParam}`);
       
-      console.log('📋 Raw API response:', response.data);
       
       // Ensure we have an array of billing requests
       if (response.data && Array.isArray(response.data.billingRequests)) {
-        console.log('📋 Setting billing data from billingRequests:', response.data.billingRequests);
         setBillingData(response.data.billingRequests);
       } else if (response.data && Array.isArray(response.data)) {
         // If the response is directly an array
-        console.log('📋 Setting billing data from direct array:', response.data);
         setBillingData(response.data);
       } else {
-        console.log('📋 No valid data found, setting empty array');
         setBillingData([]);
       }
     } catch (error) {
@@ -241,7 +235,6 @@ const CenterAdminBilling = () => {
         // Server responded with error status
         const status = error.response.status;
         const errorData = error.response.data;
-        console.error('API Error Response:', { status, data: errorData });
         
         if (status === 404) {
           toast.error('Billing endpoint not found. Please check server configuration.');
@@ -271,11 +264,9 @@ const CenterAdminBilling = () => {
         }
       } else if (error.request) {
         // Network error or no response from server
-        console.error('Network Error:', error.request);
         toast.error('Unable to connect to server. Please check your internet connection.');
       } else {
         // Other error (like parsing error)
-        console.error('Other Error:', error.message);
         toast.error(`Error fetching billing data: ${error.message}`);
       }
       
@@ -356,7 +347,6 @@ const CenterAdminBilling = () => {
     if (!user || !localUser) return;
 
     const interval = setInterval(() => {
-      console.log('🔄 Auto-refreshing billing data...');
       fetchBillingData();
     }, 30000); // 30 seconds
 
@@ -367,7 +357,6 @@ const CenterAdminBilling = () => {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (!document.hidden && user && localUser) {
-        console.log('🔄 Tab became visible, refreshing billing data...');
         fetchBillingData();
       }
     };
@@ -384,13 +373,11 @@ const CenterAdminBilling = () => {
     try {
       // Safety check: ensure user is authenticated
       if (!user) {
-        console.log('User not authenticated, skipping center info fetch');
         return;
       }
       
       // Safety check: ensure user has an _id
       if (!user?._id) {
-        console.error('User missing _id:', user);
         toast.error('User ID not found');
         return;
       }
@@ -414,11 +401,9 @@ const CenterAdminBilling = () => {
           fetchBillingData();
         }, 100);
       } else {
-        console.error('Center data missing _id:', response.data);
         toast.error('Invalid center data received');
       }
     } catch (error) {
-      console.error('Error fetching center info:', error);
       toast.error('Error fetching center information');
     }
   };
@@ -429,7 +414,6 @@ const CenterAdminBilling = () => {
 
     // Safety check: ensure billingData is an array
     if (!Array.isArray(filtered)) {
-      console.warn('billingData is not an array:', filtered);
       filtered = [];
     }
 
@@ -489,7 +473,6 @@ const CenterAdminBilling = () => {
               const itemDate = new Date(item.billing?.generatedAt || item.createdAt || Date.now());
               return itemDate >= filterDate;
             } catch (error) {
-              console.warn('Invalid date for item:', item);
               return false;
             }
           });
@@ -504,7 +487,6 @@ const CenterAdminBilling = () => {
               const itemDate = new Date(item.billing?.generatedAt || item.createdAt || Date.now());
               return itemDate >= filterDate;
             } catch (error) {
-              console.warn('Invalid date for item:', item);
               return false;
             }
           });
@@ -519,7 +501,6 @@ const CenterAdminBilling = () => {
               const itemDate = new Date(item.billing?.generatedAt || item.createdAt || Date.now());
               return itemDate >= filterDate;
             } catch (error) {
-              console.warn('Invalid date for item:', item);
               return false;
             }
           });
@@ -707,7 +688,6 @@ const CenterAdminBilling = () => {
         successToastShown.current = true;
       }
     } catch (error) {
-      console.error('Error downloading invoice:', error);
       if (!errorToastShown.current) {
         toast.error('Failed to download invoice');
         errorToastShown.current = true;
@@ -733,7 +713,6 @@ const CenterAdminBilling = () => {
       }
       fetchBillingData(); // Refresh data
     } catch (error) {
-      console.error('Error marking payment as received:', error);
       
       if (!actionErrorToastShown.current) {
         if (error.response?.data?.message) {
@@ -800,13 +779,6 @@ const CenterAdminBilling = () => {
       const totalAmount = editingBill.billing.amount || 0;
       const paidAmount = parseFloat(editFormData.paidAmount) || 0;
 
-      console.log('🔍 Frontend validation:', {
-        totalAmount,
-        paidAmount,
-        paidAmountString: editFormData.paidAmount,
-        paymentMethod: editFormData.paymentMethod,
-        paymentStatus: editFormData.paymentStatus
-      });
 
       if (isNaN(paidAmount)) {
         toast.error('Please enter a valid number for paid amount');
@@ -833,32 +805,20 @@ const CenterAdminBilling = () => {
         updatedAt: new Date().toISOString()
       };
 
-      // Make API call to update the payment status
-      console.log('💰 Making API call to update payment status:', editingBill._id);
-      console.log('📝 Payment update data:', updateData);
-      console.log('📋 Editing bill data:', {
-        id: editingBill._id,
-        patientName: editingBill.patientName,
-        testType: editingBill.testType,
-        billing: editingBill.billing
-      });
       
       const response = await API.put(`/billing/test-requests/${editingBill._id}/update-payment`, updateData);
 
-      console.log('📋 API Response:', response.data);
 
       if (response.data.success) {
         // Handle test response
         if (response.data.testData) {
           toast.success('Payment endpoint is working! Test successful.');
-          console.log('✅ Test response received:', response.data.testData);
           closeEditModal();
           return;
         }
 
         // Handle actual payment update response
         const paymentSummary = response.data.paymentSummary;
-        console.log('📋 Payment summary received:', paymentSummary);
         
         if (paymentSummary) {
           toast.success(`Payment status updated! Paid: ₹${paymentSummary.paidAmount}, Remaining: ₹${paymentSummary.remainingAmount}`);
@@ -866,14 +826,11 @@ const CenterAdminBilling = () => {
           // Clear localStorage data for this record to prevent conflicts
           const paymentKey = `partial_payment_${editingBill._id}`;
           localStorage.removeItem(paymentKey);
-          console.log('🧹 Cleared localStorage data for:', paymentKey);
           
           // Immediately update the specific record in state
-          console.log('🔄 Updating specific record in state...');
           setBillingData(prevData => {
             const updatedData = prevData.map(item => {
               if (item._id === editingBill._id) {
-                console.log('📋 Updating item:', item.patientName, 'from', item.billing?.paidAmount, 'to', paymentSummary.paidAmount);
                 return {
                   ...item,
                   billing: {
@@ -888,27 +845,20 @@ const CenterAdminBilling = () => {
               }
               return item;
             });
-            console.log('📋 Updated data:', updatedData);
             return updatedData;
           });
           
           // Also refresh from server as backup
-          console.log('🔄 Refreshing billing data from server...');
           await fetchBillingData();
-          console.log('✅ Billing data refreshed');
           
           // Close modal
           closeEditModal();
         } else {
-          console.log('⚠️ No payment summary in response, using fallback');
           toast.success('Payment status updated successfully');
-          console.log('🔄 Refreshing billing data...');
           await fetchBillingData();
-          console.log('✅ Billing data refreshed');
           
           // Force a small delay to ensure UI updates
           setTimeout(() => {
-            console.log('🔄 Forcing UI refresh...');
             setBillingData(prevData => [...prevData]); // Trigger re-render
           }, 100);
           
@@ -918,7 +868,6 @@ const CenterAdminBilling = () => {
         toast.error(response.data.message || 'Failed to update payment status');
       }
     } catch (error) {
-      console.error('Error updating payment status:', error);
       if (error.response?.data?.message) {
         toast.error(error.response.data.message);
       } else {
@@ -1179,6 +1128,14 @@ const CenterAdminBilling = () => {
               <div>
                 <h1 className="text-3xl font-bold text-slate-800 mb-2">Center Billing Management</h1>
                 <p className="text-slate-600 text-lg">Monitor and manage billing for your center</p>
+                {user?.centerId && (
+                  <div className="mt-2">
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                      <Building className="mr-1 h-4 w-4" />
+                      {user?.centerId?.name || 'Center'}
+                    </span>
+                  </div>
+                )}
               </div>
               <div className="flex items-center space-x-3">
                 <button

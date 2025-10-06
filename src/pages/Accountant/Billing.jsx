@@ -10,7 +10,8 @@ import {
   FaFileInvoiceDollar,
   FaExclamationTriangle,
   FaPrint,
-  FaTimes
+  FaTimes,
+  FaBuilding
 } from 'react-icons/fa';
 import { getBillingData } from '../../services/api';
 import { toast } from 'react-toastify';
@@ -371,6 +372,14 @@ const AccountantBilling = () => {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Billing & Transactions</h1>
         <p className="text-gray-600 mt-2">View all invoices and transactions for your center</p>
+        {user?.centerId && (
+          <div className="mt-2">
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+              <FaBuilding className="mr-1" />
+              {user?.centerId?.name || 'Center'}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Summary Cards */}

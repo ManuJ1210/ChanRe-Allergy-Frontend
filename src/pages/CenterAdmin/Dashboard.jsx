@@ -94,6 +94,14 @@ export default function CenterAdminDashboard() {
           <p className="text-slate-600 text-xs">
             Manage your center, patients, and staff
           </p>
+          {user?.centerId && (
+            <div className="mt-2">
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                <Building className="mr-1 h-4 w-4" />
+                {user?.centerId?.name || 'Center'}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Stats Cards */}

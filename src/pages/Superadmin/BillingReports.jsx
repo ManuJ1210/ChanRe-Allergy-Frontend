@@ -1022,12 +1022,6 @@ const SuperadminBillingReports = () => {
                 // Get all partial payment keys from localStorage
                 const partialPaymentKeys = Object.keys(localStorage).filter(key => key.startsWith('partial_payment_'));
                 
-                // Debug logging for localStorage
-                console.log('🔍 Superadmin Partial Payment Keys:', partialPaymentKeys);
-                partialPaymentKeys.forEach(key => {
-                  const data = JSON.parse(localStorage.getItem(key) || '[]');
-                  console.log(`🔍 ${key}:`, data);
-                });
                 
                 // Get all bills that have partial payments in localStorage
                 const partialBills = reportsData.billingData?.filter(item => {
@@ -1036,18 +1030,6 @@ const SuperadminBillingReports = () => {
                   const backendPaidAmount = item.billing?.paidAmount || 0;
                   const totalPaidFromStorage = partialData.totalPaid;
                   
-                  // Debug logging for Chethan's bill
-                  if (item.patientName === 'Chethan') {
-                    console.log('🔍 Superadmin Chethan Bill Debug:', {
-                      requestId: item._id,
-                      totalAmount,
-                      backendPaidAmount,
-                      totalPaidFromStorage,
-                      paymentCount: partialData.paymentCount,
-                      payments: partialData.payments,
-                      status: item.billing?.status
-                    });
-                  }
                   
                   // Check if bill is fully paid by status
                   const isFullyPaidByStatus = item.billing?.status === 'paid' || 
@@ -1074,15 +1056,6 @@ const SuperadminBillingReports = () => {
                                        item.billing?.status !== 'cancelled' && 
                                        item.billing?.status !== 'refunded';
                   
-                  // Debug logging for Chethan's bill
-                  if (item.patientName === 'Chethan') {
-                    console.log('🔍 Superadmin Chethan Bill Filter Result:', {
-                      actualPaidAmount,
-                      shouldInclude,
-                      reason: partialData.paymentCount > 1 ? 'multiple payments' : 
-                             (actualPaidAmount > 0 && actualPaidAmount < totalAmount) ? 'partial payment' : 'not partial'
-                    });
-                  }
                   
                   return shouldInclude;
                 }) || [];
