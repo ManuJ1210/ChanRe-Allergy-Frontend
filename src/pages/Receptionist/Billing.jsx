@@ -101,6 +101,7 @@ function ReceptionistBilling() {
   const [activeItemIndex, setActiveItemIndex] = useState(null);
   const [labTests, setLabTests] = useState([]);
   const [labTestsLoading, setLabTestsLoading] = useState(false);
+  const [autoFetchingItems, setAutoFetchingItems] = useState(new Set());
   
   // ✅ NEW: Payment details state
   const [paymentDetails, setPaymentDetails] = useState({
@@ -113,6 +114,22 @@ function ReceptionistBilling() {
   });
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedForPayment, setSelectedForPayment] = useState(null);
+  
+  // ✅ NEW: Cancel and Refund state
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [selectedForCancel, setSelectedForCancel] = useState(null);
+  const [showRefundModal, setShowRefundModal] = useState(false);
+  const [selectedForRefund, setSelectedForRefund] = useState(null);
+  const [cancelDetails, setCancelDetails] = useState({
+    reason: '',
+    initiateRefund: false
+  });
+  const [refundDetails, setRefundDetails] = useState({
+    amount: 0,
+    method: '',
+    reason: '',
+    notes: ''
+  });
 
   useEffect(() => {
     if (user && token) {
@@ -211,6 +228,12 @@ function ReceptionistBilling() {
         if (status === 'Billing_Paid') {
           // Include Billing_Paid, Report_Sent, and Completed in Bill Paid & Verified filter
           return ['Billing_Paid', 'Report_Sent', 'Completed'].includes(r.status);
+        }
+        if (status === 'cancelled') {
+          return r.billing?.status === 'cancelled';
+        }
+        if (status === 'refunded') {
+          return r.billing?.status === 'refunded';
         }
         return r.status === status;
       })
@@ -331,10 +354,12 @@ function ReceptionistBilling() {
       total: billingRequests?.length || 0,
       pending: billingRequests?.filter(r => r.status === 'Pending').length || 0,
       billingPending: billingRequests?.filter(r => r.status === 'Billing_Pending').length || 0,
-      billingGenerated: billingRequests?.filter(r => r.status === 'Billing_Generated').length || 0,
+      billingGenerated: billingRequests?.filter(r => r.status === 'Billing_Generated' && r.billing?.status !== 'cancelled' && r.billing?.status !== 'refunded').length || 0,
       paymentReceived: billingRequests?.filter(r => r.status === 'Billing_Generated' && r.billing?.status === 'payment_received').length || 0,
       billingPaid: billingRequests?.filter(r => r.status === 'Billing_Paid' || r.status === 'Report_Sent').length || 0,
-      completed: billingRequests?.filter(r => r.status === 'Completed').length || 0
+      completed: billingRequests?.filter(r => r.status === 'Completed').length || 0,
+      cancelled: billingRequests?.filter(r => r.billing?.status === 'cancelled').length || 0,
+      refunded: billingRequests?.filter(r => r.billing?.status === 'refunded').length || 0
     };
     return stats;
   }, [billingRequests]);
@@ -368,15 +393,15 @@ function ReceptionistBilling() {
       // ✅ NEW: If selectedTests exist, automatically populate items
       console.log('✅ Using selectedTests from catalog:', req.selectedTests);
       setItems(req.selectedTests.map(test => ({
-        name: test.testName,
-        code: test.testCode,
+        name: test.testName || test.name,
+        code: test.testCode || test.code || '',
         quantity: test.quantity || 1,
-        unitPrice: test.cost || 0
+        unitPrice: test.cost || test.unitPrice || test.price || 0
       })));
       setTaxes(0);
       setDiscounts(0);
       setNotes('');
-      toast.success(`Automatically loaded ${req.selectedTests.length} test(s) from request`);
+      toast.success(`Automatically loaded ${req.selectedTests.length} test(s) from request with codes and prices`);
     } else {
       // Fallback to old method with testType
       console.log('⚠️ No selectedTests found, using testType fallback:', req.testType);
@@ -390,14 +415,25 @@ function ReceptionistBilling() {
           quantity: 1, 
           unitPrice: '' 
         })));
-        toast.warning(`⚠️ Old test request detected! ${testNames.length} tests loaded. Click on each test name to search and add codes & prices from catalog.`, {
-          autoClose: 5000
+        
+        // Auto-fetch details for each test immediately
+        testNames.forEach((testName, index) => {
+          // Start fetching immediately for each test
+          autoFetchTestDetails(index, testName);
+        });
+        
+        toast.info(`🔄 Auto-fetching codes & prices for ${testNames.length} tests...`, {
+          autoClose: 3000
         });
       } else {
         // Single test
         setItems([{ name: req.testType || '', code: '', quantity: 1, unitPrice: '' }]);
-        toast.warning('⚠️ Old test request detected! Click on the test name to search and add code & price from catalog.', {
-          autoClose: 5000
+        
+        // Auto-fetch details for the single test immediately
+        autoFetchTestDetails(0, req.testType || '');
+        
+        toast.info('🔄 Auto-fetching code & price from catalog...', {
+          autoClose: 3000
         });
       }
       
@@ -423,6 +459,7 @@ function ReceptionistBilling() {
     
     setLabTestsLoading(true);
     try {
+      console.log('🔍 Searching for tests with term:', searchTerm);
       const response = await fetch(`${API_CONFIG.BASE_URL}/lab-tests/search?q=${encodeURIComponent(searchTerm)}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -431,17 +468,91 @@ function ReceptionistBilling() {
       
       if (response.ok) {
         const data = await response.json();
+        console.log('📊 Lab tests search response:', data);
         setLabTests(data.data || []);
+      } else {
+        console.error('❌ Search response not ok:', response.status, response.statusText);
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Error data:', errorData);
+        toast.error('Failed to search lab tests');
       }
     } catch (error) {
-      console.error('Error searching lab tests:', error);
+      console.error('❌ Error searching lab tests:', error);
+      toast.error('Network error while searching tests');
     } finally {
       setLabTestsLoading(false);
     }
   };
 
+  // ✅ NEW: Auto-fetch test details for items without codes/prices
+  const autoFetchTestDetails = async (itemIndex, testName) => {
+    if (!testName || testName.trim().length < 2) return;
+    
+    // Mark this item as being auto-fetched
+    setAutoFetchingItems(prev => new Set([...prev, itemIndex]));
+    
+    try {
+      console.log('🔍 Auto-fetching details for:', testName);
+      const response = await fetch(`${API_CONFIG.BASE_URL}/lab-tests/search?q=${encodeURIComponent(testName.trim())}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const tests = data.data || [];
+        
+        // Try multiple matching strategies
+        let exactMatch = null;
+        
+        // 1. Exact match by name
+        exactMatch = tests.find(test => 
+          test.testName.toLowerCase() === testName.toLowerCase()
+        );
+        
+        // 2. If no exact match, try partial match
+        if (!exactMatch) {
+          exactMatch = tests.find(test => 
+            test.testName.toLowerCase().includes(testName.toLowerCase()) ||
+            testName.toLowerCase().includes(test.testName.toLowerCase())
+          );
+        }
+        
+        // 3. If still no match, try code match
+        if (!exactMatch) {
+          exactMatch = tests.find(test => 
+            test.testCode.toLowerCase() === testName.toLowerCase()
+          );
+        }
+        
+        if (exactMatch) {
+          console.log('✅ Found match for auto-fetch:', exactMatch);
+          updateItem(itemIndex, {
+            code: exactMatch.testCode,
+            unitPrice: exactMatch.cost
+          });
+          // Remove the toast notification to make it seamless
+          console.log(`Auto-filled: ${exactMatch.testCode} - ₹${exactMatch.cost}`);
+        } else {
+          console.log('⚠️ No match found for:', testName);
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error auto-fetching test details:', error);
+    } finally {
+      // Remove this item from auto-fetching state
+      setAutoFetchingItems(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(itemIndex);
+        return newSet;
+      });
+    }
+  };
+
   // ✅ NEW: Handle test selection from dropdown
   const handleTestSelect = (test, idx) => {
+    console.log('🔍 Selected test:', test); // Debug log
     updateItem(idx, {
       name: test.testName,
       code: test.testCode,
@@ -450,7 +561,7 @@ function ReceptionistBilling() {
     setTestSearchTerm('');
     setShowTestDropdown(false);
     setActiveItemIndex(null);
-    toast.success(`Added ${test.testName}`);
+    toast.success(`Added ${test.testName} - Code: ${test.testCode} - Price: ₹${test.cost}`);
   };
 
   // ✅ NEW: Debounced search
@@ -704,6 +815,169 @@ function ReceptionistBilling() {
     }
   };
 
+  // ✅ NEW: Cancel bill functionality
+  const openCancelModal = (req) => {
+    setSelectedForCancel(req);
+    const totalAmount = req.billing?.amount || 0;
+    const paidAmount = req.billing?.paidAmount || 0;
+    
+    setCancelDetails({
+      reason: '',
+      initiateRefund: paidAmount > 0
+    });
+    setShowCancelModal(true);
+  };
+
+  const closeCancelModal = () => {
+    setShowCancelModal(false);
+    setSelectedForCancel(null);
+    setCancelDetails({
+      reason: '',
+      initiateRefund: false
+    });
+  };
+
+  const handleCancelBill = async () => {
+    if (!selectedForCancel) return;
+    
+    if (!cancelDetails.reason.trim()) {
+      toast.error('Cancellation reason is required');
+      return;
+    }
+    
+    try {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/billing/test-requests/${selectedForCancel._id}/cancel`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          cancellationReason: cancelDetails.reason
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to cancel bill');
+      }
+      
+      const responseData = await response.json();
+      
+      toast.success('Bill cancelled successfully');
+      closeCancelModal();
+      dispatch(fetchReceptionistBillingRequests());
+      
+      // If refund was initiated, show refund modal
+      if (cancelDetails.initiateRefund && selectedForCancel.billing?.paidAmount > 0) {
+        setTimeout(() => {
+          openRefundModal(selectedForCancel);
+        }, 1000);
+      }
+    } catch (error) {
+      console.error('❌ Error cancelling bill:', error);
+      toast.error(`Failed to cancel bill: ${error.message}`);
+    }
+  };
+
+  // ✅ NEW: Refund functionality
+  const openRefundModal = (req) => {
+    setSelectedForRefund(req);
+    const totalAmount = req.billing?.amount || 0;
+    const paidAmount = req.billing?.paidAmount || 0;
+    
+    setRefundDetails({
+      amount: paidAmount,
+      method: '',
+      reason: '',
+      notes: ''
+    });
+    setShowRefundModal(true);
+  };
+
+  const closeRefundModal = () => {
+    setShowRefundModal(false);
+    setSelectedForRefund(null);
+    setRefundDetails({
+      amount: 0,
+      method: '',
+      reason: '',
+      notes: ''
+    });
+  };
+
+  const handleProcessRefund = async () => {
+    if (!selectedForRefund) return;
+    
+    if (!refundDetails.method || !refundDetails.reason || refundDetails.amount <= 0) {
+      toast.error('Refund method, reason, and amount are required');
+      return;
+    }
+    
+    try {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/billing/test-requests/${selectedForRefund._id}/refund`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          amount: refundDetails.amount,
+          refundMethod: refundDetails.method,
+          reason: refundDetails.reason,
+          notes: refundDetails.notes
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to process refund');
+      }
+      
+      const responseData = await response.json();
+      
+      toast.success(`Refund of ${currencySymbol}${refundDetails.amount.toFixed(2)} processed successfully`);
+      closeRefundModal();
+      
+      // Refresh the billing requests to show updated status
+      dispatch(fetchReceptionistBillingRequests());
+    } catch (error) {
+      console.error('❌ Error processing refund:', error);
+      toast.error(`Failed to process refund: ${error.message}`);
+    }
+  };
+
+  // ✅ NEW: View invoice PDF in browser
+  const handleViewInvoice = async (testRequestId) => {
+    try {
+      console.log('🔍 Fetching invoice for test request:', testRequestId);
+      const response = await fetch(`${API_CONFIG.BASE_URL}/billing/test-requests/${testRequestId}/invoice`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      console.log('📊 Invoice response status:', response.status);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('❌ Invoice generation failed:', errorData);
+        throw new Error(errorData.message || `Server error: ${response.status}`);
+      }
+      
+      // Create blob and open in new tab
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, '_blank');
+      
+      toast.success('Invoice opened in new tab!');
+    } catch (error) {
+      console.error('❌ Error viewing invoice:', error);
+      toast.error(`Failed to view invoice: ${error.message}`);
+    }
+  };
+
   // ✅ NEW: Download invoice PDF
   const handleDownloadInvoice = async (testRequestId) => {
     try {
@@ -785,7 +1059,7 @@ function ReceptionistBilling() {
               </div>
 
                      {/* Billing Workflow Statistics */}
-           <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+           <div className="grid grid-cols-2 md:grid-cols-7 gap-4 mb-8">
              <div className="bg-white rounded-xl p-6 shadow-sm border border-blue-100 hover:shadow-md transition-shadow duration-200">
                <div className="flex items-center justify-between">
                  <div>
@@ -841,6 +1115,28 @@ function ReceptionistBilling() {
                  </div>
                </div>
              </div>
+             <div className="bg-white rounded-xl p-6 shadow-sm border border-red-100 hover:shadow-md transition-shadow duration-200">
+               <div className="flex items-center justify-between">
+                 <div>
+                   <div className="text-3xl font-bold text-red-700">{workflowStats.cancelled}</div>
+                   <div className="text-sm text-slate-600 mt-1">Cancelled</div>
+                 </div>
+                 <div className="bg-red-100 rounded-lg p-2">
+                   <X className="h-6 w-6 text-red-600" />
+                 </div>
+               </div>
+             </div>
+             <div className="bg-white rounded-xl p-6 shadow-sm border border-pink-100 hover:shadow-md transition-shadow duration-200">
+               <div className="flex items-center justify-between">
+                 <div>
+                   <div className="text-3xl font-bold text-pink-700">{workflowStats.refunded}</div>
+                   <div className="text-sm text-slate-600 mt-1">Refunded</div>
+                 </div>
+                 <div className="bg-pink-100 rounded-lg p-2">
+                   <CreditCard className="h-6 w-6 text-pink-600" />
+                 </div>
+               </div>
+             </div>
            </div>
 
           {/* Enhanced Search and Filter Section */}
@@ -866,6 +1162,8 @@ function ReceptionistBilling() {
                   <option value="Billing_Pending">Billing Pending</option>
                   <option value="Billing_Generated">Bill Generated</option>
                   <option value="Billing_Paid">Bill Paid & Verified</option>
+                  <option value="cancelled">Cancelled Bills</option>
+                  <option value="refunded">Refunded Bills</option>
                 </select>
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                   <Filter className="h-5 w-5 text-slate-400" />
@@ -962,6 +1260,8 @@ function ReceptionistBilling() {
                             ultraSafeRender(req.status) === 'Billing_Pending' ? 'bg-yellow-50 text-yellow-700 border-yellow-300' :
                             ultraSafeRender(req.status) === 'Billing_Generated' && ultraSafeRender(req.billing?.status) === 'payment_received' ? 'bg-orange-50 text-orange-700 border-orange-300' :
                             ultraSafeRender(req.status) === 'Billing_Generated' && req.billing?.paidAmount && req.billing.paidAmount > 0 && req.billing.paidAmount < req.billing.amount ? 'bg-purple-50 text-purple-700 border-purple-300' :
+                            ultraSafeRender(req.status) === 'Billing_Generated' && ultraSafeRender(req.billing?.status) === 'cancelled' ? 'bg-red-50 text-red-700 border-red-300' :
+                            ultraSafeRender(req.status) === 'Billing_Generated' && ultraSafeRender(req.billing?.status) === 'refunded' ? 'bg-pink-50 text-pink-700 border-pink-300' :
                             ultraSafeRender(req.status) === 'Billing_Generated' ? 'bg-blue-50 text-blue-700 border-blue-300' :
                             ultraSafeRender(req.status) === 'Billing_Paid' ? 'bg-green-50 text-green-700 border-green-300' :
                             ultraSafeRender(req.status) === 'Report_Sent' ? 'bg-green-50 text-green-700 border-green-300' :
@@ -972,6 +1272,10 @@ function ReceptionistBilling() {
                               ? 'Payment Received' 
                               : ultraSafeRender(req.status) === 'Billing_Generated' && req.billing?.paidAmount && req.billing.paidAmount > 0 && req.billing.paidAmount < req.billing.amount
                               ? 'Partially Paid'
+                              : ultraSafeRender(req.status) === 'Billing_Generated' && ultraSafeRender(req.billing?.status) === 'cancelled'
+                              ? 'Bill Cancelled'
+                              : ultraSafeRender(req.status) === 'Billing_Generated' && ultraSafeRender(req.billing?.status) === 'refunded'
+                              ? 'Bill Refunded'
                               : ultraSafeRender(req.status) === 'Report_Sent'
                               ? 'Bill Paid'
                               : ultraSafeRender(req.status)?.replace(/_/g, ' ') || 'Unknown'}
@@ -1037,11 +1341,13 @@ function ReceptionistBilling() {
                             )}
                             {ultraSafeRender(req.status) === 'Billing_Generated' && (
                               <>
+                                
+                                
                                 <button 
-                                  onClick={() => openBillModal(req)} 
-                                  className="inline-flex items-center px-3 py-2 bg-slate-100 text-slate-700 rounded-lg text-xs font-medium hover:bg-slate-200 transition-colors duration-200"
+                                  onClick={() => handleViewInvoice(req._id)} 
+                                  className="inline-flex items-center px-3 py-2 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700 transition-colors duration-200 shadow-sm"
                                 >
-                                  <FileText className="h-3 w-3 mr-1" /> View/Edit Bill
+                                  <FileText className="h-3 w-3 mr-1" /> View Invoice
                                 </button>
                                 
                                 {/* Show payment button for bills with remaining balance */}
@@ -1087,13 +1393,24 @@ function ReceptionistBilling() {
                                 >
                                   <Download className="h-3 w-3 mr-1" /> Download Invoice
                                 </button>
+                                
+                                {/* Cancel Bill Button - Only show if not already cancelled or refunded */}
+                                {req.billing?.status !== 'cancelled' && req.billing?.status !== 'refunded' && (
+                                  <button 
+                                    onClick={() => openCancelModal(req)} 
+                                    className="inline-flex items-center px-3 py-2 bg-red-600 text-white rounded-lg text-xs font-medium hover:bg-red-700 transition-colors duration-200 shadow-sm"
+                                  >
+                                    <X className="h-3 w-3 mr-1" /> Cancel Bill
+                                  </button>
+                                )}
                               </>
                             )}
                                                                                      {ultraSafeRender(req.status) === 'Billing_Paid' && (
                               <>
+                                
                                 <button 
-                                  onClick={() => openBillModal(req)} 
-                                  className="inline-flex items-center px-3 py-2 bg-slate-100 text-slate-700 rounded-lg text-xs font-medium hover:bg-slate-200 transition-colors duration-200"
+                                  onClick={() => handleViewInvoice(req._id)} 
+                                  className="inline-flex items-center px-3 py-2 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700 transition-colors duration-200 shadow-sm"
                                 >
                                   <FileText className="h-3 w-3 mr-1" /> View Invoice
                                 </button>
@@ -1138,13 +1455,24 @@ function ReceptionistBilling() {
                                 >
                                   <Download className="h-3 w-3 mr-1" /> Download Invoice
                                 </button>
+                                
+                                {/* Cancel Bill Button - Only show if not already cancelled or refunded */}
+                                {req.billing?.status !== 'cancelled' && req.billing?.status !== 'refunded' && (
+                                  <button 
+                                    onClick={() => openCancelModal(req)} 
+                                    className="inline-flex items-center px-3 py-2 bg-red-600 text-white rounded-lg text-xs font-medium hover:bg-red-700 transition-colors duration-200 shadow-sm"
+                                  >
+                                    <X className="h-3 w-3 mr-1" /> Cancel Bill
+                                  </button>
+                                )}
                               </>
                             )}
                             {ultraSafeRender(req.status) === 'Report_Sent' && (
                               <>
+                                
                                 <button 
-                                  onClick={() => openBillModal(req)} 
-                                  className="inline-flex items-center px-3 py-2 bg-slate-100 text-slate-700 rounded-lg text-xs font-medium hover:bg-slate-200 transition-colors duration-200"
+                                  onClick={() => handleViewInvoice(req._id)} 
+                                  className="inline-flex items-center px-3 py-2 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700 transition-colors duration-200 shadow-sm"
                                 >
                                   <FileText className="h-3 w-3 mr-1" /> View Invoice
                                 </button>
@@ -1189,13 +1517,24 @@ function ReceptionistBilling() {
                                 >
                                   <Download className="h-3 w-3 mr-1" /> Download Invoice
                                 </button>
+                                
+                                {/* Cancel Bill Button - Only show if not already cancelled or refunded */}
+                                {req.billing?.status !== 'cancelled' && req.billing?.status !== 'refunded' && (
+                                  <button 
+                                    onClick={() => openCancelModal(req)} 
+                                    className="inline-flex items-center px-3 py-2 bg-red-600 text-white rounded-lg text-xs font-medium hover:bg-red-700 transition-colors duration-200 shadow-sm"
+                                  >
+                                    <X className="h-3 w-3 mr-1" /> Cancel Bill
+                                  </button>
+                                )}
                               </>
                             )}
                             {ultraSafeRender(req.status) === 'Completed' && (
                               <>
+                                
                                 <button 
-                                  onClick={() => openBillModal(req)} 
-                                  className="inline-flex items-center px-3 py-2 bg-slate-100 text-slate-700 rounded-lg text-xs font-medium hover:bg-slate-200 transition-colors duration-200"
+                                  onClick={() => handleViewInvoice(req._id)} 
+                                  className="inline-flex items-center px-3 py-2 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700 transition-colors duration-200 shadow-sm"
                                 >
                                   <FileText className="h-3 w-3 mr-1" /> View Invoice
                                 </button>
@@ -1240,6 +1579,54 @@ function ReceptionistBilling() {
                                 >
                                   <Download className="h-3 w-3 mr-1" /> Download Invoice
                                 </button>
+                                
+                                {/* Cancel Bill Button - Only show if not already cancelled or refunded */}
+                                {req.billing?.status !== 'cancelled' && req.billing?.status !== 'refunded' && (
+                                  <button 
+                                    onClick={() => openCancelModal(req)} 
+                                    className="inline-flex items-center px-3 py-2 bg-red-600 text-white rounded-lg text-xs font-medium hover:bg-red-700 transition-colors duration-200 shadow-sm"
+                                  >
+                                    <X className="h-3 w-3 mr-1" /> Cancel Bill
+                                  </button>
+                                )}
+                              </>
+                            )}
+                            
+                            {/* Special handling for cancelled bills */}
+                            {req.billing?.status === 'cancelled' && (
+                              <>
+                                <button 
+                                  onClick={() => handleViewInvoice(req._id)} 
+                                  className="inline-flex items-center px-3 py-2 bg-gray-600 text-white rounded-lg text-xs font-medium hover:bg-gray-700 transition-colors duration-200 shadow-sm"
+                                >
+                                  <FileText className="h-3 w-3 mr-1" /> View Invoice
+                                </button>
+                                
+                                {/* Process Refund Button - Only show if there was payment */}
+                                {req.billing?.paidAmount > 0 && (
+                                  <button 
+                                    onClick={() => openRefundModal(req)} 
+                                    className="inline-flex items-center px-3 py-2 bg-pink-600 text-white rounded-lg text-xs font-medium hover:bg-pink-700 transition-colors duration-200 shadow-sm"
+                                  >
+                                    <CreditCard className="h-3 w-3 mr-1" /> Process Refund
+                                  </button>
+                                )}
+                              </>
+                            )}
+                            
+                            {/* Special handling for refunded bills */}
+                            {req.billing?.status === 'refunded' && (
+                              <>
+                                <button 
+                                  onClick={() => handleViewInvoice(req._id)} 
+                                  className="inline-flex items-center px-3 py-2 bg-gray-600 text-white rounded-lg text-xs font-medium hover:bg-gray-700 transition-colors duration-200 shadow-sm"
+                                >
+                                  <FileText className="h-3 w-3 mr-1" /> View Invoice
+                                </button>
+                                
+                                <span className="inline-flex items-center px-3 py-2 bg-pink-100 text-pink-700 rounded-lg text-xs font-medium">
+                                  <CheckCircle className="h-3 w-3 mr-1" /> Refund Processed
+                                </span>
                               </>
                             )}
 
@@ -1315,22 +1702,55 @@ function ReceptionistBilling() {
                         {items.map((it, idx) => (
                           <tr key={idx} className="text-sm hover:bg-slate-50 transition-colors duration-150">
                             <td className="py-3 px-4 relative">
-                              <input 
-                                className={`w-full border border-slate-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${!it.name ? 'border-red-300 focus:ring-red-500' : ''}`} 
-                                value={activeItemIndex === idx && showTestDropdown ? testSearchTerm : it.name} 
-                                onChange={(e) => {
-                                  setActiveItemIndex(idx);
-                                  setTestSearchTerm(e.target.value);
-                                  setShowTestDropdown(true);
-                                  updateItem(idx, { name: e.target.value });
-                                }}
-                                onFocus={() => {
-                                  setActiveItemIndex(idx);
-                                  setTestSearchTerm(it.name);
-                                  setShowTestDropdown(true);
-                                }}
-                                placeholder="Type to search tests..." 
-                              />
+                              <div className="relative">
+                                <input 
+                                  className={`w-full border px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${
+                                    !it.name ? 'border-red-300 focus:ring-red-500' : 
+                                    autoFetchingItems.has(idx) ? 'border-blue-300 focus:ring-blue-500 animate-pulse' :
+                                    !it.code || !it.unitPrice || it.unitPrice <= 0 ? 'border-yellow-300 focus:ring-yellow-500' : 
+                                    'border-green-300 focus:ring-green-500'
+                                  }`} 
+                                  value={activeItemIndex === idx && showTestDropdown ? testSearchTerm : it.name} 
+                                  onChange={(e) => {
+                                    const newValue = e.target.value;
+                                    setActiveItemIndex(idx);
+                                    setTestSearchTerm(newValue);
+                                    setShowTestDropdown(true);
+                                    updateItem(idx, { name: newValue });
+                                    
+                                    // Auto-fetch if the name is complete and no code/price exists
+                                    if (newValue.length >= 3 && (!it.code || !it.unitPrice || it.unitPrice <= 0)) {
+                                      // Debounce the auto-fetch
+                                      setTimeout(() => {
+                                        autoFetchTestDetails(idx, newValue);
+                                      }, 1000);
+                                    }
+                                  }}
+                                  onFocus={() => {
+                                    setActiveItemIndex(idx);
+                                    setTestSearchTerm(it.name);
+                                    setShowTestDropdown(true);
+                                  }}
+                                  onBlur={() => {
+                                    // Auto-fetch on blur if still missing code/price
+                                    if (it.name && it.name.length >= 2 && (!it.code || !it.unitPrice || it.unitPrice <= 0)) {
+                                      setTimeout(() => {
+                                        autoFetchTestDetails(idx, it.name);
+                                      }, 500);
+                                    }
+                                  }}
+                                  placeholder="Type to search tests..." 
+                                />
+                                {(!it.code || !it.unitPrice || it.unitPrice <= 0) && it.name && (
+                                  <div className="absolute -top-1 -right-1">
+                                    {autoFetchingItems.has(idx) ? (
+                                      <div className="w-3 h-3 bg-blue-500 rounded-full border border-white animate-pulse" title="Auto-fetching code & price..."></div>
+                                    ) : (
+                                      <div className="w-3 h-3 bg-yellow-400 rounded-full border border-white" title="Auto-fetching code & price..."></div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
                               
                               {/* Test Search Dropdown */}
                               {activeItemIndex === idx && showTestDropdown && (
@@ -1346,12 +1766,15 @@ function ReceptionistBilling() {
                                         key={test._id}
                                         type="button"
                                         onClick={() => handleTestSelect(test, idx)}
-                                        className="w-full px-4 py-2 text-left border-b border-slate-100 last:border-b-0 hover:bg-blue-50 transition-colors"
+                                        className="w-full px-4 py-3 text-left border-b border-slate-100 last:border-b-0 hover:bg-blue-50 transition-colors"
                                       >
                                         <div className="flex items-center justify-between">
                                           <div className="flex-1">
                                             <div className="font-medium text-slate-800 text-sm">{test.testName}</div>
                                             <div className="text-xs text-slate-500">Code: {test.testCode}</div>
+                                            {test.category && (
+                                              <div className="text-xs text-slate-400">Category: {test.category}</div>
+                                            )}
                                           </div>
                                           <div className="text-right ml-4">
                                             <div className="font-semibold text-blue-600 text-sm">{currencySymbol}{test.cost}</div>
@@ -1489,13 +1912,22 @@ function ReceptionistBilling() {
                        {loading ? 'Generating...' : 'Save Bill'}
                      </button>
                      {selected?.billing?.invoiceNumber && (
-                       <button 
-                         onClick={() => handleDownloadInvoice(selected._id)} 
-                         className="px-6 py-2 text-sm rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors duration-200 font-medium shadow-sm"
-                       >
-                         <Download className="h-4 w-4 mr-2 inline" />
-                         Download Invoice
-                       </button>
+                       <>
+                         <button 
+                           onClick={() => handleViewInvoice(selected._id)} 
+                           className="px-6 py-2 text-sm rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors duration-200 font-medium shadow-sm"
+                         >
+                           <FileText className="h-4 w-4 mr-2 inline" />
+                           View Invoice
+                         </button>
+                         <button 
+                           onClick={() => handleDownloadInvoice(selected._id)} 
+                           className="px-6 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors duration-200 font-medium shadow-sm"
+                         >
+                           <Download className="h-4 w-4 mr-2 inline" />
+                           Download Invoice
+                         </button>
+                       </>
                      )}
                    </div>
                 </div>
@@ -1824,6 +2256,226 @@ function ReceptionistBilling() {
                         ? 'Record Partial Payment'
                         : 'Record Payment'
                       }
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ✅ NEW: Cancel Bill Modal */}
+          {showCancelModal && selectedForCancel && (
+            <div className="fixed inset-0 bg-black/30 flex items-center justify-center p-4 z-50">
+              <div className="bg-white w-full max-w-2xl rounded-lg shadow-lg">
+                <div className="p-6 border-b flex items-center justify-between">
+                  <div>
+                    <h2 className="text-xl font-semibold text-slate-800">Cancel Bill</h2>
+                    <p className="text-sm text-slate-600 mt-1">
+                      Patient: {ultraSafeRender(selectedForCancel.patientName) || ultraSafeRender(selectedForCancel.patientId?.name)}
+                    </p>
+                    <p className="text-sm text-slate-600">
+                      Amount: {currencySymbol}{selectedForCancel.billing?.amount?.toFixed(2) || '0.00'}
+                    </p>
+                  </div>
+                  <button onClick={closeCancelModal} className="p-2 rounded-lg hover:bg-slate-100">
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+                
+                <div className="p-6 space-y-4">
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div className="flex items-start">
+                      <div className="flex-shrink-0">
+                        <X className="h-5 w-5 text-red-600 mt-0.5" />
+                      </div>
+                      <div className="ml-3">
+                        <h3 className="text-sm font-medium text-red-800">Warning: Bill Cancellation</h3>
+                        <div className="mt-2 text-sm text-red-700">
+                          <p>• This action will cancel the bill and prevent further processing</p>
+                          <p>• The test request status will be reverted to "Pending"</p>
+                          <p>• If payment was made, you can process a refund separately</p>
+                          <p>• This action cannot be undone</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Cancellation Reason <span className="text-red-500">*</span>
+                    </label>
+                    <textarea 
+                      className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500"
+                      rows={4}
+                      placeholder="Please provide a detailed reason for cancelling this bill..."
+                      value={cancelDetails.reason}
+                      onChange={(e) => setCancelDetails(prev => ({ ...prev, reason: e.target.value }))}
+                      required
+                    />
+                  </div>
+
+                  {selectedForCancel.billing?.paidAmount > 0 && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <div className="flex items-start">
+                        <div className="flex-shrink-0">
+                          <CreditCard className="h-5 w-5 text-blue-600 mt-0.5" />
+                        </div>
+                        <div className="ml-3">
+                          <h3 className="text-sm font-medium text-blue-800">Payment Refund Available</h3>
+                          <div className="mt-2 text-sm text-blue-700">
+                            <p>Amount paid: {currencySymbol}{selectedForCancel.billing.paidAmount.toFixed(2)}</p>
+                            <p>After cancelling, you can process a refund for this amount.</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="p-6 border-t flex items-center justify-between bg-slate-50">
+                  <div className="text-sm text-slate-500">
+                    <p>• Bill will be marked as cancelled</p>
+                    <p>• Test request will revert to "Pending" status</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button onClick={closeCancelModal} className="px-4 py-2 text-sm rounded bg-slate-200 hover:bg-slate-300">
+                      Cancel
+                    </button>
+                    <button 
+                      onClick={handleCancelBill}
+                      disabled={!cancelDetails.reason.trim()}
+                      className="px-4 py-2 text-sm rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Cancel Bill
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ✅ NEW: Refund Modal */}
+          {showRefundModal && selectedForRefund && (
+            <div className="fixed inset-0 bg-black/30 flex items-center justify-center p-4 z-50">
+              <div className="bg-white w-full max-w-2xl rounded-lg shadow-lg">
+                <div className="p-6 border-b flex items-center justify-between">
+                  <div>
+                    <h2 className="text-xl font-semibold text-slate-800">Process Refund</h2>
+                    <p className="text-sm text-slate-600 mt-1">
+                      Patient: {ultraSafeRender(selectedForRefund.patientName) || ultraSafeRender(selectedForRefund.patientId?.name)}
+                    </p>
+                    <p className="text-sm text-slate-600">
+                      Original Amount: {currencySymbol}{selectedForRefund.billing?.amount?.toFixed(2) || '0.00'}
+                    </p>
+                  </div>
+                  <button onClick={closeRefundModal} className="p-2 rounded-lg hover:bg-slate-100">
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+                
+                <div className="p-6 space-y-4">
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div className="flex items-start">
+                      <div className="flex-shrink-0">
+                        <CreditCard className="h-5 w-5 text-green-600 mt-0.5" />
+                      </div>
+                      <div className="ml-3">
+                        <h3 className="text-sm font-medium text-green-800">Refund Information</h3>
+                        <div className="mt-2 text-sm text-green-700">
+                          <p>• Refund will be processed for the specified amount</p>
+                          <p>• Refund method will be recorded for audit purposes</p>
+                          <p>• Bill status will be updated to "Refunded"</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Refund Amount <span className="text-red-500">*</span>
+                      </label>
+                      <input 
+                        type="number"
+                        className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+                        placeholder="Enter refund amount"
+                        value={refundDetails.amount}
+                        onChange={(e) => setRefundDetails(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
+                        min="0.01"
+                        max={selectedForRefund.billing?.paidAmount || 0}
+                        step="0.01"
+                        required
+                      />
+                      <p className="text-xs text-slate-500 mt-1">
+                        Maximum: {currencySymbol}{(selectedForRefund.billing?.paidAmount || 0).toFixed(2)}
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Refund Method <span className="text-red-500">*</span>
+                      </label>
+                      <select 
+                        className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+                        value={refundDetails.method}
+                        onChange={(e) => setRefundDetails(prev => ({ ...prev, method: e.target.value }))}
+                        required
+                      >
+                        <option value="">Select refund method</option>
+                        <option value="Cash">Cash</option>
+                        <option value="Card">Card (Credit/Debit)</option>
+                        <option value="UPI">UPI</option>
+                        <option value="Net Banking">Net Banking</option>
+                        <option value="Cheque">Cheque</option>
+                        <option value="Bank Transfer">Bank Transfer</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Refund Reason <span className="text-red-500">*</span>
+                    </label>
+                    <textarea 
+                      className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+                      rows={3}
+                      placeholder="Please provide a detailed reason for this refund..."
+                      value={refundDetails.reason}
+                      onChange={(e) => setRefundDetails(prev => ({ ...prev, reason: e.target.value }))}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Additional Notes (Optional)
+                    </label>
+                    <textarea 
+                      className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+                      rows={2}
+                      placeholder="Any additional notes about the refund..."
+                      value={refundDetails.notes}
+                      onChange={(e) => setRefundDetails(prev => ({ ...prev, notes: e.target.value }))}
+                    />
+                  </div>
+                </div>
+                
+                <div className="p-6 border-t flex items-center justify-between bg-slate-50">
+                  <div className="text-sm text-slate-500">
+                    <p>• Refund will be recorded and tracked</p>
+                    <p>• Bill status will be updated to "Refunded"</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button onClick={closeRefundModal} className="px-4 py-2 text-sm rounded bg-slate-200 hover:bg-slate-300">
+                      Cancel
+                    </button>
+                    <button 
+                      onClick={handleProcessRefund}
+                      disabled={!refundDetails.method || !refundDetails.reason || refundDetails.amount <= 0}
+                      className="px-4 py-2 text-sm rounded bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Process Refund
                     </button>
                   </div>
                 </div>

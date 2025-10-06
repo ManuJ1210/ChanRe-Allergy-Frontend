@@ -754,31 +754,38 @@ const SuperadminBillingReports = () => {
                             let statusClass = '';
                             let statusIcon = null;
                             
-                            // Check if this bill was paid in multiple installments
-                            const hasMultiplePayments = partialData.paymentCount > 1;
-                            
-                            if (actualPaidAmount >= totalAmount && totalAmount > 0) {
-                              if (hasMultiplePayments) {
-                                statusText = 'Partially Fully Paid';
-                                statusClass = 'bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 border-blue-300';
-                                statusIcon = <CheckCircle className="w-4 h-4 mr-2" />;
-                              } else {
-                                statusText = 'Fully Paid';
-                                statusClass = 'bg-gradient-to-r from-emerald-100 to-emerald-200 text-emerald-800 border-emerald-300';
-                                statusIcon = <CheckCircle className="w-4 h-4 mr-2" />;
-                              }
-                            } else if (actualPaidAmount > 0 && actualPaidAmount < totalAmount) {
-                              statusText = 'Partially Paid';
-                              statusClass = 'bg-gradient-to-r from-amber-100 to-amber-200 text-amber-800 border-amber-300';
-                              statusIcon = <Clock className="w-4 h-4 mr-2" />;
-                            } else if (item.billing?.status === 'cancelled') {
-                              statusText = 'Cancelled';
+                            // Check for cancelled or refunded status first - these take priority
+                            if (item.billing?.status === 'cancelled') {
+                              statusText = 'Bill Cancelled';
                               statusClass = 'bg-gradient-to-r from-red-100 to-red-200 text-red-800 border-red-300';
                               statusIcon = <AlertCircle className="w-4 h-4 mr-2" />;
+                            } else if (item.billing?.status === 'refunded') {
+                              statusText = 'Bill Refunded';
+                              statusClass = 'bg-gradient-to-r from-pink-100 to-pink-200 text-pink-800 border-pink-300';
+                              statusIcon = <DollarSign className="w-4 h-4 mr-2" />;
                             } else {
-                              statusText = item.billing?.status || 'Generated';
-                              statusClass = 'bg-gradient-to-r from-slate-100 to-slate-200 text-slate-800 border-slate-300';
-                              statusIcon = <Clock className="w-4 h-4 mr-2" />;
+                              // Check if this bill was paid in multiple installments
+                              const hasMultiplePayments = partialData.paymentCount > 1;
+                              
+                              if (actualPaidAmount >= totalAmount && totalAmount > 0) {
+                                if (hasMultiplePayments) {
+                                  statusText = 'Partially Fully Paid';
+                                  statusClass = 'bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 border-blue-300';
+                                  statusIcon = <CheckCircle className="w-4 h-4 mr-2" />;
+                                } else {
+                                  statusText = 'Fully Paid';
+                                  statusClass = 'bg-gradient-to-r from-emerald-100 to-emerald-200 text-emerald-800 border-emerald-300';
+                                  statusIcon = <CheckCircle className="w-4 h-4 mr-2" />;
+                                }
+                              } else if (actualPaidAmount > 0 && actualPaidAmount < totalAmount) {
+                                statusText = 'Partially Paid';
+                                statusClass = 'bg-gradient-to-r from-amber-100 to-amber-200 text-amber-800 border-amber-300';
+                                statusIcon = <Clock className="w-4 h-4 mr-2" />;
+                              } else {
+                                statusText = item.billing?.status || 'Generated';
+                                statusClass = 'bg-gradient-to-r from-slate-100 to-slate-200 text-slate-800 border-slate-300';
+                                statusIcon = <Clock className="w-4 h-4 mr-2" />;
+                              }
                             }
 
                             return (
@@ -930,8 +937,11 @@ const SuperadminBillingReports = () => {
                         actualPaidAmount = backendPaidAmount;
                       }
                       
-                      // Categorize bills
-                      if (actualPaidAmount >= amount && amount > 0) {
+                      // Categorize bills - check for cancelled/refunded first
+                      if (status === 'cancelled' || status === 'refunded') {
+                        // Don't count cancelled/refunded bills in regular statistics
+                        // They should be handled separately if needed
+                      } else if (actualPaidAmount >= amount && amount > 0) {
                         paidBills += 1;
                       } else if (actualPaidAmount > 0 && actualPaidAmount < amount) {
                         pendingBills += 1;
@@ -1058,7 +1068,11 @@ const SuperadminBillingReports = () => {
                   
                   // Show bills that have partial payments OR were paid in multiple installments
                   // This includes both outstanding partial payments AND fully paid bills that were paid in multiple installments
-                  const shouldInclude = (partialData.paymentCount > 1 || (actualPaidAmount > 0 && actualPaidAmount < totalAmount)) && totalAmount > 0;
+                  // But exclude cancelled/refunded bills
+                  const shouldInclude = (partialData.paymentCount > 1 || (actualPaidAmount > 0 && actualPaidAmount < totalAmount)) && 
+                                       totalAmount > 0 && 
+                                       item.billing?.status !== 'cancelled' && 
+                                       item.billing?.status !== 'refunded';
                   
                   // Debug logging for Chethan's bill
                   if (item.patientName === 'Chethan') {
@@ -1083,10 +1097,13 @@ const SuperadminBillingReports = () => {
                   
                   // Show bills that have partial payments OR were paid in multiple installments
                   // This includes both outstanding partial payments AND fully paid bills that were paid in multiple installments
+                  // But exclude cancelled/refunded bills
                   return (status === 'payment_received' || 
                           status === 'generated' || 
                           status === 'paid' ||
                           status === 'verified') &&
+                         status !== 'cancelled' &&
+                         status !== 'refunded' &&
                          paidAmount > 0 && 
                          totalAmount > 0;
                 }) || [];

@@ -129,6 +129,34 @@ const SuperadminBilling = () => {
     dispatch(fetchCenters());
   }, [dispatch]);
 
+  // Auto-refresh billing data every 30 seconds to catch status updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      console.log('🔄 Auto-refreshing billing data...');
+      dispatch(fetchAllBillingData());
+      dispatch(fetchBillingStats());
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [dispatch]);
+
+  // Refresh data when user returns to the tab (handles status changes from other pages)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('🔄 Tab became visible, refreshing billing data...');
+        dispatch(fetchAllBillingData());
+        dispatch(fetchBillingStats());
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [dispatch]);
+
 
   // Handle filter changes
   useEffect(() => {
@@ -184,8 +212,22 @@ const SuperadminBilling = () => {
       'generated': { color: 'bg-blue-100 text-blue-800', icon: FileText, label: 'Generated' },
       'payment_received': { color: 'bg-yellow-100 text-yellow-800', icon: DollarSign, label: 'Payment Received' },
       'paid': { color: 'bg-green-100 text-green-800', icon: CheckCircle, label: 'Paid' },
-      'verified': { color: 'bg-purple-100 text-purple-800', icon: CheckCircle, label: 'Verified' }
+      'verified': { color: 'bg-purple-100 text-purple-800', icon: CheckCircle, label: 'Verified' },
+      'cancelled': { color: 'bg-red-100 text-red-800', icon: AlertCircle, label: 'Bill Cancelled' },
+      'refunded': { color: 'bg-pink-100 text-pink-800', icon: DollarSign, label: 'Bill Refunded' }
     };
+
+    // Check for cancelled or refunded status first - these take priority
+    if (status === 'cancelled' || status === 'refunded') {
+      const config = statusConfig[status];
+      const Icon = config.icon;
+      return (
+        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.color}`}>
+          <Icon className="w-3 h-3 mr-1" />
+          {config.label}
+        </span>
+      );
+    }
 
     // Get partial payment data to check for multiple payments
     const partialData = getPartialPaymentData(requestId);
@@ -706,6 +748,8 @@ const SuperadminBilling = () => {
               <option value="payment_received">Payment Received</option>
               <option value="paid">Paid</option>
               <option value="verified">Verified</option>
+              <option value="cancelled">Cancelled Bills</option>
+              <option value="refunded">Refunded Bills</option>
             </select>
 
             {/* Enhanced Payment Status Filter */}

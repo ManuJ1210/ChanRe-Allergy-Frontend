@@ -62,6 +62,9 @@ const CenterAdminBilling = () => {
   const actionSuccessToastShown = useRef(false);
   const actionErrorToastShown = useRef(false);
   
+  // State to track last refresh time
+  const [lastRefreshTime, setLastRefreshTime] = useState(null);
+  
   // Function to reset toast tracking
   const resetToastTracking = () => {
     successToastShown.current = false;
@@ -164,7 +167,7 @@ const CenterAdminBilling = () => {
   };
 
   // ✅ REAL DATA: Fetch billing data for the center
-  const fetchBillingData = async () => {
+  const fetchBillingData = async (forceRefresh = false) => {
     try {
       setLoading(true);
       
@@ -214,7 +217,8 @@ const CenterAdminBilling = () => {
       
       // Add cache-busting parameter to ensure fresh data
       const timestamp = new Date().getTime();
-      const response = await API.get(`/billing/center?t=${timestamp}`);
+      const cacheParam = forceRefresh ? `&force=${timestamp}` : '';
+      const response = await API.get(`/billing/center?t=${timestamp}${cacheParam}`);
       
       console.log('📋 Raw API response:', response.data);
       
@@ -278,6 +282,7 @@ const CenterAdminBilling = () => {
       setBillingData([]);
     } finally {
       setLoading(false);
+      setLastRefreshTime(new Date());
     }
   };
 
@@ -345,6 +350,34 @@ const CenterAdminBilling = () => {
       // This will run when the component unmounts or when dependencies change
     };
   }, [user, localUser, localUser?.centerId, localUser?.center?.id]);
+
+  // Auto-refresh billing data every 30 seconds to catch status updates
+  useEffect(() => {
+    if (!user || !localUser) return;
+
+    const interval = setInterval(() => {
+      console.log('🔄 Auto-refreshing billing data...');
+      fetchBillingData();
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [user, localUser]);
+
+  // Refresh data when user returns to the tab (handles status changes from other pages)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && user && localUser) {
+        console.log('🔄 Tab became visible, refreshing billing data...');
+        fetchBillingData();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [user, localUser]);
 
   // Fetch center information if centerId is not available
   const fetchCenterInfo = async () => {
@@ -527,8 +560,25 @@ const CenterAdminBilling = () => {
     const statusConfig = {
       'not_generated': { color: 'bg-gray-100 text-gray-800', icon: Clock, label: 'Not Generated' },
       'generated': { color: 'bg-blue-100 text-blue-800', icon: FileText, label: 'Generated' },
-      'paid': { color: 'bg-green-100 text-green-800', icon: CheckCircle, label: 'Paid' }
+      'payment_received': { color: 'bg-yellow-100 text-yellow-800', icon: DollarSign, label: 'Payment Received' },
+      'partially_paid': { color: 'bg-purple-100 text-purple-800', icon: DollarSign, label: 'Partially Paid' },
+      'paid': { color: 'bg-green-100 text-green-800', icon: CheckCircle, label: 'Paid' },
+      'verified': { color: 'bg-green-100 text-green-800', icon: CheckCircle, label: 'Verified' },
+      'cancelled': { color: 'bg-red-100 text-red-800', icon: X, label: 'Bill Cancelled' },
+      'refunded': { color: 'bg-pink-100 text-pink-800', icon: DollarSign, label: 'Bill Refunded' }
     };
+
+    // Check for cancelled or refunded status first - these take priority
+    if (status === 'cancelled' || status === 'refunded') {
+      const config = statusConfig[status];
+      const Icon = config.icon;
+      return (
+        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.color}`}>
+          <Icon className="w-3 h-3 mr-1" />
+          {config.label}
+        </span>
+      );
+    }
 
     // Calculate actual payment status based on amounts
     if (billing && billing.amount > 0) {
@@ -1132,16 +1182,31 @@ const CenterAdminBilling = () => {
               </div>
               <div className="flex items-center space-x-3">
                 <button
-                  onClick={fetchBillingData}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 flex items-center gap-2"
+                  onClick={() => fetchBillingData(false)}
+                  disabled={loading}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors duration-200 flex items-center gap-2"
                   title="Refresh billing data"
                 >
-                  <RefreshCw className="h-4 w-4" />
-                  Refresh
+                  <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                  {loading ? 'Refreshing...' : 'Refresh'}
+                </button>
+                <button
+                  onClick={() => fetchBillingData(true)}
+                  disabled={loading}
+                  className="px-3 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 transition-colors duration-200 flex items-center gap-2 text-sm"
+                  title="Force refresh (bypass cache)"
+                >
+                  <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                  Force
                 </button>
                 <div className="text-right">
                   <div className="text-sm text-slate-500">Total Records</div>
                   <div className="text-2xl font-bold text-slate-800">{filteredData?.length || 0}</div>
+                  {lastRefreshTime && (
+                    <div className="text-xs text-slate-400 mt-1">
+                      Last updated: {lastRefreshTime.toLocaleTimeString()}
+                    </div>
+                  )}
                 </div>
                 <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
                   <DollarSign className="w-6 h-6 text-white" />
@@ -1304,7 +1369,12 @@ const CenterAdminBilling = () => {
                 <option value="all">All Status</option>
                 <option value="not_generated">Not Generated</option>
                 <option value="generated">Generated</option>
+                <option value="payment_received">Payment Received</option>
+                <option value="partially_paid">Partially Paid</option>
                 <option value="paid">Paid</option>
+                <option value="verified">Verified</option>
+                <option value="cancelled">Cancelled Bills</option>
+                <option value="refunded">Refunded Bills</option>
               </select>
 
               {/* Enhanced Payment Status Filter */}

@@ -640,6 +640,21 @@ const CenterAdminBillingReports = () => {
                             // Check if this bill was paid in multiple installments
                             const hasMultiplePayments = partialData.paymentCount > 1;
                             
+                            // Check for cancelled or refunded status first - these take priority
+                            if (status === 'cancelled') {
+                              return (
+                                <span className="inline-flex items-center px-4 py-2 text-xs font-bold rounded-full border bg-gradient-to-r from-red-100 to-red-200 text-red-800 border-red-300">
+                                  Bill Cancelled
+                                </span>
+                              );
+                            } else if (status === 'refunded') {
+                              return (
+                                <span className="inline-flex items-center px-4 py-2 text-xs font-bold rounded-full border bg-gradient-to-r from-pink-100 to-pink-200 text-pink-800 border-pink-300">
+                                  Bill Refunded
+                                </span>
+                              );
+                            }
+                            
                             // Determine payment status
                             if (totalAmount > 0) {
                               if (actualPaidAmount >= totalAmount) {
@@ -674,6 +689,8 @@ const CenterAdminBillingReports = () => {
                                   ? 'bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-800 border-yellow-300'
                                   : status === 'cancelled'
                                   ? 'bg-gradient-to-r from-red-100 to-red-200 text-red-800 border-red-300'
+                                  : status === 'refunded'
+                                  ? 'bg-gradient-to-r from-pink-100 to-pink-200 text-pink-800 border-pink-300'
                                   : 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 border-gray-300'
                               }`}>
                                 {status === 'paid' || status === 'verified' ? (
@@ -681,7 +698,9 @@ const CenterAdminBillingReports = () => {
                                 ) : status === 'generated' ? (
                                   <>Generated</>
                                 ) : status === 'cancelled' ? (
-                                  <>Cancelled</>
+                                  <>Bill Cancelled</>
+                                ) : status === 'refunded' ? (
+                                  <>Bill Refunded</>
                                 ) : (
                                   'Generated'
                                 )}
@@ -867,7 +886,11 @@ const CenterAdminBillingReports = () => {
                     
                     // Show bills that have partial payments OR were paid in multiple installments
                     // This includes both outstanding partial payments AND fully paid bills that were paid in multiple installments
-                    const shouldInclude = (partialData.paymentCount > 1 || (actualPaidAmount > 0 && actualPaidAmount < totalAmount)) && totalAmount > 0;
+                    // But exclude cancelled/refunded bills
+                    const shouldInclude = (partialData.paymentCount > 1 || (actualPaidAmount > 0 && actualPaidAmount < totalAmount)) && 
+                                         totalAmount > 0 && 
+                                         item.billing?.status !== 'cancelled' && 
+                                         item.billing?.status !== 'refunded';
                     
                     // Debug logging for Chethan's bill
                     if (item.patientName === 'Chethan') {
@@ -893,10 +916,13 @@ const CenterAdminBillingReports = () => {
                     
                     // Show bills that have partial payments OR were paid in multiple installments
                     // This includes both outstanding partial payments AND fully paid bills that were paid in multiple installments
+                    // But exclude cancelled/refunded bills
                     return (status === 'payment_received' || 
                             status === 'generated' || 
                             status === 'paid' ||
                             status === 'verified') &&
+                           status !== 'cancelled' &&
+                           status !== 'refunded' &&
                            paidAmount > 0 && 
                            totalAmount > 0;
                   }) || [];
@@ -1231,8 +1257,11 @@ const CenterAdminBillingReports = () => {
                         actualPaidAmount = backendPaidAmount;
                       }
                       
-                      // Categorize bills
-                      if (actualPaidAmount >= amount && amount > 0) {
+                      // Categorize bills - check for cancelled/refunded first
+                      if (status === 'cancelled' || status === 'refunded') {
+                        // Don't count cancelled/refunded bills in regular statistics
+                        // They should be handled separately if needed
+                      } else if (actualPaidAmount >= amount && amount > 0) {
                         paidBills += 1;
                       } else if (actualPaidAmount > 0 && actualPaidAmount < amount) {
                         pendingBills += 1;

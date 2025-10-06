@@ -15,7 +15,8 @@ import {
   CreditCard,
   Receipt,
   Eye,
-  Printer
+  Printer,
+  AlertCircle
 } from 'lucide-react';
 
 // Import Redux actions
@@ -73,8 +74,22 @@ const BillingDetails = () => {
       'generated': { color: 'bg-blue-100 text-blue-800', icon: FileText, label: 'Generated' },
       'payment_received': { color: 'bg-yellow-100 text-yellow-800', icon: DollarSign, label: 'Payment Received' },
       'paid': { color: 'bg-green-100 text-green-800', icon: CheckCircle, label: 'Paid' },
-      'verified': { color: 'bg-purple-100 text-purple-800', icon: CheckCircle, label: 'Verified' }
+      'verified': { color: 'bg-purple-100 text-purple-800', icon: CheckCircle, label: 'Verified' },
+      'cancelled': { color: 'bg-red-100 text-red-800', icon: AlertCircle, label: 'Bill Cancelled' },
+      'refunded': { color: 'bg-pink-100 text-pink-800', icon: DollarSign, label: 'Bill Refunded' }
     };
+
+    // Check for cancelled or refunded status first - these take priority
+    if (status === 'cancelled' || status === 'refunded') {
+      const config = statusConfig[status];
+      const Icon = config.icon;
+      return (
+        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.color}`}>
+          <Icon className="w-3 h-3 mr-1" />
+          {config.label}
+        </span>
+      );
+    }
 
     // Get partial payment data to check for multiple payments
     const partialData = getPartialPaymentData(requestId);
