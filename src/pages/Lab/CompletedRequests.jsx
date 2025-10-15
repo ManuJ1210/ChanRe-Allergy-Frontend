@@ -36,7 +36,7 @@ export default function CompletedRequests() {
       
       // Filter for completed requests only
       const completedData = data.filter(request => 
-        ['Testing_Completed', 'Report_Generated', 'Report_Sent', 'Completed'].includes(request.status)
+        ['Testing_Completed', 'Billing_Paid', 'Report_Generated', 'Report_Sent', 'Completed'].includes(request.status)
       );
       
       setCompletedRequests(completedData);
@@ -217,6 +217,10 @@ export default function CompletedRequests() {
       return 'text-green-600 bg-green-50 border-green-200';
     } else if (result.toLowerCase().includes('positive')) {
       return 'text-red-600 bg-red-50 border-red-200';
+    } else if (result.toLowerCase().includes('no results')) {
+      return 'text-gray-600 bg-gray-50 border-gray-200';
+    } else if (result.toLowerCase().includes('report available')) {
+      return 'text-blue-600 bg-blue-50 border-blue-200';
     } else {
       return 'text-yellow-600 bg-yellow-50 border-yellow-200';
     }
@@ -225,6 +229,7 @@ export default function CompletedRequests() {
   const getStatusColor = (status) => {
     switch (status) {
       case 'Testing_Completed': return 'bg-teal-100 text-teal-800';
+      case 'Billing_Paid': return 'bg-blue-100 text-blue-800';
       case 'Report_Generated': return 'bg-cyan-100 text-cyan-800';
       case 'Report_Sent': return 'bg-emerald-100 text-emerald-800';
       case 'Completed': return 'bg-green-100 text-green-800';
@@ -235,6 +240,32 @@ export default function CompletedRequests() {
 
   const getDisplayStatus = (status) => {
     return status.replace(/_/g, ' ');
+  };
+
+  // ✅ NEW: Check if report is accessible based on payment status
+  const isReportAccessible = (request) => {
+    // Check if tests are completed
+    const isTestCompleted = ['Testing_Completed', 'Billing_Paid', 'Report_Generated', 'Report_Sent', 'Completed', 'feedback_sent'].includes(request.status);
+    
+    // Check if payment is complete
+    const isPaymentComplete = request.billing ? 
+      (request.billing.amount || 0) - (request.billing.paidAmount || 0) <= 0 : true;
+    
+    // Allow access if either tests are completed OR payment is complete
+    return isTestCompleted || isPaymentComplete;
+  };
+
+  // ✅ NEW: Get lock reason for inaccessible reports
+  const getLockReason = (request) => {
+    const isTestCompleted = ['Testing_Completed', 'Billing_Paid', 'Report_Generated', 'Report_Sent', 'Completed', 'feedback_sent'].includes(request.status);
+    const isPaymentComplete = request.billing ? 
+      (request.billing.amount || 0) - (request.billing.paidAmount || 0) <= 0 : true;
+    
+    const reasons = [];
+    if (!isTestCompleted) reasons.push('Tests not fully completed');
+    if (!isPaymentComplete) reasons.push('Payment not fully completed');
+    
+    return reasons.join(' and ');
   };
 
   const filteredRequests = completedRequests.filter(request => {
@@ -461,6 +492,7 @@ export default function CompletedRequests() {
               >
                 <option value="all">All Results</option>
                 <option value="Testing_Completed">Testing Completed</option>
+                <option value="Billing_Paid">Billing Paid</option>
                 <option value="Report_Generated">Report Generated</option>
                 <option value="Report_Sent">Report Sent</option>
                 <option value="Completed">Completed</option>
@@ -493,9 +525,7 @@ export default function CompletedRequests() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                       Test Details
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                      Results
-                    </th>
+                   
                     <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                       Status
                     </th>
@@ -525,18 +555,7 @@ export default function CompletedRequests() {
                           <div className="text-xs text-slate-500">{request.doctorName || 'N/A'}</div>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <div>
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getResultColor(request.testResults)}`}>
-                            {request.testResults || 'Pending'}
-                          </span>
-                          {request.completedDate && (
-                            <div className="text-xs text-slate-400 mt-1">
-                              {new Date(request.completedDate).toLocaleDateString()}
-                            </div>
-                          )}
-                        </div>
-                      </td>
+                      
                       <td className="px-6 py-4">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(request.status)}`}>
                           {getDisplayStatus(request.status) || 'Unknown'}
@@ -551,7 +570,7 @@ export default function CompletedRequests() {
                             <FaEye className="inline mr-1" />
                             Details
                           </button>
-                          {(request.status === 'Report_Generated' || request.status === 'Report_Sent' || request.status === 'Completed') && request.reportFilePath && (
+                          {(request.status === 'Billing_Paid' || request.status === 'Report_Generated' || request.status === 'Report_Sent' || request.status === 'Completed') && request.reportFilePath && (
                             <>
                               <button
                                 onClick={() => handleViewReport(request._id)}

@@ -29,12 +29,28 @@ const TestRequestDetails = () => {
   const [testRequest, setTestRequest] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [reportStatus, setReportStatus] = useState(null);
+  const [buttonsDisabled, setButtonsDisabled] = useState(false);
+  const [lockReason, setLockReason] = useState('');
+  const [showPdfButtons, setShowPdfButtons] = useState(false);
 
   useEffect(() => {
     if (id) {
       fetchTestRequestDetails();
     }
   }, [id]);
+
+  useEffect(() => {
+    if (testRequest) {
+      // ✅ IMPROVED: Add a small delay to prevent rapid API calls
+      const timeoutId = setTimeout(() => {
+        checkReportStatus();
+      }, 100);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [testRequest]);
 
   const fetchTestRequestDetails = async () => {
     try {
@@ -49,18 +65,372 @@ const TestRequestDetails = () => {
     }
   };
 
-  const handlePrint = () => {
-    window.print();
+  const checkReportStatus = async () => {
+    try {
+      const response = await API.get(`/test-requests/report-status/${id}`);
+      setReportStatus(response.data);
+      
+      // Check if tests are completed AND payment is fully settled
+      const isTestCompleted = ['Testing_Completed', 'Billing_Paid', 'Report_Generated', 'Report_Sent', 'Completed', 'feedback_sent'].includes(testRequest?.status);
+      const isPaymentComplete = testRequest?.billing ? 
+        (testRequest.billing.amount || 0) - (testRequest.billing.paidAmount || 0) <= 0 : false;
+      
+      // Only show PDF buttons if BOTH conditions are met
+      const shouldShowButtons = isTestCompleted && isPaymentComplete && response.data.isAvailable;
+      
+      setShowPdfButtons(shouldShowButtons);
+      setButtonsDisabled(!shouldShowButtons);
+      
+      if (!shouldShowButtons) {
+        const reasons = [];
+        if (!isTestCompleted) reasons.push('Tests not fully completed');
+        if (!isPaymentComplete) reasons.push('Payment not fully completed');
+        if (!response.data.isAvailable) reasons.push('Report not available');
+        setLockReason(reasons.join(' and '));
+      } else {
+        setLockReason('');
+      }
+    } catch (error) {
+      // ✅ IMPROVED: Better error handling for 403 errors
+      if (error.response?.status === 403) {
+        console.warn('Report access restricted:', error.response.data?.message);
+        setButtonsDisabled(true);
+        setShowPdfButtons(false);
+        setLockReason(error.response.data?.details?.reason || 'Report access is restricted');
+        setReportStatus(null);
+      } else {
+        console.warn('Could not check report status:', error);
+        setButtonsDisabled(true);
+        setShowPdfButtons(false);
+        setLockReason('Report not available');
+        setReportStatus(null);
+      }
+    }
   };
 
-  const handleDownload = () => {
-    const element = document.createElement('a');
-    const file = new Blob([document.documentElement.outerHTML], { type: 'text/html' });
-    element.href = URL.createObjectURL(file);
-    element.download = `test-request-${id}.html`;
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
+  // PDF handling functions
+  const handleViewPDF = async () => {
+    try {
+      setPdfLoading(true);
+      setError(null);
+      
+      const response = await API.get(`/test-requests/download-report/${id}`, {
+        responseType: 'blob',
+        headers: {
+          'Accept': 'application/pdf'
+        }
+      });
+      
+      if (response.status !== 200) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const contentType = response.headers['content-type'] || response.headers['Content-Type'];
+      
+      let pdfBlob;
+      if (contentType && contentType.includes('application/pdf')) {
+        pdfBlob = response.data;
+      } else {
+        // Handle text/JSON response that needs conversion
+        let pdfContent = response.data;
+        if (typeof pdfContent === 'object' && pdfContent.pdfContent) {
+          pdfContent = pdfContent.pdfContent;
+        }
+        
+        const cleanedPdfContent = pdfContent
+          .replace(/\\n/g, '\n')
+          .replace(/\\r/g, '\r')
+          .replace(/\\t/g, '\t')
+          .replace(/\\\\/g, '\\')
+          .replace(/\\"/g, '"');
+        
+        const byteCharacters = cleanedPdfContent;
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        pdfBlob = new Blob([byteArray], { type: 'application/pdf' });
+      }
+      
+      // Open PDF in new tab for viewing
+      const url = window.URL.createObjectURL(pdfBlob);
+      window.open(url, '_blank');
+      
+      // Clean up the URL after a delay
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+      }, 1000);
+      
+    } catch (error) {
+      console.error('Error viewing PDF:', error);
+      if (error.response?.status === 401) {
+        setError('Authentication failed. Please login again to view reports.');
+      } else if (error.response?.status === 400) {
+        const errorData = error.response.data;
+        setError(`Report not available: ${errorData.message}. Current status: ${errorData.currentStatus}`);
+      } else if (error.response?.status === 404) {
+        const errorData = error.response.data;
+        setError(`Report not found: ${errorData.message}. ${errorData.suggestion || ''}`);
+      } else {
+        setError('Failed to view report. Please try again.');
+      }
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
+  const handleDownloadPDF = async () => {
+    try {
+      setPdfLoading(true);
+      setError(null);
+      
+      const response = await API.get(`/test-requests/download-report/${id}`, {
+        responseType: 'blob',
+        headers: {
+          'Accept': 'application/pdf'
+        }
+      });
+      
+      if (response.status !== 200) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const contentType = response.headers['content-type'] || response.headers['Content-Type'];
+      
+      let pdfBlob;
+      if (contentType && contentType.includes('application/pdf')) {
+        pdfBlob = response.data;
+      } else {
+        // Handle text/JSON response that needs conversion
+        let pdfContent = response.data;
+        if (typeof pdfContent === 'object' && pdfContent.pdfContent) {
+          pdfContent = pdfContent.pdfContent;
+        }
+        
+        const cleanedPdfContent = pdfContent
+          .replace(/\\n/g, '\n')
+          .replace(/\\r/g, '\r')
+          .replace(/\\t/g, '\t')
+          .replace(/\\\\/g, '\\')
+          .replace(/\\"/g, '"');
+        
+        const byteCharacters = cleanedPdfContent;
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        pdfBlob = new Blob([byteArray], { type: 'application/pdf' });
+      }
+      
+      // Download the PDF
+      const url = window.URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `test-report-${id}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      if (error.response?.status === 401) {
+        setError('Authentication failed. Please login again to download reports.');
+      } else if (error.response?.status === 400) {
+        const errorData = error.response.data;
+        setError(`Report not available: ${errorData.message}. Current status: ${errorData.currentStatus}`);
+      } else if (error.response?.status === 404) {
+        const errorData = error.response.data;
+        setError(`Report not found: ${errorData.message}. ${errorData.suggestion || ''}`);
+      } else {
+        setError('Failed to download report. Please try again.');
+      }
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
+  const handlePrint = async () => {
+    try {
+      setPdfLoading(true);
+      setError(null);
+      
+      // First check if report is available
+      try {
+        const statusResponse = await API.get(`/test-requests/report-status/${id}`);
+        const reportStatus = statusResponse.data;
+        
+        if (!reportStatus.isAvailable) {
+          setError(`Report not available: ${reportStatus.message}`);
+          return;
+        }
+      } catch (statusError) {
+        console.warn('Could not check report status, proceeding with print attempt:', statusError);
+      }
+      
+      const response = await API.get(`/test-requests/download-report/${id}`, {
+        responseType: 'blob',
+        headers: {
+          'Accept': 'application/pdf'
+        }
+      });
+      
+      if (response.status !== 200) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const contentType = response.headers['content-type'] || response.headers['Content-Type'];
+      
+      let pdfBlob;
+      if (contentType && contentType.includes('application/pdf')) {
+        pdfBlob = response.data;
+      } else {
+        // Handle text/JSON response that needs conversion
+        let pdfContent = response.data;
+        if (typeof pdfContent === 'object' && pdfContent.pdfContent) {
+          pdfContent = pdfContent.pdfContent;
+        }
+        
+        const cleanedPdfContent = pdfContent
+          .replace(/\\n/g, '\n')
+          .replace(/\\r/g, '\r')
+          .replace(/\\t/g, '\t')
+          .replace(/\\\\/g, '\\')
+          .replace(/\\"/g, '"');
+        
+        const byteCharacters = cleanedPdfContent;
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        pdfBlob = new Blob([byteArray], { type: 'application/pdf' });
+      }
+      
+      // Create a new window for printing
+      const url = window.URL.createObjectURL(pdfBlob);
+      const printWindow = window.open(url, '_blank');
+      
+      if (printWindow) {
+        printWindow.onload = () => {
+          printWindow.print();
+          // Clean up the URL after printing
+          setTimeout(() => {
+            window.URL.revokeObjectURL(url);
+            printWindow.close();
+          }, 1000);
+        };
+      } else {
+        // Fallback: open in new tab if popup is blocked
+        window.open(url, '_blank');
+        setTimeout(() => {
+          window.URL.revokeObjectURL(url);
+        }, 1000);
+      }
+      
+    } catch (error) {
+      console.error('Error printing PDF:', error);
+      if (error.response?.status === 401) {
+        setError('Authentication failed. Please login again to print reports.');
+      } else if (error.response?.status === 400) {
+        const errorData = error.response.data;
+        setError(`Report not available: ${errorData.message}. Current status: ${errorData.currentStatus}`);
+      } else if (error.response?.status === 404) {
+        const errorData = error.response.data;
+        setError(`Report not found: ${errorData.message}. ${errorData.suggestion || ''}`);
+      } else {
+        setError('Failed to print report. Please try again.');
+      }
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
+  const handleDownload = async () => {
+    try {
+      setPdfLoading(true);
+      setError(null);
+      
+      // First check if report is available
+      try {
+        const statusResponse = await API.get(`/test-requests/report-status/${id}`);
+        const reportStatus = statusResponse.data;
+        
+        if (!reportStatus.isAvailable) {
+          setError(`Report not available: ${reportStatus.message}`);
+          return;
+        }
+      } catch (statusError) {
+        console.warn('Could not check report status, proceeding with download attempt:', statusError);
+      }
+      
+      const response = await API.get(`/test-requests/download-report/${id}`, {
+        responseType: 'blob',
+        headers: {
+          'Accept': 'application/pdf'
+        }
+      });
+      
+      if (response.status !== 200) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const contentType = response.headers['content-type'] || response.headers['Content-Type'];
+      
+      let pdfBlob;
+      if (contentType && contentType.includes('application/pdf')) {
+        pdfBlob = response.data;
+      } else {
+        // Handle text/JSON response that needs conversion
+        let pdfContent = response.data;
+        if (typeof pdfContent === 'object' && pdfContent.pdfContent) {
+          pdfContent = pdfContent.pdfContent;
+        }
+        
+        const cleanedPdfContent = pdfContent
+          .replace(/\\n/g, '\n')
+          .replace(/\\r/g, '\r')
+          .replace(/\\t/g, '\t')
+          .replace(/\\\\/g, '\\')
+          .replace(/\\"/g, '"');
+        
+        const byteCharacters = cleanedPdfContent;
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        pdfBlob = new Blob([byteArray], { type: 'application/pdf' });
+      }
+      
+      // Download the PDF
+      const url = window.URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `test-report-${id}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      if (error.response?.status === 401) {
+        setError('Authentication failed. Please login again to download reports.');
+      } else if (error.response?.status === 400) {
+        const errorData = error.response.data;
+        setError(`Report not available: ${errorData.message}. Current status: ${errorData.currentStatus}`);
+      } else if (error.response?.status === 404) {
+        const errorData = error.response.data;
+        setError(`Report not found: ${errorData.message}. ${errorData.suggestion || ''}`);
+      } else {
+        setError('Failed to download report. Please try again.');
+      }
+    } finally {
+      setPdfLoading(false);
+    }
   };
 
   const getStatusColor = (status) => {
@@ -485,15 +855,70 @@ const TestRequestDetails = () => {
                 </div>
                 <div>
                   <div className="space-y-3">
-                    {testRequest.reportFilePath && (
+                    {/* PDF Actions - Only show if tests completed AND payment settled */}
+                    {showPdfButtons && (
                       <div>
-                        <label className="block text-xs font-medium text-gray-500">Report File</label>
-                        <button className="flex items-center text-blue-600 hover:text-blue-700">
-                          <Download className="h-4 w-4 mr-2" />
-                          Download Report
-                        </button>
+                        <label className="block text-xs font-medium text-gray-500 mb-2">Report Actions</label>
+                        <div className="flex gap-3">
+                          <button
+                            onClick={handleViewPDF}
+                            disabled={pdfLoading}
+                            className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs"
+                          >
+                            {pdfLoading ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                Loading...
+                              </>
+                            ) : (
+                              <>
+                                <Eye className="h-4 w-4 mr-2" />
+                                View PDF
+                              </>
+                            )}
+                          </button>
+                          
+                          <button
+                            onClick={handleDownloadPDF}
+                            disabled={pdfLoading}
+                            className="flex items-center px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs"
+                          >
+                            {pdfLoading ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                Loading...
+                              </>
+                            ) : (
+                              <>
+                                <Download className="h-4 w-4 mr-2" />
+                                Download PDF
+                              </>
+                            )}
+                          </button>
+                        </div>
                       </div>
                     )}
+                    
+                    {/* Show message when buttons are not available */}
+                    {!showPdfButtons && (
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-2">Report Status</label>
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                          <div className="flex items-center">
+                            <AlertCircle className="h-4 w-4 text-yellow-500 mr-2" />
+                            <div>
+                              <p className="text-yellow-800 text-xs font-medium">
+                                PDF Report Not Available
+                              </p>
+                              <p className="text-yellow-700 text-xs mt-1">
+                                {lockReason || 'Tests must be completed and payment must be fully settled to access the report.'}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
                     {testRequest.reportNotes && (
                       <div>
                         <label className="block text-xs font-medium text-gray-500">Report Notes</label>

@@ -91,8 +91,40 @@ const ReviewLabReports = () => {
     }
   };
 
+  // ✅ NEW: Check if report is accessible based on payment status
+  const isReportAccessible = (report) => {
+    // Check if tests are completed
+    const isTestCompleted = ['Testing_Completed', 'Billing_Paid', 'Report_Generated', 'Report_Sent', 'Completed', 'feedback_sent'].includes(report.status);
+    
+    // Check if payment is complete
+    const isPaymentComplete = report.billing ? 
+      (report.billing.amount || 0) - (report.billing.paidAmount || 0) <= 0 : true;
+    
+    // Allow access if either tests are completed OR payment is complete
+    return isTestCompleted || isPaymentComplete;
+  };
+
+  // ✅ NEW: Get lock reason for inaccessible reports
+  const getLockReason = (report) => {
+    const isTestCompleted = ['Testing_Completed', 'Billing_Paid', 'Report_Generated', 'Report_Sent', 'Completed', 'feedback_sent'].includes(report.status);
+    const isPaymentComplete = report.billing ? 
+      (report.billing.amount || 0) - (report.billing.paidAmount || 0) <= 0 : true;
+    
+    const reasons = [];
+    if (!isTestCompleted) reasons.push('Tests not fully completed');
+    if (!isPaymentComplete) reasons.push('Payment not fully completed');
+    
+    return reasons.join(' and ');
+  };
+
   // PDF handling functions
   const handleViewPDF = async (report) => {
+    // ✅ NEW: Check if report is accessible before attempting to view
+    if (!isReportAccessible(report)) {
+      alert(`Report is locked: ${getLockReason(report)}`);
+      return;
+    }
+
     try {
       let pdfUrl;
       
@@ -181,6 +213,12 @@ const ReviewLabReports = () => {
       };
 
   const handleDownloadPDF = async (report) => {
+    // ✅ NEW: Check if report is accessible before attempting to download
+    if (!isReportAccessible(report)) {
+      alert(`Report is locked: ${getLockReason(report)}`);
+      return;
+    }
+
     try {
       // Use the API service for consistent configuration
       const response = await API.get(`/test-requests/download-report/${report._id}`, {
@@ -380,18 +418,32 @@ const ReviewLabReports = () => {
                     {/* Actions */}
                     <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-gray-200">
                       <div className="flex items-center space-x-2">
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          <FileText className="w-3 h-3 mr-1" />
-                          Viewable
-                        </span>
-                        <button
-                          onClick={() => handleViewPDF(report)}
-                          className="text-green-600 hover:text-green-900 flex items-center text-xs"
-                          title="View PDF Report"
-                        >
-                          <ExternalLink className="w-3 h-3 mr-1" />
-                          View
-                        </button>
+                        {isReportAccessible(report) ? (
+                          <>
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              <FileText className="w-3 h-3 mr-1" />
+                              Viewable
+                            </span>
+                            <button
+                              onClick={() => handleViewPDF(report)}
+                              className="text-green-600 hover:text-green-900 flex items-center text-xs"
+                              title="View PDF Report"
+                            >
+                              <ExternalLink className="w-3 h-3 mr-1" />
+                              View
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                              <AlertCircle className="w-3 h-3 mr-1" />
+                              Locked
+                            </span>
+                            <span className="text-red-600 text-xs" title={getLockReason(report)}>
+                              {getLockReason(report)}
+                            </span>
+                          </>
+                        )}
                       </div>
                       
                       <div className="flex items-center space-x-2">
@@ -403,7 +455,7 @@ const ReviewLabReports = () => {
                           Review
                         </button>
                         
-                        {report.reportFile && (
+                        {report.reportFile && isReportAccessible(report) && (
                           <button
                             onClick={() => handleDownloadPDF(report)}
                             className="text-purple-600 hover:text-purple-900 flex items-center text-xs"
@@ -504,18 +556,32 @@ const ReviewLabReports = () => {
                         </td>
                         <td className="px-4 py-4">
                           <div className="flex items-center space-x-2">
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                              <FileText className="w-3 h-3 mr-1" />
-                              Viewable
-                            </span>
-                            <button
-                              onClick={() => handleViewPDF(report)}
-                              className="text-green-600 hover:text-green-900 flex items-center text-xs"
-                              title="View PDF Report"
-                            >
-                              <ExternalLink className="w-3 h-3 mr-1" />
-                              View
-                            </button>
+                            {isReportAccessible(report) ? (
+                              <>
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                  <FileText className="w-3 h-3 mr-1" />
+                                  Viewable
+                                </span>
+                                <button
+                                  onClick={() => handleViewPDF(report)}
+                                  className="text-green-600 hover:text-green-900 flex items-center text-xs"
+                                  title="View PDF Report"
+                                >
+                                  <ExternalLink className="w-3 h-3 mr-1" />
+                                  View
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                  <AlertCircle className="w-3 h-3 mr-1" />
+                                  Locked
+                                </span>
+                                <span className="text-red-600 text-xs" title={getLockReason(report)}>
+                                  {getLockReason(report)}
+                                </span>
+                              </>
+                            )}
                           </div>
                         </td>
                         <td className="px-4 py-4 text-xs font-medium">
@@ -528,7 +594,7 @@ const ReviewLabReports = () => {
                               Review
                             </button>
                             
-                            {report.reportFile && (
+                            {report.reportFile && isReportAccessible(report) && (
                               <button
                                 onClick={() => handleDownloadPDF(report)}
                                 className="text-purple-600 hover:text-purple-900 flex items-center text-xs"

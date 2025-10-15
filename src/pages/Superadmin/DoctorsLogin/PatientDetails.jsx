@@ -318,13 +318,7 @@ const PatientDetails = () => {
                               <User className="w-4 h-4 mr-1" />
                               Profile
                             </button>
-                            <button
-                              onClick={() => handleViewLabReports(patient._id)}
-                              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center text-xs"
-                            >
-                              <Activity className="w-4 h-4 mr-1" />
-                              Lab Reports
-                            </button>
+                           
                           </div>
                         </td>
                       </tr>

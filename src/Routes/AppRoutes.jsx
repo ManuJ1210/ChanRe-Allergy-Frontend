@@ -191,6 +191,7 @@ import DoctorViewPrescription from '../pages/Doctor/patients/FollowUp/Prescripti
 import TestRequests from '../pages/Doctor/TestRequests';
 import AddTestRequest from '../pages/Doctor/AddTestRequest';
 import CompletedReports from '../pages/Doctor/CompletedReports';
+import TestRequestDetails from '../pages/Doctor/TestRequestDetails';
 
 import DoctorViewHistory from '../pages/Doctor/ViewHistory';
 import Notifications from '../pages/Doctor/Notifications';
@@ -585,6 +586,7 @@ export default function AppRoutes() {
         <Route path="doctor/patients/add-test-request/:id" element={<AddTestRequest />} />
         <Route path="doctor/patients/test-request/:id" element={<TestRequests />} />
         <Route path="doctor/add-test-request" element={<AddTestRequest />} />
+        <Route path="doctor/test-request-details/:id" element={<TestRequestDetails />} />
         
         {/* Doctor Legacy Routes (for backward compatibility) */}
         <Route path="doctor/add-patient" element={<DoctorAddPatient />} />

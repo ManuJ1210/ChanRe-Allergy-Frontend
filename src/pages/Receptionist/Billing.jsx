@@ -759,9 +759,9 @@ function ReceptionistBilling() {
       const updatedPartialData = getPartialPaymentData(selectedForPayment._id);
       
       if (isFullyPaid) {
-        toast.success(`Full payment completed! Total paid: ${currencySymbol}${newPaidAmount.toFixed(2)}. Awaiting center admin verification.`);
+        toast.success(`✅ Payment completed! Test request #${selectedForPayment._id.slice(-6)} is now unlocked. Total paid: ${currencySymbol}${newPaidAmount.toFixed(2)}. Report access is now available.`);
       } else {
-        toast.success(`Payment recorded: ${currencySymbol}${paymentDetails.paymentAmount.toFixed(2)}. Total paid: ${currencySymbol}${newPaidAmount.toFixed(2)}. Remaining: ${currencySymbol}${(totalAmount - newPaidAmount).toFixed(2)}`);
+        toast.success(`💰 Payment recorded for test request #${selectedForPayment._id.slice(-6)}: ${currencySymbol}${paymentDetails.paymentAmount.toFixed(2)}. Total paid: ${currencySymbol}${newPaidAmount.toFixed(2)}. Remaining: ${currencySymbol}${(totalAmount - newPaidAmount).toFixed(2)}`);
       }
       
       closePaymentModal();
@@ -2195,6 +2195,9 @@ function ReceptionistBilling() {
                               ? 'Partial Payment: Patient can pay remaining amount later'
                               : 'Full Payment: Complete payment for this bill'
                             }
+                          </p>
+                          <p className="mt-2 text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                            📝 Updating existing test request #{selectedForPayment._id.slice(-6)} - No new request will be created
                           </p>
                         </div>
                       </div>

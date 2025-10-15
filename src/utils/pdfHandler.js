@@ -45,12 +45,34 @@ export const downloadPDFReport = async (reportId, fileName = null) => {
   } catch (error) {
     console.error('Error downloading PDF:', error);
     
+    // ✅ NEW: Handle report locking errors
+    if (error.response && error.response.status === 403) {
+      const errorData = error.response.data;
+      if (errorData && errorData.error === 'report_locked') {
+        const reason = errorData.details?.reason || 'Tests must be completed and payment must be fully settled';
+        throw new Error(`Report is locked: ${reason}. Please complete all requirements to access the report.`);
+      } else if (errorData && errorData.error === 'partial_payment_restriction') {
+        throw new Error('Patient has not paid the bill fully. Please complete the payment to access the report.');
+      }
+    }
+
     // Check if error response contains JSON error message
     if (error.response && error.response.data instanceof Blob) {
       try {
         const text = await error.response.data.text();
         const errorData = JSON.parse(text);
         console.error('Server error details:', errorData);
+        
+        // ✅ NEW: Check for report locking in blob response
+        if (errorData && errorData.error === 'report_locked') {
+          const reason = errorData.details?.reason || 'Tests must be completed and payment must be fully settled';
+          throw new Error(`Report is locked: ${reason}. Please complete all requirements to access the report.`);
+        } else if (errorData && errorData.error === 'partial_payment_restriction') {
+          const details = errorData.details;
+          const message = `Report access is restricted due to partial payment.\n\nBill Amount: ₹${details.totalAmount}\nPaid Amount: ₹${details.paidAmount}\nRemaining Balance: ₹${details.remainingBalance}\n\nPlease complete the payment to access the report.\nOnly Lab Staff can access reports with partial payments.`;
+          throw new Error(message);
+        }
+        
         throw new Error(errorData.message || 'Failed to download PDF');
       } catch (parseError) {
         console.error('Error parsing server response:', parseError);
@@ -112,12 +134,34 @@ export const viewPDFReport = async (reportId) => {
   } catch (error) {
     console.error('Error viewing PDF:', error);
     
+    // ✅ NEW: Handle report locking errors
+    if (error.response && error.response.status === 403) {
+      const errorData = error.response.data;
+      if (errorData && errorData.error === 'report_locked') {
+        const reason = errorData.details?.reason || 'Tests must be completed and payment must be fully settled';
+        throw new Error(`Report is locked: ${reason}. Please complete all requirements to access the report.`);
+      } else if (errorData && errorData.error === 'partial_payment_restriction') {
+        throw new Error('Patient has not paid the bill fully. Please complete the payment to access the report.');
+      }
+    }
+    
     // Check if error response contains JSON error message
     if (error.response && error.response.data instanceof Blob) {
       try {
         const text = await error.response.data.text();
         const errorData = JSON.parse(text);
         console.error('Server error details:', errorData);
+        
+        // ✅ NEW: Check for report locking in blob response
+        if (errorData && errorData.error === 'report_locked') {
+          const reason = errorData.details?.reason || 'Tests must be completed and payment must be fully settled';
+          throw new Error(`Report is locked: ${reason}. Please complete all requirements to access the report.`);
+        } else if (errorData && errorData.error === 'partial_payment_restriction') {
+          const details = errorData.details;
+          const message = `Report access is restricted due to partial payment.\n\nBill Amount: ₹${details.totalAmount}\nPaid Amount: ₹${details.paidAmount}\nRemaining Balance: ₹${details.remainingBalance}\n\nPlease complete the payment to access the report.\nOnly Lab Staff can access reports with partial payments.`;
+          throw new Error(message);
+        }
+        
         throw new Error(errorData.message || 'Failed to view PDF');
       } catch (parseError) {
         console.error('Error parsing server response:', parseError);
@@ -157,6 +201,30 @@ export const checkReportAvailability = async (reportId) => {
     return response.data;
   } catch (error) {
     console.error('Error checking report availability:', error);
+    
+    // ✅ NEW: Handle report locking errors
+    if (error.response && error.response.status === 403) {
+      const errorData = error.response.data;
+      if (errorData && errorData.error === 'report_locked') {
+        const reason = errorData.details?.reason || 'Tests must be completed and payment must be fully settled';
+        return {
+          isAvailable: false,
+          isRestricted: true,
+          restrictionType: 'report_locked',
+          message: `Report is locked: ${reason}. Please complete all requirements to access the report.`,
+          details: errorData.details
+        };
+      } else if (errorData && errorData.error === 'partial_payment_restriction') {
+        return {
+          isAvailable: false,
+          isRestricted: true,
+          restrictionType: 'partial_payment',
+          message: 'Patient has not paid the bill fully. Please complete the payment to access the report.',
+          details: errorData.details
+        };
+      }
+    }
+    
     throw new Error(error.response?.data?.message || 'Failed to check report availability');
   }
 };

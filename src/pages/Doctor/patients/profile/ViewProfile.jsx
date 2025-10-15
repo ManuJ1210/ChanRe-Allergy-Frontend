@@ -40,6 +40,28 @@ const ViewProfile = () => {
 
   // Extract patient data from the new structure
   const patient = patientDetails?.patient || patientDetails;
+
+  // Helper functions for payment status checking
+  const isReportAccessible = (request) => {
+    const isTestCompleted = ['Testing_Completed', 'Billing_Paid', 'Report_Generated', 'Report_Sent', 'Completed', 'feedback_sent'].includes(request.status);
+    const isPaymentComplete = request.billing ?
+      (request.billing.amount || 0) - (request.billing.paidAmount || 0) <= 0 : true;
+
+    // Allow access if either tests are completed OR payment is complete
+    return isTestCompleted || isPaymentComplete;
+  };
+
+  const getLockReason = (request) => {
+    const isTestCompleted = ['Testing_Completed', 'Billing_Paid', 'Report_Generated', 'Report_Sent', 'Completed', 'feedback_sent'].includes(request.status);
+    const isPaymentComplete = request.billing ?
+      (request.billing.amount || 0) - (request.billing.paidAmount || 0) <= 0 : true;
+
+    const reasons = [];
+    if (!isTestCompleted) reasons.push('Tests not fully completed');
+    if (!isPaymentComplete) reasons.push('Payment not fully completed');
+
+    return reasons.join(' and ');
+  };
   
 
   
@@ -832,12 +854,24 @@ const ViewProfile = () => {
                             </td>
                             <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs">
                               {request.reportFilePath ? (
-                                <button
-                                  onClick={() => navigate(`/dashboard/doctor/test-request/${request._id}`)}
-                                  className="text-blue-600 hover:text-blue-900 font-medium"
-                                >
-                                  Download
-                                </button>
+                                isReportAccessible(request) ? (
+                                  <button
+                                    onClick={() => navigate(`/dashboard/doctor/test-request/${request._id}`)}
+                                    className="text-blue-600 hover:text-blue-900 font-medium"
+                                  >
+                                    Download
+                                  </button>
+                                ) : (
+                                  <div className="flex items-center gap-1">
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                      <AlertCircle className="w-3 h-3 mr-1" />
+                                      Locked
+                                    </span>
+                                    <span className="text-red-600 text-xs" title={getLockReason(request)}>
+                                      {getLockReason(request)}
+                                    </span>
+                                  </div>
+                                )
                               ) : (
                                 <span className="text-gray-400">N/A</span>
                               )}

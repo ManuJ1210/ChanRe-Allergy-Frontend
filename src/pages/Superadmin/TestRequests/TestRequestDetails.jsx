@@ -33,13 +33,21 @@ const TestRequestDetails = () => {
   const [error, setError] = useState(null);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [reportStatus, setReportStatus] = useState(null);
+  const [buttonsDisabled, setButtonsDisabled] = useState(false);
+  const [lockReason, setLockReason] = useState('');
+  const [showPdfButtons, setShowPdfButtons] = useState(false);
 
   useEffect(() => {
     if (id) {
       fetchTestRequestDetails();
-      checkReportStatus();
     }
   }, [id]);
+
+  useEffect(() => {
+    if (testRequest) {
+      checkReportStatus();
+    }
+  }, [testRequest]);
 
   const fetchTestRequestDetails = async () => {
     try {
@@ -58,8 +66,64 @@ const TestRequestDetails = () => {
     try {
       const response = await API.get(`/test-requests/report-status/${id}`);
       setReportStatus(response.data);
+      
+      // Check if tests are completed AND payment is fully settled
+      const isTestCompleted = ['Testing_Completed', 'Billing_Paid', 'Report_Generated', 'Report_Sent', 'Completed', 'feedback_sent'].includes(testRequest?.status);
+      const isPaymentComplete = testRequest?.billing ? 
+        (testRequest.billing.amount || 0) - (testRequest.billing.paidAmount || 0) <= 0 : false;
+      
+      // Only show PDF buttons if BOTH conditions are met
+      const shouldShowButtons = isTestCompleted && isPaymentComplete && response.data.isAvailable;
+      
+      setShowPdfButtons(shouldShowButtons);
+      setButtonsDisabled(!shouldShowButtons);
+      
+      if (!shouldShowButtons) {
+        const reasons = [];
+        if (!isTestCompleted) reasons.push('Tests not fully completed');
+        if (!isPaymentComplete) reasons.push('Payment not fully completed');
+        if (!response.data.isAvailable) reasons.push('Report not available');
+        setLockReason(reasons.join(' and '));
+      } else {
+        setLockReason('');
+      }
     } catch (error) {
-      console.warn('Could not check report status:', error);
+      // Handle report locking errors silently - disable buttons instead of showing errors
+      if (error.response?.status === 403) {
+        const errorData = error.response.data;
+        if (errorData && errorData.error === 'report_locked') {
+          // Set buttons as disabled with lock reason
+          setButtonsDisabled(true);
+          setShowPdfButtons(false);
+          setLockReason(errorData.details?.reason || 'Tests must be completed and payment must be fully settled');
+          setReportStatus({
+            isAvailable: false,
+            isRestricted: true,
+            restrictionType: 'report_locked',
+            message: `Report is locked: ${errorData.details?.reason || 'Tests must be completed and payment must be fully settled'}`,
+            details: errorData.details
+          });
+          return;
+        } else if (errorData && errorData.error === 'partial_payment_restriction') {
+          // Set buttons as disabled with payment reason
+          setButtonsDisabled(true);
+          setShowPdfButtons(false);
+          setLockReason('Patient has not paid the bill fully');
+          setReportStatus({
+            isAvailable: false,
+            isRestricted: true,
+            restrictionType: 'partial_payment',
+            message: 'Patient has not paid the bill fully',
+            details: errorData.details
+          });
+          return;
+        }
+      }
+      
+      // For other errors, set buttons as disabled
+      setButtonsDisabled(true);
+      setShowPdfButtons(false);
+      setLockReason('Report not available');
       setReportStatus(null);
     }
   };
@@ -191,9 +255,20 @@ const TestRequestDetails = () => {
       }, 1000);
       
     } catch (error) {
-      console.error('Error viewing PDF:', error);
+      // Handle errors silently - buttons are already disabled
       if (error.response?.status === 401) {
         setError('Authentication failed. Please login again to view reports.');
+      } else if (error.response?.status === 403) {
+        // ✅ NEW: Handle report locking errors silently
+        const errorData = error.response.data;
+        if (errorData && errorData.error === 'report_locked') {
+          const reason = errorData.details?.reason || 'Tests must be completed and payment must be fully settled';
+          setError(`Report is locked: ${reason}. Please complete all requirements to access the report.`);
+        } else if (errorData && errorData.error === 'partial_payment_restriction') {
+          setError('Patient has not paid the bill fully. Please complete the payment to access the report.');
+        } else {
+          setError(errorData?.message || 'Access denied. Report access is restricted.');
+        }
       } else if (error.response?.status === 400) {
         const errorData = error.response.data;
         setError(`Report not available: ${errorData.message}. Current status: ${errorData.currentStatus}`);
@@ -276,9 +351,20 @@ const TestRequestDetails = () => {
       window.URL.revokeObjectURL(url);
       
     } catch (error) {
-      console.error('Error downloading PDF:', error);
+      // Handle errors silently - buttons are already disabled
       if (error.response?.status === 401) {
         setError('Authentication failed. Please login again to download reports.');
+      } else if (error.response?.status === 403) {
+        // ✅ NEW: Handle report locking errors silently
+        const errorData = error.response.data;
+        if (errorData && errorData.error === 'report_locked') {
+          const reason = errorData.details?.reason || 'Tests must be completed and payment must be fully settled';
+          setError(`Report is locked: ${reason}. Please complete all requirements to download the report.`);
+        } else if (errorData && errorData.error === 'partial_payment_restriction') {
+          setError('Patient has not paid the bill fully. Please complete the payment to download the report.');
+        } else {
+          setError(errorData?.message || 'Access denied. Report download is restricted.');
+        }
       } else if (error.response?.status === 400) {
         const errorData = error.response.data;
         setError(`Report not available: ${errorData.message}. Current status: ${errorData.currentStatus}`);
@@ -648,47 +734,82 @@ const TestRequestDetails = () => {
                 )}
               </div>
               
-              {/* Report Action Buttons */}
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                  <button
-                    onClick={handleViewPDF}
-                    disabled={pdfLoading}
-                    className="flex items-center justify-center px-4 sm:px-6 py-2 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs sm:text-base w-full sm:w-auto"
-                  >
-                    {pdfLoading ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Loading...
-                      </>
-                    ) : (
-                      <>
-                        <Eye className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-                        View Report
-                      </>
-                    )}
-                  </button>
-                  <button
-                    onClick={handleDownloadPDF}
-                    disabled={pdfLoading}
-                    className="flex items-center justify-center px-4 sm:px-6 py-2 sm:py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs sm:text-base w-full sm:w-auto"
-                  >
-                    {pdfLoading ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Loading...
-                      </>
-                    ) : (
-                      <>
-                        <Download className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-                        Download Report
-                      </>
-                    )}
-                  </button>
+              {/* Report Action Buttons - Only show if tests completed AND payment settled */}
+              {showPdfButtons && (
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                    <div className="relative group">
+                      <button
+                        onClick={handleViewPDF}
+                        disabled={pdfLoading || buttonsDisabled}
+                        className="flex items-center justify-center px-4 sm:px-6 py-2 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs sm:text-base w-full sm:w-auto"
+                      >
+                        {pdfLoading ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                            Loading...
+                          </>
+                        ) : (
+                          <>
+                            <Eye className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                            View Report
+                          </>
+                        )}
+                      </button>
+                      {buttonsDisabled && lockReason && (
+                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                          {lockReason}
+                          <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
+                        </div>
+                      )}
+                    </div>
+                    <div className="relative group">
+                      <button
+                        onClick={handleDownloadPDF}
+                        disabled={pdfLoading || buttonsDisabled}
+                        className="flex items-center justify-center px-4 sm:px-6 py-2 sm:py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs sm:text-base w-full sm:w-auto"
+                      >
+                        {pdfLoading ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                            Loading...
+                          </>
+                        ) : (
+                          <>
+                            <Download className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                            Download Report
+                          </>
+                        )}
+                      </button>
+                      {buttonsDisabled && lockReason && (
+                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                          {lockReason}
+                          <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                
-                
-              </div>
+              )}
+              
+              {/* Show message when buttons are not available */}
+              {!showPdfButtons && (
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <div className="flex items-center">
+                      <AlertCircle className="h-5 w-5 text-yellow-500 mr-2" />
+                      <div>
+                        <p className="text-yellow-800 text-xs sm:text-base font-medium">
+                          PDF Report Not Available
+                        </p>
+                        <p className="text-yellow-700 text-xs sm:text-base mt-1">
+                          {lockReason || 'Tests must be completed and payment must be fully settled to access the report.'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -720,55 +841,87 @@ const TestRequestDetails = () => {
             </div>
           )}
 
-          {/* PDF Actions - Always visible even when no report is generated */}
+          {/* PDF Actions - Only show if tests completed AND payment settled */}
           {!testRequest.reportGeneratedDate && (
             <div className="bg-gray-50 rounded-lg p-4 sm:p-6 mb-6 sm:mb-8">
               <h2 className="text-xs sm:text-md font-semibold text-gray-800 mb-4 flex items-center">
                 <FileText className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-blue-600" />
                 PDF Actions
               </h2>
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                <button
-                  onClick={handleViewPDF}
-                  disabled={pdfLoading}
-                  className="flex items-center justify-center px-4 sm:px-6 py-2 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs sm:text-base w-full sm:w-auto"
-                >
-                  {pdfLoading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Loading...
-                    </>
-                  ) : (
-                    <>
-                      <Eye className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-                      View PDF
-                    </>
-                  )}
-                </button>
-                
-                <button
-                  onClick={handleDownloadPDF}
-                  disabled={pdfLoading}
-                  className="flex items-center justify-center px-4 sm:px-6 py-2 sm:py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs sm:text-base w-full sm:w-auto"
-                >
-                  {pdfLoading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Loading...
-                    </>
-                  ) : (
-                    <>
-                      <Download className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-                      Download PDF
-                    </>
-                  )}
-                </button>
-              </div>
+              
+              {showPdfButtons ? (
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                  <div className="relative group">
+                    <button
+                      onClick={handleViewPDF}
+                      disabled={pdfLoading || buttonsDisabled}
+                      className="flex items-center justify-center px-4 sm:px-6 py-2 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs sm:text-base w-full sm:w-auto"
+                    >
+                      {pdfLoading ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Loading...
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                          View PDF
+                        </>
+                      )}
+                    </button>
+                    {buttonsDisabled && lockReason && (
+                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                        {lockReason}
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="relative group">
+                    <button
+                      onClick={handleDownloadPDF}
+                      disabled={pdfLoading || buttonsDisabled}
+                      className="flex items-center justify-center px-4 sm:px-6 py-2 sm:py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs sm:text-base w-full sm:w-auto"
+                    >
+                      {pdfLoading ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Loading...
+                        </>
+                      ) : (
+                        <>
+                          <Download className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                          Download PDF
+                        </>
+                      )}
+                    </button>
+                    {buttonsDisabled && lockReason && (
+                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                        {lockReason}
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <div className="flex items-center">
+                    <AlertCircle className="h-5 w-5 text-yellow-500 mr-2" />
+                    <div>
+                      <p className="text-yellow-800 text-xs sm:text-base font-medium">
+                        PDF Report Not Available
+                      </p>
+                      <p className="text-yellow-700 text-xs sm:text-base mt-1">
+                        {lockReason || 'Tests must be completed and payment must be fully settled to access the report.'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               <p className="text-xs text-gray-500 mt-3">
                 Note: PDF will only be available if a report has been generated for this test request.
               </p>
-              
-              
             </div>
           )}
 

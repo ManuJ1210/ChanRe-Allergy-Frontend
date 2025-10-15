@@ -9,7 +9,7 @@ import {
   Badge, Hash, Eye, EyeOff, Save, ArrowLeft, CheckCircle, AlertCircle
 } from "lucide-react";
 import { toast } from "react-toastify";
-import { validateCenterForm, validateDoctorForm, hasFormErrors } from "../../../utils/formValidation";
+import { validateCenterForm, validateDoctorForm, hasFormErrors, hasTouchedFormErrors } from "../../../utils/formValidation";
 
 export default function AddCenterWithAdmin() {
   const navigate = useNavigate();
@@ -23,7 +23,7 @@ export default function AddCenterWithAdmin() {
 
   const [admin, setAdmin] = useState({
     name: "", qualification: "", designation: "", kmcNumber: "", hospitalName: "",
-    phone: "", email: "", username: "", password: "", userType: "centeradmin",
+    phone: "", email: "", username: "", password: "", userType: "centeradmin", centerCode: ""
   });
 
   const [showPassword, setShowPassword] = useState(false);
@@ -99,6 +99,9 @@ export default function AddCenterWithAdmin() {
     
     // Check if there are any errors
     if (hasFormErrors(centerValidationErrors) || hasFormErrors(adminValidationErrors)) {
+      console.log('❌ Center Validation Errors:', centerValidationErrors);
+      console.log('❌ Admin Validation Errors:', adminValidationErrors);
+      toast.error('Please fix validation errors before submitting');
       return; // Don't submit if there are validation errors
     }
     
@@ -111,7 +114,7 @@ export default function AddCenterWithAdmin() {
       setCenter({ centername: "", location: "", fulladdress: "", email: "", phone: "", code: "" });
       setAdmin({
         name: "", qualification: "", designation: "", kmcNumber: "", hospitalName: "",
-        phone: "", email: "", username: "", password: "", userType: "centeradmin",
+        phone: "", email: "", username: "", password: "", userType: "centeradmin", centerCode: ""
       });
 
       setTimeout(() => {
@@ -126,6 +129,11 @@ export default function AddCenterWithAdmin() {
       toast.error(error);
     }
   }, [error]);
+
+  // Sync admin centerCode with center code
+  useEffect(() => {
+    setAdmin(prev => ({ ...prev, centerCode: center.code }));
+  }, [center.code]);
 
   return (
     <div className="min-h-screen  p-3 sm:p-4 md:p-6">
@@ -158,6 +166,18 @@ export default function AddCenterWithAdmin() {
           <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4 flex items-center">
             <AlertCircle className="h-5 w-5 text-red-500 mr-3" />
             <span className="text-red-700 text-xs">{error}</span>
+          </div>
+        )}
+
+        {/* Debug Panel - Shows validation errors */}
+        {(Object.keys(centerTouched).length > 0 || Object.keys(adminTouched).length > 0) && (
+          <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-3 sm:p-4">
+            <p className="text-xs font-semibold text-yellow-800 mb-2">Validation Debug Info:</p>
+            <div className="text-xs text-yellow-700">
+              <p>Center Errors: {Object.entries(centerErrors).filter(([key, val]) => val !== null).map(([key, val]) => `${key}: ${val}`).join(', ') || 'None'}</p>
+              <p>Admin Errors: {Object.entries(adminErrors).filter(([key, val]) => val !== null).map(([key, val]) => `${key}: ${val}`).join(', ') || 'None'}</p>
+              <p className="mt-2">Button disabled: {loading || hasTouchedFormErrors(centerErrors, centerTouched) || hasTouchedFormErrors(adminErrors, adminTouched) ? 'Yes' : 'No'}</p>
+            </div>
           </div>
         )}
 
@@ -389,9 +409,9 @@ export default function AddCenterWithAdmin() {
             <div className="pt-4">
               <button
                 type="submit"
-                disabled={loading || hasFormErrors(centerErrors) || hasFormErrors(adminErrors)}
+                disabled={loading || hasTouchedFormErrors(centerErrors, centerTouched) || hasTouchedFormErrors(adminErrors, adminTouched)}
                 className={`w-full py-2 sm:py-3 px-4 sm:px-6 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 text-xs ${
-                  loading || hasFormErrors(centerErrors) || hasFormErrors(adminErrors)
+                  loading || hasTouchedFormErrors(centerErrors, centerTouched) || hasTouchedFormErrors(adminErrors, adminTouched)
                     ? 'bg-gray-400 text-white cursor-not-allowed'
                     : 'bg-blue-500 hover:bg-blue-600 text-white'
                 }`}

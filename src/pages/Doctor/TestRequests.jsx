@@ -33,6 +33,7 @@ const TestRequests = () => {
   const [filterPriority, setFilterPriority] = useState('');
   const [sortBy, setSortBy] = useState('date');
   const [lastRefreshTime, setLastRefreshTime] = useState(new Date());
+  const [disabledButtons, setDisabledButtons] = useState({});
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -186,16 +187,63 @@ const TestRequests = () => {
   const handleViewReport = async (testRequestId) => {
     try {
       await viewPDFReport(testRequestId);
-          } catch (error) {
-      toast.error('Failed to view report. Please try again.');
+    } catch (error) {
+      // Handle errors silently - disable buttons instead of showing console errors
+      if (error.message && error.message.includes('Report is locked')) {
+        setDisabledButtons(prev => ({ ...prev, [testRequestId]: { view: true, download: true, reason: error.message } }));
+        toast.error(error.message, { 
+          duration: 6000,
+          style: {
+            background: '#FEF2F2',
+            border: '1px solid #FECACA',
+            color: '#DC2626'
+          }
+        });
+      } else if (error.message && error.message.includes('Patient has not paid the bill fully')) {
+        setDisabledButtons(prev => ({ ...prev, [testRequestId]: { view: true, download: true, reason: 'Patient has not paid the bill fully' } }));
+        toast.error('Patient has not paid the bill fully. Please complete the payment to access the report.', { 
+          duration: 5000,
+          style: {
+            background: '#FEF2F2',
+            border: '1px solid #FECACA',
+            color: '#DC2626'
+          }
+        });
+      } else {
+        toast.error(error.message || 'Failed to view report. Please try again.');
+      }
     }
   };
 
   const handleDownloadReport = async (testRequestId) => {
     try {
       await downloadPDFReport(testRequestId);
-          } catch (error) {
-      toast.error('Failed to download report. Please try again.');
+      toast.success('Report downloaded successfully!');
+    } catch (error) {
+      // Handle errors silently - disable buttons instead of showing console errors
+      if (error.message && error.message.includes('Report is locked')) {
+        setDisabledButtons(prev => ({ ...prev, [testRequestId]: { view: true, download: true, reason: error.message } }));
+        toast.error(error.message, { 
+          duration: 6000,
+          style: {
+            background: '#FEF2F2',
+            border: '1px solid #FECACA',
+            color: '#DC2626'
+          }
+        });
+      } else if (error.message && error.message.includes('Patient has not paid the bill fully')) {
+        setDisabledButtons(prev => ({ ...prev, [testRequestId]: { view: true, download: true, reason: 'Patient has not paid the bill fully' } }));
+        toast.error('Patient has not paid the bill fully. Please complete the payment to download the report.', { 
+          duration: 5000,
+          style: {
+            background: '#FEF2F2',
+            border: '1px solid #FECACA',
+            color: '#DC2626'
+          }
+        });
+      } else {
+        toast.error(error.message || 'Failed to download report. Please try again.');
+      }
     }
   };
 
@@ -433,6 +481,13 @@ const TestRequests = () => {
                       <td className="px-6 py-4">
                         <div className="flex space-x-2">
                           <button
+                            onClick={() => navigate(`/dashboard/doctor/test-request-details/${test._id}`)}
+                            className="flex items-center text-blue-600 hover:text-blue-700 font-medium"
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            View Details
+                          </button>
+                          <button
                             onClick={() => {
                               // Bulletproof test.patientId conversion - ensure it's always a string
                               const id = typeof test.patientId === 'object' && test.patientId !== null
@@ -440,29 +495,37 @@ const TestRequests = () => {
                                 : String(test.patientId);
                               navigate(`/dashboard/doctor/patients/profile/${id}`);
                             }}
-                            className="flex items-center text-blue-600 hover:text-blue-700 font-medium"
+                            className="flex items-center text-purple-600 hover:text-purple-700 font-medium"
                           >
-                            <Eye className="h-4 w-4 mr-1" />
+                            <User className="h-4 w-4 mr-1" />
                             View Patient
                           </button>
-                          {(test.status === 'Report_Generated' || test.status === 'Report_Sent' || test.status === 'Completed') && (
-                            <>
-                              <button
-                                onClick={() => handleViewReport(test._id)}
-                                className="flex items-center text-blue-600 hover:text-blue-700 font-medium"
-                              >
-                                <Eye className="h-4 w-4 mr-1" />
-                                View Report
-                              </button>
-                              <button
-                                onClick={() => handleDownloadReport(test._id)}
-                                className="flex items-center text-green-600 hover:text-green-700 font-medium"
-                              >
-                                <Download className="h-4 w-4 mr-1" />
-                                Download Report
-                              </button>
-                            </>
-                          )}
+                          {/* Conditional PDF buttons - only show if tests completed AND payment settled */}
+                          {(() => {
+                            const isTestCompleted = ['Report_Generated', 'Report_Sent', 'Completed', 'feedback_sent'].includes(test.status);
+                            const isPaymentComplete = test.billing ? 
+                              (test.billing.amount || 0) - (test.billing.paidAmount || 0) <= 0 : false;
+                            const shouldShowPdfButtons = isTestCompleted && isPaymentComplete;
+                            
+                            return shouldShowPdfButtons ? (
+                              <>
+                                <button
+                                  onClick={() => handleViewReport(test._id)}
+                                  className="flex items-center text-blue-600 hover:text-blue-700 font-medium"
+                                >
+                                  <Eye className="h-4 w-4 mr-1" />
+                                  View Report
+                                </button>
+                                <button
+                                  onClick={() => handleDownloadReport(test._id)}
+                                  className="flex items-center text-green-600 hover:text-green-700 font-medium"
+                                >
+                                  <Download className="h-4 w-4 mr-1" />
+                                  Download Report
+                                </button>
+                              </>
+                            ) : null;
+                          })()}
                         </div>
                       </td>
                     </tr>

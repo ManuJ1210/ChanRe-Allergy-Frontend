@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import API from '../../../services/api';
+import API from '../../services/api';
 import { 
   ArrowLeft, 
   Activity,
@@ -20,8 +20,7 @@ import {
   Calendar,
   Mail,
   Building,
-  AlertTriangle,
-  Printer
+  AlertTriangle
 } from 'lucide-react';
 
 const TestRequestDetails = () => {
@@ -69,7 +68,7 @@ const TestRequestDetails = () => {
       setReportStatus(response.data);
       
       // Check if tests are completed AND payment is fully settled
-      const isTestCompleted = ['Testing_Completed', 'Billing_Paid', 'Report_Generated', 'Report_Sent', 'Completed', 'feedback_sent'].includes(testRequest?.status);
+      const isTestCompleted = ['Report_Generated', 'Report_Sent', 'Completed', 'feedback_sent'].includes(testRequest?.status);
       const isPaymentComplete = testRequest?.billing ? 
         (testRequest.billing.amount || 0) - (testRequest.billing.paidAmount || 0) <= 0 : false;
       
@@ -102,19 +101,6 @@ const TestRequestDetails = () => {
     try {
       setPdfLoading(true);
       setError(null);
-      
-      // First check if report is available
-      try {
-        const statusResponse = await API.get(`/test-requests/report-status/${id}`);
-        const reportStatus = statusResponse.data;
-        
-        if (!reportStatus.isAvailable) {
-          setError(`Report not available: ${reportStatus.message}`);
-          return;
-        }
-      } catch (statusError) {
-        console.warn('Could not check report status, proceeding with download attempt:', statusError);
-      }
       
       const response = await API.get(`/test-requests/download-report/${id}`, {
         responseType: 'blob',
@@ -187,19 +173,6 @@ const TestRequestDetails = () => {
       setPdfLoading(true);
       setError(null);
       
-      // First check if report is available
-      try {
-        const statusResponse = await API.get(`/test-requests/report-status/${id}`);
-        const reportStatus = statusResponse.data;
-        
-        if (!reportStatus.isAvailable) {
-          setError(`Report not available: ${reportStatus.message}`);
-          return;
-        }
-      } catch (statusError) {
-        console.warn('Could not check report status, proceeding with download attempt:', statusError);
-      }
-      
       const response = await API.get(`/test-requests/download-report/${id}`, {
         responseType: 'blob',
         headers: {
@@ -261,102 +234,6 @@ const TestRequestDetails = () => {
         setError(`Report not found: ${errorData.message}. ${errorData.suggestion || ''}`);
       } else {
         setError('Failed to download report. Please try again.');
-      }
-    } finally {
-      setPdfLoading(false);
-    }
-  };
-
-  const handlePrint = async () => {
-    try {
-      setPdfLoading(true);
-      setError(null);
-      
-      // First check if report is available
-      try {
-        const statusResponse = await API.get(`/test-requests/report-status/${id}`);
-        const reportStatus = statusResponse.data;
-        
-        if (!reportStatus.isAvailable) {
-          setError(`Report not available: ${reportStatus.message}`);
-          return;
-        }
-      } catch (statusError) {
-        console.warn('Could not check report status, proceeding with print attempt:', statusError);
-      }
-      
-      const response = await API.get(`/test-requests/download-report/${id}`, {
-        responseType: 'blob',
-        headers: {
-          'Accept': 'application/pdf'
-        }
-      });
-      
-      if (response.status !== 200) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const contentType = response.headers['content-type'] || response.headers['Content-Type'];
-      
-      let pdfBlob;
-      if (contentType && contentType.includes('application/pdf')) {
-        pdfBlob = response.data;
-      } else {
-        // Handle text/JSON response that needs conversion
-        let pdfContent = response.data;
-        if (typeof pdfContent === 'object' && pdfContent.pdfContent) {
-          pdfContent = pdfContent.pdfContent;
-        }
-        
-        const cleanedPdfContent = pdfContent
-          .replace(/\\n/g, '\n')
-          .replace(/\\r/g, '\r')
-          .replace(/\\t/g, '\t')
-          .replace(/\\\\/g, '\\')
-          .replace(/\\"/g, '"');
-        
-        const byteCharacters = cleanedPdfContent;
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
-        pdfBlob = new Blob([byteArray], { type: 'application/pdf' });
-      }
-      
-      // Create a new window for printing
-      const url = window.URL.createObjectURL(pdfBlob);
-      const printWindow = window.open(url, '_blank');
-      
-      if (printWindow) {
-        printWindow.onload = () => {
-          printWindow.print();
-          // Clean up the URL after printing
-          setTimeout(() => {
-            window.URL.revokeObjectURL(url);
-            printWindow.close();
-          }, 1000);
-        };
-      } else {
-        // Fallback: open in new tab if popup is blocked
-        window.open(url, '_blank');
-        setTimeout(() => {
-          window.URL.revokeObjectURL(url);
-        }, 1000);
-      }
-      
-    } catch (error) {
-      console.error('Error printing PDF:', error);
-      if (error.response?.status === 401) {
-        setError('Authentication failed. Please login again to print reports.');
-      } else if (error.response?.status === 400) {
-        const errorData = error.response.data;
-        setError(`Report not available: ${errorData.message}. Current status: ${errorData.currentStatus}`);
-      } else if (error.response?.status === 404) {
-        const errorData = error.response.data;
-        setError(`Report not found: ${errorData.message}. ${errorData.suggestion || ''}`);
-      } else {
-        setError('Failed to print report. Please try again.');
       }
     } finally {
       setPdfLoading(false);
@@ -452,7 +329,7 @@ const TestRequestDetails = () => {
               <h2 className="text-sm font-semibold text-gray-800 mb-2">Error Loading Test Request</h2>
               <p className="text-gray-600 mb-4 text-xs">{error}</p>
               <button
-                onClick={() => navigate('/dashboard/centeradmin/test-requests')}
+                onClick={() => navigate('/dashboard/doctor/test-requests')}
                 className="px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs"
               >
                 Back to Test Requests
@@ -474,7 +351,7 @@ const TestRequestDetails = () => {
               <h2 className="text-sm font-semibold text-gray-800 mb-2">No Test Request Found</h2>
               <p className="text-gray-600 mb-4 text-xs">The requested test request could not be found.</p>
               <button
-                onClick={() => navigate('/dashboard/centeradmin/test-requests')}
+                onClick={() => navigate('/dashboard/doctor/test-requests')}
                 className="px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs"
               >
                 Back to Test Requests
@@ -494,7 +371,7 @@ const TestRequestDetails = () => {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-4">
             <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
               <button
-                onClick={() => navigate('/dashboard/centeradmin/test-requests')}
+                onClick={() => navigate('/dashboard/doctor/test-requests')}
                 className="flex items-center space-x-2 text-blue-600 hover:text-blue-700 transition-colors text-xs"
               >
                 <ArrowLeft size={20} />
@@ -566,62 +443,6 @@ const TestRequestDetails = () => {
             )}
           </div>
 
-          {/* Superadmin Review Information */}
-          {testRequest.superadminReview && (
-            <div className="bg-yellow-50 rounded-lg p-4 sm:p-6 mb-6 sm:mb-8">
-              <h2 className="text-sm font-semibold text-gray-800 mb-4 flex items-center">
-                <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-yellow-600" />
-                Superadmin Review Status
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                <div>
-                  <label className="block text-xs font-medium text-gray-500">Review Status</label>
-                  <span className={`inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs font-medium border ${
-                    testRequest.superadminReview.status === 'approved' ? 'text-green-600 bg-green-50 border-green-200' :
-                    testRequest.superadminReview.status === 'rejected' ? 'text-red-600 bg-red-50 border-red-200' :
-                    testRequest.superadminReview.status === 'requires_changes' ? 'text-orange-600 bg-orange-50 border-orange-200' :
-                    'text-yellow-600 bg-yellow-50 border-yellow-200'
-                  }`}>
-                    {testRequest.superadminReview.status?.replace(/_/g, ' ') || 'Pending'}
-                  </span>
-                </div>
-                {testRequest.superadminReview.reviewedAt && (
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500">Reviewed At</label>
-                    <p className="text-gray-900 font-medium text-xs flex items-center">
-                      <Calendar className="h-4 w-4 mr-2 text-gray-500" />
-                      {new Date(testRequest.superadminReview.reviewedAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                )}
-                {testRequest.superadminReview.reviewNotes && (
-                  <div className="md:col-span-2">
-                    <label className="block text-xs font-medium text-gray-500">Review Notes</label>
-                    <p className="text-gray-900 font-medium text-xs">{testRequest.superadminReview.reviewNotes}</p>
-                  </div>
-                )}
-                {testRequest.superadminReview.additionalTests && (
-                  <div className="md:col-span-2">
-                    <label className="block text-xs font-medium text-gray-500">Additional Tests Recommended</label>
-                    <p className="text-gray-900 font-medium text-xs">{testRequest.superadminReview.additionalTests}</p>
-                  </div>
-                )}
-                {testRequest.superadminReview.patientInstructions && (
-                  <div className="md:col-span-2">
-                    <label className="block text-xs font-medium text-gray-500">Patient Instructions</label>
-                    <p className="text-gray-900 font-medium text-xs">{testRequest.superadminReview.patientInstructions}</p>
-                  </div>
-                )}
-                {testRequest.superadminReview.changesRequired && (
-                  <div className="md:col-span-2">
-                    <label className="block text-xs font-medium text-gray-500">Changes Required</label>
-                    <p className="text-gray-900 font-medium text-xs">{testRequest.superadminReview.changesRequired}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
           {/* Patient Information */}
           <div className="bg-gray-50 rounded-lg p-4 sm:p-6 mb-6 sm:mb-8">
             <h2 className="text-sm font-semibold text-gray-800 mb-4 flex items-center">
@@ -645,27 +466,6 @@ const TestRequestDetails = () => {
                 <p className="text-gray-900 font-medium flex items-center text-xs">
                   <MapPin className="h-4 w-4 mr-2 text-gray-500" />
                   {testRequest.patientAddress || testRequest.patientId?.address || 'N/A'}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Doctor Information */}
-          <div className="bg-gray-50 rounded-lg p-4 sm:p-6 mb-6 sm:mb-8">
-            <h2 className="text-sm font-semibold text-gray-800 mb-4 flex items-center">
-              <Stethoscope className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-blue-600" />
-              Doctor Information
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-              <div>
-                <label className="block text-xs font-medium text-gray-500">Doctor Name</label>
-                <p className="text-gray-900 font-medium text-xs">{testRequest.doctorName || 'N/A'}</p>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-500">Doctor Phone</label>
-                <p className="text-gray-900 font-medium flex items-center text-xs">
-                  <Phone className="h-4 w-4 mr-2 text-gray-500" />
-                  {testRequest.doctorId?.phone || 'N/A'}
                 </p>
               </div>
             </div>
@@ -741,7 +541,7 @@ const TestRequestDetails = () => {
             </div>
           )}
 
-          {/* Report Information / PDF Actions */}
+          {/* Report Information */}
           {testRequest.reportGeneratedDate ? (
             <div className="bg-gray-50 rounded-lg p-4 sm:p-6 mb-6 sm:mb-8">
               <h2 className="text-sm font-semibold text-gray-800 mb-4 flex items-center">
@@ -817,24 +617,6 @@ const TestRequestDetails = () => {
                         </>
                       )}
                     </button>
-                    
-                    <button
-                      onClick={handlePrint}
-                      disabled={pdfLoading}
-                      className="flex items-center justify-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs"
-                    >
-                      {pdfLoading ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                          Loading...
-                        </>
-                      ) : (
-                        <>
-                          <Printer className="h-4 w-4 mr-2" />
-                          Print PDF
-                        </>
-                      )}
-                    </button>
                   </div>
                 </div>
               )}
@@ -857,48 +639,9 @@ const TestRequestDetails = () => {
                   </div>
                 </div>
               )}
-                
-              {/* Report Status Information */}
-              {reportStatus && (
-                <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <h4 className="text-xs font-medium text-blue-800 mb-2">Report Status</h4>
-                  <div className="space-y-1 text-xs">
-                    <div className="flex justify-between">
-                      <span className="text-blue-700">Available:</span>
-                      <span className={`font-medium ${reportStatus.isAvailable ? 'text-green-600' : 'text-red-600'}`}>
-                        {reportStatus.isAvailable ? 'Yes' : 'No'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-blue-700">Current Status:</span>
-                      <span className="font-medium text-blue-800">{reportStatus.currentStatus}</span>
-                    </div>
-                    {reportStatus.reportGeneratedDate && (
-                      <div className="flex justify-between">
-                        <span className="text-blue-700">Generated:</span>
-                        <span className="font-medium text-blue-800">
-                          {new Date(reportStatus.reportGeneratedDate).toLocaleDateString()}
-                        </span>
-                      </div>
-                    )}
-                    {reportStatus.reportGeneratedBy && (
-                      <div className="flex justify-between">
-                        <span className="text-blue-700">Generated By:</span>
-                        <span className="font-medium text-blue-800">{reportStatus.reportGeneratedBy}</span>
-                      </div>
-                    )}
-                    {!reportStatus.isAvailable && (
-                      <div className="mt-2 p-2 bg-yellow-50 rounded border border-yellow-200">
-                        <p className="text-xs text-yellow-800">
-                          {reportStatus.message}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
             </div>
           ) : (
+            /* PDF Actions - Only show if tests completed AND payment settled */
             <div className="bg-gray-50 rounded-lg p-4 sm:p-6 mb-6 sm:mb-8">
               <h2 className="text-sm font-semibold text-gray-800 mb-4 flex items-center">
                 <FileText className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-blue-600" />
@@ -962,46 +705,6 @@ const TestRequestDetails = () => {
               <p className="text-xs text-gray-500 mt-3">
                 Note: PDF will only be available if a report has been generated for this test request.
               </p>
-              
-              {/* Report Status Information */}
-              {reportStatus && (
-                <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <h4 className="text-xs font-medium text-blue-800 mb-2">Report Status</h4>
-                  <div className="space-y-1 text-xs">
-                    <div className="flex justify-between">
-                      <span className="text-blue-700">Available:</span>
-                      <span className={`font-medium ${reportStatus.isAvailable ? 'text-green-600' : 'text-red-600'}`}>
-                        {reportStatus.isAvailable ? 'Yes' : 'No'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-blue-700">Current Status:</span>
-                      <span className="font-medium text-blue-800">{reportStatus.currentStatus}</span>
-                    </div>
-                    {reportStatus.reportGeneratedDate && (
-                      <div className="flex justify-between">
-                        <span className="text-blue-700">Generated:</span>
-                        <span className="font-medium text-blue-800">
-                          {new Date(reportStatus.reportGeneratedDate).toLocaleDateString()}
-                        </span>
-                      </div>
-                    )}
-                    {reportStatus.reportGeneratedBy && (
-                      <div className="flex justify-between">
-                        <span className="text-blue-700">Generated By:</span>
-                        <span className="font-medium text-blue-800">{reportStatus.reportGeneratedBy}</span>
-                      </div>
-                    )}
-                    {!reportStatus.isAvailable && (
-                      <div className="mt-2 p-2 bg-yellow-50 rounded border border-yellow-200">
-                        <p className="text-xs text-yellow-800">
-                          {reportStatus.message}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
             </div>
           )}
 
@@ -1036,7 +739,7 @@ const TestRequestDetails = () => {
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
             <button
-              onClick={() => navigate('/dashboard/centeradmin/test-requests')}
+              onClick={() => navigate('/dashboard/doctor/test-requests')}
               className="flex items-center justify-center px-4 sm:px-6 py-2 sm:py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-xs w-full sm:w-auto"
             >
               <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />

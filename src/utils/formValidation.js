@@ -22,8 +22,10 @@ const KMC_REGEX = /^[A-Za-z0-9]+$/;
 const CENTER_CODE_REGEX = /^[A-Za-z0-9]{3,10}$/;
 
 // Validation functions
-export const validateEmail = (email) => {
-  if (!email || email.trim() === '') return null; // Email is optional
+export const validateEmail = (email, isRequired = true) => {
+  if (!email || email.trim() === '') {
+    return isRequired ? 'Email is required' : null;
+  }
   if (!EMAIL_REGEX.test(email)) return 'Please enter a valid email address';
   return null;
 };
@@ -129,7 +131,7 @@ export const validatePatientForm = (formData) => {
   errors.age = validateAge(formData.age);
   errors.gender = validateRequired(formData.gender, 'Gender');
   errors.contact = validatePhone(formData.contact);
-  errors.email = formData.email ? validateEmail(formData.email) : null;
+  errors.email = validateEmail(formData.email, false); // Email is optional for patients
   errors.address = validateRequired(formData.address, 'Address');
   errors.assignedDoctor = validateRequired(formData.assignedDoctor, 'Assigned Doctor');
   
@@ -148,6 +150,7 @@ export const validateDoctorForm = (formData) => {
   errors.qualification = validateQualification(formData.qualification);
   errors.designation = validateQualification(formData.designation); // Make designation optional like qualification
   errors.kmcNumber = validateKMCNumber(formData.kmcNumber);
+  errors.hospitalName = validateQualification(formData.hospitalName); // Add hospitalName validation
   errors.experience = validateExperience(formData.experience);
   errors.bio = validateBio(formData.bio);
   
@@ -171,9 +174,9 @@ export const validateReceptionistForm = (formData) => {
 export const validateCenterForm = (formData) => {
   const errors = {};
   
-  errors.name = validateName(formData.name);
+  errors.centername = validateName(formData.centername);
   errors.location = validateRequired(formData.location, 'Location');
-  errors.address = validateRequired(formData.address, 'Address');
+  errors.fulladdress = validateRequired(formData.fulladdress, 'Full Address');
   errors.email = validateEmail(formData.email);
   errors.phone = validatePhone(formData.phone);
   errors.code = validateCenterCode(formData.code);
@@ -199,6 +202,11 @@ export const validateLabStaffForm = (formData) => {
 // Helper function to check if form has errors
 export const hasFormErrors = (errors) => {
   return Object.values(errors).some(error => error !== null);
+};
+
+// Helper function to check if form has errors only for touched fields
+export const hasTouchedFormErrors = (errors, touched) => {
+  return Object.keys(errors).some(key => touched[key] && errors[key] !== null);
 };
 
 // Helper function to get first error message

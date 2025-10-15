@@ -140,6 +140,28 @@ const PatientProfile = () => {
     }
   };
 
+  // Helper functions for payment status checking
+  const isReportAccessible = (report) => {
+    const isTestCompleted = ['Testing_Completed', 'Billing_Paid', 'Report_Generated', 'Report_Sent', 'Completed', 'feedback_sent'].includes(report.status);
+    const isPaymentComplete = report.billing ?
+      (report.billing.amount || 0) - (report.billing.paidAmount || 0) <= 0 : true;
+
+    // Allow access if either tests are completed OR payment is complete
+    return isTestCompleted || isPaymentComplete;
+  };
+
+  const getLockReason = (report) => {
+    const isTestCompleted = ['Testing_Completed', 'Billing_Paid', 'Report_Generated', 'Report_Sent', 'Completed', 'feedback_sent'].includes(report.status);
+    const isPaymentComplete = report.billing ?
+      (report.billing.amount || 0) - (report.billing.paidAmount || 0) <= 0 : true;
+
+    const reasons = [];
+    if (!isTestCompleted) reasons.push('Tests not fully completed');
+    if (!isPaymentComplete) reasons.push('Payment not fully completed');
+
+    return reasons.join(' and ');
+  };
+
   // New functions for handling PDF reports using test request ID
   const handleViewPDFReport = async (testRequestId, fileName) => {
     try {
@@ -296,7 +318,7 @@ const PatientProfile = () => {
         {/* Tabs */}
         <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-2 mb-8">
           <div className="flex gap-2">
-            {["Overview", "Follow-ups", "Medical History", "Medications", "Lab Reports"].map((tab) => (
+            {["Overview", "Follow-ups", "Medical History", "Medications", ].map((tab) => (
               <button
                 key={tab}
                 className={`px-6 py-3 rounded-lg font-medium transition-colors flex-1 text-xs ${
@@ -381,10 +403,7 @@ const PatientProfile = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
               <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-6">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-medium text-slate-500">Lab Reports</p>
-                    <p className="text-xl font-bold text-blue-600">{labReports?.length || 0}</p>
-                  </div>
+                  
                   <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                     <Activity className="h-6 w-6 text-blue-600" />
                   </div>
@@ -586,165 +605,9 @@ const PatientProfile = () => {
           </div>
         )}
 
-        {activeTab === "Lab Reports" && (
-          <div className="bg-white rounded-xl shadow-sm border border-blue-100">
-            <div className="p-6 border-b border-blue-100">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-sm font-semibold text-slate-800 flex items-center">
-                    <Activity className="h-5 w-5 mr-2 text-blue-500" />
-                    Lab Reports
-                  </h2>
-                  <p className="text-slate-600 mt-1 text-xs">
-                    Laboratory test results and medical investigations
-                  </p>
-                </div>
-                <button
-                  onClick={() => navigate(`/dashboard/superadmin/doctor/patient/${patientId}/lab-reports`)}
-                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-xs font-medium transition-colors flex items-center gap-2"
-                >
-                  <Activity className="h-4 w-4" />
-                  View All Reports
-                </button>
-              </div>
-            </div>
-            <div className="p-6">
-              {!labReports || labReports.length === 0 ? (
-                <div className="text-center py-8">
-                  <Activity className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                  <p className="text-slate-500 text-xs">No lab reports found</p>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {labReports.map((report, index) => (
-                    <div key={index} className="bg-gray-50 p-6 rounded-lg border-l-4 border-orange-500">
-                      <div className="flex items-center justify-between mb-4">
-                        <div>
-                          <h6 className="font-semibold text-gray-800 text-xs">{report.testType}</h6>
-                          <p className="text-xs text-gray-500">Created on {new Date(report.createdAt).toLocaleDateString()}</p>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            report.status === 'Completed' ? 'bg-green-100 text-green-800' :
-                            report.status === 'Report_Generated' ? 'bg-blue-100 text-blue-800' :
-                            report.status === 'Report_Sent' ? 'bg-purple-100 text-purple-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}>
-                            {report.status}
-                          </span>
-                        </div>
-                      </div>
+       
+
                       
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs mb-4">
-                        <div><span className="font-medium">Test Description:</span> {renderFieldValue(report.testDescription) || 'N/A'}</div>
-                        <div><span className="font-medium">Urgency:</span> {renderFieldValue(report.urgency) || 'Normal'}</div>
-                        {report.doctorId && <div><span className="font-medium">Requested By:</span> {report.doctorId.name}</div>}
-                        {report.reportGeneratedDate && <div><span className="font-medium">Report Generated:</span> {new Date(report.reportGeneratedDate).toLocaleDateString()}</div>}
-                      </div>
-
-                      {/* Report Details */}
-                      {(report.reportSummary || report.clinicalInterpretation || report.conclusion || report.recommendations) && (
-                        <div className="bg-white p-4 rounded-lg mb-4">
-                          <h6 className="font-semibold text-gray-800 mb-3 text-xs">Report Details</h6>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                            {report.reportSummary && (
-                              <div>
-                                <span className="font-medium text-gray-600">Summary:</span>
-                                <p className="text-gray-800 mt-1">{renderFieldValue(report.reportSummary)}</p>
-                              </div>
-                            )}
-                            {report.clinicalInterpretation && (
-                              <div>
-                                <span className="font-medium text-gray-600">Clinical Interpretation:</span>
-                                <p className="text-gray-800 mt-1">{renderFieldValue(report.clinicalInterpretation)}</p>
-                              </div>
-                            )}
-                            {report.conclusion && (
-                              <div>
-                                <span className="font-medium text-gray-600">Conclusion:</span>
-                                <p className="text-gray-800 mt-1">{renderFieldValue(report.conclusion)}</p>
-                              </div>
-                            )}
-                            {report.recommendations && (
-                              <div>
-                                <span className="font-medium text-gray-600">Recommendations:</span>
-                                <p className="text-gray-800 mt-1">{renderFieldValue(report.recommendations)}</p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* PDF Report */}
-                      {(report.reportFile || report.reportFilePath) && (
-                        <div className="bg-blue-50 p-4 rounded-lg">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <File className="h-6 w-6 text-blue-600" />
-                              <div>
-                                <span className="font-medium text-blue-800 text-xs">PDF Report Available</span>
-                                <p className="text-xs text-blue-600 mt-1">
-                                  Generated on {report.reportGeneratedDate ? new Date(report.reportGeneratedDate).toLocaleDateString() : 'N/A'}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => handleViewPDFReport(report._id, `${report.testType}_report.pdf`)}
-                                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center text-xs"
-                              >
-                                <Eye className="w-4 h-4 mr-1" />
-                                View PDF
-                              </button>
-                              <button
-                                onClick={() => handleDownloadPDFReport(report._id, `${report.testType}_report.pdf`)}
-                                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center text-xs"
-                              >
-                                <Download className="w-4 h-4 mr-1" />
-                                Download
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Additional Files */}
-                      {report.additionalFiles && report.additionalFiles.length > 0 && (
-                        <div className="bg-gray-50 p-4 rounded-lg mt-4">
-                          <h6 className="font-semibold text-gray-800 mb-3 text-xs">Additional Files</h6>
-                          <div className="flex flex-wrap gap-3">
-                            {report.additionalFiles.map((file, fileIndex) => (
-                              <div key={fileIndex} className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border">
-                                {getFileIcon(file.type)}
-                                <span className="text-xs text-gray-700 truncate max-w-32">{file.name}</span>
-                                <div className="flex gap-1">
-                                  <button
-                                    onClick={() => handleViewFile(file.url, file.name)}
-                                    className="text-blue-600 hover:text-blue-800 p-1"
-                                    title="View file"
-                                  >
-                                    <Eye className="h-3 w-3" />
-                                  </button>
-                                  <button
-                                    onClick={() => handleDownloadFile(file.url, file.name)}
-                                    className="text-green-600 hover:text-green-800 p-1"
-                                    title="Download file"
-                                  >
-                                    <Download className="h-3 w-3" />
-                                  </button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
 
         {activeTab === "Follow-ups" && (
           <div className="bg-white rounded-xl shadow-sm border border-blue-100">
