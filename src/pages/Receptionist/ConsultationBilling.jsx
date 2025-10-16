@@ -151,11 +151,16 @@ export default function ConsultationBilling() {
   const [showCancelBillModal, setShowCancelBillModal] = useState(false);
   const [showRefundModal, setShowRefundModal] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
+  const [penaltyAmount, setPenaltyAmount] = useState(150); // Default penalty amount
+  const [patientBehavior, setPatientBehavior] = useState('okay'); // 'okay' or 'rude'
+  const [refundType, setRefundType] = useState('partial'); // 'partial' or 'full'
   const [refundData, setRefundData] = useState({
     amount: '',
     refundMethod: 'cash',
+    refundType: 'partial', // 'partial' or 'full'
     reason: '',
-    notes: ''
+    notes: '',
+    patientBehavior: 'okay' // 'okay' or 'rude' - determines penalty policy
   });
 
   // Invoice editing states
@@ -248,8 +253,14 @@ export default function ConsultationBilling() {
 
     // Check if any bills have refunds
     const hasRefundedBills = patient.billing.some(bill => bill.status === 'refunded');
-    if (hasRefundedBills) {
+    const hasPartiallyRefundedBills = patient.billing.some(bill => bill.status === 'partially_refunded');
+    
+    if (hasRefundedBills && !hasPartiallyRefundedBills) {
       return { status: 'Refunded', color: 'text-orange-600 bg-orange-100', icon: <RotateCcw className="h-4 w-4" /> };
+    }
+    
+    if (hasPartiallyRefundedBills) {
+      return { status: 'Partially Refunded', color: 'text-yellow-600 bg-yellow-100', icon: <RotateCcw className="h-4 w-4" /> };
     }
 
     // Check payment statuses
@@ -539,33 +550,65 @@ export default function ConsultationBilling() {
     }
 
     try {
+      const latestBill = selectedPatient.billing?.[selectedPatient.billing.length - 1];
+      if (!latestBill) {
+        toast.error('No bill found for this patient');
+        return;
+      }
+
+      const totalAmount = latestBill.customData?.totals?.total || latestBill.amount || 0;
+      const paidAmount = latestBill.customData?.totals?.paid || latestBill.paidAmount || 0;
+      
+      // Calculate refund amount based on policy
+      let refundAmount = 0;
+      if (paidAmount > 0) {
+        if (refundType === 'full') {
+          refundAmount = paidAmount;
+        } else {
+          // Partial refund with penalty
+          refundAmount = Math.max(0, paidAmount - penaltyAmount);
+        }
+      }
+
       const cancelPayload = {
         patientId: selectedPatient._id,
         reason: cancelReason.trim(),
-        initiateRefund: true // Auto-initiate refund if payment was made
+        patientBehavior: patientBehavior,
+        refundType: refundType,
+        penaltyAmount: penaltyAmount,
+        refundAmount: refundAmount,
+        initiateRefund: paidAmount > 0 // Auto-initiate refund if payment was made
       };
 
-      console.log('Cancelling bill:', cancelPayload);
+      console.log('Cancelling bill with penalty policy:', cancelPayload);
 
       const response = await API.post('/billing/cancel-bill', cancelPayload);
       
       if (response.data.success) {
-        toast.success('Bill cancelled successfully!');
+        const successMessage = refundType === 'full' 
+          ? 'Bill cancelled and full refund processed successfully!' 
+          : `Bill cancelled and partial refund processed (₹${penaltyAmount} penalty applied)!`;
         
-        if (response.data.refundInitiated) {
-          toast.info('Refund process has been initiated');
+        toast.success(successMessage);
+        
+        if (patientBehavior === 'rude') {
+          toast.warning('Patient marked as rude - they have been asked not to return to the clinic.');
         }
         
         setShowCancelBillModal(false);
+        setCancelReason('');
+        setPenaltyAmount(150);
+        setPatientBehavior('okay');
+        setRefundType('partial');
         
         // Refresh patient data
         await dispatch(fetchReceptionistPatients());
       } else {
-        toast.error('Failed to cancel bill');
+        toast.error(response.data.message || 'Failed to cancel bill');
       }
     } catch (error) {
       console.error('Error cancelling bill:', error);
-      toast.error('Failed to cancel bill');
+      toast.error(error.response?.data?.message || 'Failed to cancel bill');
     }
   };
 
@@ -577,11 +620,20 @@ export default function ConsultationBilling() {
       return sum + (bill.paidAmount || 0);
     }, 0);
     
+    // Get total already refunded amount
+    const totalRefunded = patient.billing.reduce((sum, bill) => {
+      return sum + (bill.refundAmount || 0);
+    }, 0);
+    
+    const availableForRefund = totalPaid - totalRefunded;
+    
     setRefundData({
-      amount: totalPaid.toString(),
+      amount: availableForRefund.toString(),
       refundMethod: 'cash',
+      refundType: 'partial',
       reason: '',
-      notes: ''
+      notes: '',
+      patientBehavior: 'okay' // Default to okay behavior
     });
     
     setShowRefundModal(true);
@@ -595,13 +647,20 @@ export default function ConsultationBilling() {
       return;
     }
 
+    if (!refundData.amount || parseFloat(refundData.amount) <= 0) {
+      toast.error('Please enter a valid refund amount');
+      return;
+    }
+
     try {
       const refundPayload = {
         patientId: selectedPatient._id,
         amount: parseFloat(refundData.amount),
         refundMethod: refundData.refundMethod,
+        refundType: refundData.refundType,
         reason: refundData.reason.trim(),
-        notes: refundData.notes
+        notes: refundData.notes,
+        patientBehavior: refundData.patientBehavior // Include patient behavior for penalty policy
       };
 
       console.log('Processing refund:', refundPayload);
@@ -609,7 +668,7 @@ export default function ConsultationBilling() {
       const response = await API.post('/billing/process-refund', refundPayload);
       
       if (response.data.success) {
-        toast.success('Refund processed successfully!');
+        toast.success(`${refundData.refundType === 'full' ? 'Full' : 'Partial'} refund processed successfully!`);
         setShowRefundModal(false);
         
         // Refresh patient data
@@ -619,7 +678,7 @@ export default function ConsultationBilling() {
       }
     } catch (error) {
       console.error('Error processing refund:', error);
-      toast.error('Failed to process refund');
+      toast.error(error.response?.data?.message || 'Failed to process refund');
     }
   };
 
@@ -1275,7 +1334,7 @@ export default function ConsultationBilling() {
     }).length;
     const refunded = patients.filter(p => {
       const status = getPatientStatus(p);
-      return status.status === 'Refunded';
+      return status.status === 'Refunded' || status.status === 'Partially Refunded';
     }).length;
     
     return { 
@@ -1720,17 +1779,17 @@ export default function ConsultationBilling() {
                                   </button>
                                 )}
 
-                                {/* Process Refund - for cancelled bills with payments */}
-                                {statusInfo.status === 'Bill Cancelled' && totalPaid > 0 && (
-                                    <button
+                                {/* Process Refund - for cancelled bills with payments or partially refunded bills */}
+                                {(statusInfo.status === 'Bill Cancelled' && totalPaid > 0) || statusInfo.status === 'Partially Refunded' ? (
+                                  <button
                                     onClick={() => handleProcessRefund(patient)}
                                     className="bg-orange-500 hover:bg-orange-600 text-white px-2 py-1 rounded text-xs font-medium flex items-center gap-1"
                                     title="Process Refund"
                                   >
                                     <RotateCcw className="h-3 w-3" />
                                     Refund
-                                    </button>
-                                )}
+                                  </button>
+                                ) : null}
                               </div>
                             </td>
                           </tr>
@@ -2384,6 +2443,9 @@ export default function ConsultationBilling() {
                             } else if (regBill?.status === 'refunded') {
                               regStatus = 'Refunded';
                               regStatusColor = 'text-orange-600';
+                            } else if (regBill?.status === 'partially_refunded') {
+                              regStatus = 'Partially Refunded';
+                              regStatusColor = 'text-yellow-600';
                             } else {
                               regStatus = regPaid >= invoiceData.registrationFee ? 'Paid' : regPaid > 0 ? 'Partial' : 'Unpaid';
                               regStatusColor = regStatus === 'Paid' ? 'text-green-600' : regStatus === 'Partial' ? 'text-orange-600' : 'text-red-600';
@@ -2422,6 +2484,9 @@ export default function ConsultationBilling() {
                             } else if (consultBill?.status === 'refunded') {
                               consultStatus = 'Refunded';
                               consultStatusColor = 'text-orange-600';
+                            } else if (consultBill?.status === 'partially_refunded') {
+                              consultStatus = 'Partially Refunded';
+                              consultStatusColor = 'text-yellow-600';
                             } else {
                               consultStatus = consultPaid >= invoiceData.consultationFee ? 'Paid' : consultPaid > 0 ? 'Partial' : 'Unpaid';
                               consultStatusColor = consultStatus === 'Paid' ? 'text-green-600' : consultStatus === 'Partial' ? 'text-orange-600' : 'text-red-600';
@@ -2467,6 +2532,9 @@ export default function ConsultationBilling() {
                             } else if (serviceBill?.status === 'refunded') {
                               serviceStatus = 'Refunded';
                               serviceStatusColor = 'text-orange-600';
+                            } else if (serviceBill?.status === 'partially_refunded') {
+                              serviceStatus = 'Partially Refunded';
+                              serviceStatusColor = 'text-yellow-600';
                             } else {
                               serviceStatus = servicePaid >= service.amount ? 'Paid' : servicePaid > 0 ? 'Partial' : 'Unpaid';
                               serviceStatusColor = serviceStatus === 'Paid' ? 'text-green-600' : serviceStatus === 'Partial' ? 'text-orange-600' : 'text-red-600';
@@ -2657,6 +2725,9 @@ export default function ConsultationBilling() {
                             } else if (bill.status === 'refunded') {
                               statusText = 'Refunded';
                               statusColor = 'text-orange-600';
+                            } else if (bill.status === 'partially_refunded') {
+                              statusText = 'Partially Refunded';
+                              statusColor = 'text-yellow-600';
                             } else if (isFullyPaid) {
                               statusText = 'Paid';
                               statusColor = 'text-green-600';
@@ -3039,12 +3110,131 @@ export default function ConsultationBilling() {
                 />
               </div>
 
+              {/* Patient Behavior Assessment */}
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-2">
+                  Patient Behavior Assessment *
+                </label>
+                <div className="space-y-2">
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="patientBehavior"
+                      value="okay"
+                      checked={patientBehavior === 'okay'}
+                      onChange={(e) => setPatientBehavior(e.target.value)}
+                      className="mr-2"
+                    />
+                    <span className="text-xs text-slate-700">Patient is okay with penalty (₹150 registration fee)</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="patientBehavior"
+                      value="rude"
+                      checked={patientBehavior === 'rude'}
+                      onChange={(e) => setPatientBehavior(e.target.value)}
+                      className="mr-2"
+                    />
+                    <span className="text-xs text-slate-700">Patient is rude - Full refund + ask not to return</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Refund Type Selection */}
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-2">
+                  Refund Type *
+                </label>
+                <div className="space-y-2">
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="refundType"
+                      value="partial"
+                      checked={refundType === 'partial'}
+                      onChange={(e) => setRefundType(e.target.value)}
+                      className="mr-2"
+                    />
+                    <span className="text-xs text-slate-700">Partial Refund (₹{penaltyAmount} penalty)</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="refundType"
+                      value="full"
+                      checked={refundType === 'full'}
+                      onChange={(e) => setRefundType(e.target.value)}
+                      className="mr-2"
+                    />
+                    <span className="text-xs text-slate-700">Full Refund (No penalty)</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Penalty Amount Input */}
+              {refundType === 'partial' && (
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-2">
+                    Penalty Amount (₹)
+                  </label>
+                  <input
+                    type="number"
+                    value={penaltyAmount}
+                    onChange={(e) => setPenaltyAmount(parseFloat(e.target.value) || 0)}
+                    min="0"
+                    max="1000"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-xs"
+                    placeholder="Enter penalty amount"
+                  />
+                </div>
+              )}
+
+              {/* Refund Summary */}
+              {selectedPatient && (() => {
+                const latestBill = selectedPatient.billing?.[selectedPatient.billing.length - 1];
+                if (!latestBill) return null;
+                
+                const totalAmount = latestBill.customData?.totals?.total || latestBill.amount || 0;
+                const paidAmount = latestBill.customData?.totals?.paid || latestBill.paidAmount || 0;
+                const refundAmount = refundType === 'full' ? paidAmount : Math.max(0, paidAmount - penaltyAmount);
+                
+                return (
+                  <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
+                    <h4 className="text-xs font-semibold text-slate-800 mb-2">Refund Summary</h4>
+                    <div className="space-y-1 text-xs">
+                      <div className="flex justify-between">
+                        <span>Total Bill Amount:</span>
+                        <span>₹{totalAmount.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Amount Paid:</span>
+                        <span>₹{paidAmount.toFixed(2)}</span>
+                      </div>
+                      {refundType === 'partial' && (
+                        <div className="flex justify-between text-red-600">
+                          <span>Penalty (Registration Fee):</span>
+                          <span>-₹{penaltyAmount.toFixed(2)}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between font-semibold border-t border-slate-300 pt-1">
+                        <span>Refund Amount:</span>
+                        <span className="text-green-600">₹{refundAmount.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
               <div className="bg-red-50 border border-red-200 rounded-lg p-3">
                 <div className="flex items-start">
                   <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 mr-2 flex-shrink-0" />
                   <div className="text-xs text-red-700">
                     <p className="font-medium mb-1">Warning:</p>
-                    <p>This action will cancel the bill and may initiate a refund if payments were made. This action cannot be undone.</p>
+                    <p>This action will cancel the bill and process the selected refund. This action cannot be undone.</p>
+                    {patientBehavior === 'rude' && (
+                      <p className="mt-1 font-medium text-red-800">Patient will be asked not to return to the clinic.</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -3086,20 +3276,93 @@ export default function ConsultationBilling() {
             </div>
             
             <form onSubmit={handleRefundSubmit} className="space-y-4">
+              {/* Payment Summary */}
+              {selectedPatient.billing && selectedPatient.billing.length > 0 && (
+                <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-4">
+                  <h4 className="text-sm font-semibold text-orange-800 mb-2">Refund Summary</h4>
+                  <div className="space-y-1 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-orange-700">Total Paid:</span>
+                      <span className="font-semibold">₹{selectedPatient.billing.reduce((sum, bill) => sum + (bill.paidAmount || 0), 0).toLocaleString('en-IN')}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-orange-700">Already Refunded:</span>
+                      <span className="font-semibold text-red-600">₹{selectedPatient.billing.reduce((sum, bill) => sum + (bill.refundAmount || 0), 0).toLocaleString('en-IN')}</span>
+                    </div>
+                    <div className="flex justify-between border-t border-orange-300 pt-1">
+                      <span className="text-orange-700 font-semibold">Available for Refund:</span>
+                      <span className="font-bold text-green-600">₹{selectedPatient.billing.reduce((sum, bill) => sum + (bill.paidAmount || 0) - (bill.refundAmount || 0), 0).toLocaleString('en-IN')}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Refund Type */}
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-2">
+                  Refund Type *
+                </label>
+                <select
+                  value={refundData.refundType}
+                  onChange={(e) => {
+                    const newType = e.target.value;
+                    setRefundData({...refundData, refundType: newType});
+                    
+                    // Auto-adjust amount based on type
+                    if (newType === 'full') {
+                      const availableForRefund = selectedPatient.billing.reduce((sum, bill) => sum + (bill.paidAmount || 0) - (bill.refundAmount || 0), 0);
+                      setRefundData(prev => ({...prev, refundType: newType, amount: availableForRefund.toString()}));
+                    }
+                  }}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-xs"
+                >
+                  <option value="partial">Partial Refund</option>
+                  <option value="full">Full Refund</option>
+                </select>
+                <div className="mt-1 p-2 bg-orange-50 border border-orange-200 rounded text-xs text-orange-700">
+                  <p><strong>Partial Refund:</strong> Refund a specific amount from available funds.</p>
+                  <p><strong>Full Refund:</strong> Refund all available paid amounts.</p>
+                </div>
+              </div>
+
+              {/* Refund Amount */}
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-2">
                   Refund Amount (₹) *
                 </label>
-                <input
-                  type="number"
-                  value={refundData.amount}
-                  onChange={(e) => setRefundData({...refundData, amount: e.target.value})}
-                  required
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-xs"
-                  placeholder="Enter refund amount"
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    value={refundData.amount}
+                    onChange={(e) => setRefundData({...refundData, amount: e.target.value})}
+                    required
+                    className="flex-1 px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-xs"
+                    placeholder="Enter refund amount"
+                    max={selectedPatient.billing.reduce((sum, bill) => sum + (bill.paidAmount || 0) - (bill.refundAmount || 0), 0)}
+                    min="0"
+                    step="0.01"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const availableForRefund = selectedPatient.billing.reduce((sum, bill) => sum + (bill.paidAmount || 0) - (bill.refundAmount || 0), 0);
+                      setRefundData({
+                        ...refundData,
+                        amount: availableForRefund.toString(),
+                        refundType: 'full'
+                      });
+                    }}
+                    className="px-3 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-xs font-medium whitespace-nowrap"
+                  >
+                    Refund All
+                  </button>
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  Maximum refundable: ₹{selectedPatient.billing.reduce((sum, bill) => sum + (bill.paidAmount || 0) - (bill.refundAmount || 0), 0).toLocaleString('en-IN')}
+                </p>
               </div>
 
+              {/* Refund Method */}
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-2">
                   Refund Method *
@@ -3116,6 +3379,43 @@ export default function ConsultationBilling() {
                 </select>
               </div>
 
+              {/* Patient Behavior Assessment */}
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-2">
+                  Patient Behavior Assessment *
+                </label>
+                <div className="space-y-2">
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="patientBehavior"
+                      value="okay"
+                      checked={refundData.patientBehavior === 'okay'}
+                      onChange={(e) => setRefundData({...refundData, patientBehavior: e.target.value})}
+                      className="mr-2"
+                    />
+                    <span className="text-xs text-slate-700">Patient is okay - Registration fee (₹150) will be held as penalty</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="patientBehavior"
+                      value="rude"
+                      checked={refundData.patientBehavior === 'rude'}
+                      onChange={(e) => setRefundData({...refundData, patientBehavior: e.target.value})}
+                      className="mr-2"
+                    />
+                    <span className="text-xs text-slate-700">Patient is rude - Full refund including registration fee</span>
+                  </label>
+                </div>
+                <div className="mt-2 p-2 bg-orange-50 border border-orange-200 rounded text-xs text-orange-700">
+                  <p><strong>Penalty Policy:</strong></p>
+                  <p>• <strong>Okay Patient:</strong> Registration fee (₹150) held as penalty, only consultation/service fees refunded</p>
+                  <p>• <strong>Rude Patient:</strong> Full refund including registration fee (no penalty)</p>
+                </div>
+              </div>
+
+              {/* Refund Reason */}
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-2">
                   Refund Reason *
@@ -3130,6 +3430,7 @@ export default function ConsultationBilling() {
                 />
               </div>
 
+              {/* Notes */}
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-2">
                   Notes
@@ -3155,7 +3456,7 @@ export default function ConsultationBilling() {
                   type="submit"
                   className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-xs font-medium"
                 >
-                  Process Refund
+                  Process {refundData.refundType === 'full' ? 'Full' : 'Partial'} Refund
                 </button>
               </div>
             </form>

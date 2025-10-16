@@ -585,10 +585,55 @@ const AccountantBilling = () => {
                     <div className="text-sm font-medium text-gray-900">₹{(invoice.amount || 0).toLocaleString()}</div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="text-sm font-medium text-green-600">₹{(invoice.paidAmount || 0).toLocaleString()}</div>
+                    {(() => {
+                      // Process refunded bills correctly
+                      const isRefunded = invoice.status === 'refunded';
+                      const isPartiallyRefunded = invoice.status === 'partially_refunded';
+                      
+                      if (isRefunded || isPartiallyRefunded) {
+                        // For refunded bills, calculate the refunded amount
+                        const totalAmount = invoice.amount || 0;
+                        const remainingAmount = invoice.paidAmount || 0;
+                        const refundedAmount = totalAmount - remainingAmount;
+                        
+                        return (
+                          <div className="text-sm font-medium text-purple-600">
+                            Refunded: ₹{refundedAmount.toLocaleString()}
+                          </div>
+                        );
+                      } else {
+                        // For non-refunded bills, show paid amount
+                        return (
+                          <div className="text-sm font-medium text-green-600">
+                            ₹{(invoice.paidAmount || 0).toLocaleString()}
+                          </div>
+                        );
+                      }
+                    })()}
                   </td>
                   <td className="px-6 py-4">
-                    <div className="text-sm font-medium text-orange-600">₹{(invoice.balance || 0).toLocaleString()}</div>
+                    {(() => {
+                      // Process balance correctly for refunded bills
+                      const isRefunded = invoice.status === 'refunded';
+                      const isPartiallyRefunded = invoice.status === 'partially_refunded';
+                      
+                      if (isRefunded || isPartiallyRefunded) {
+                        // For refunded bills, balance is the remaining amount (penalty)
+                        const remainingAmount = invoice.paidAmount || 0;
+                        return (
+                          <div className="text-sm font-medium text-orange-600">
+                            ₹{remainingAmount.toLocaleString()}
+                          </div>
+                        );
+                      } else {
+                        // For non-refunded bills, use the original balance
+                        return (
+                          <div className="text-sm font-medium text-orange-600">
+                            ₹{(invoice.balance || 0).toLocaleString()}
+                          </div>
+                        );
+                      }
+                    })()}
                   </td>
                   <td className="px-6 py-4">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(invoice.status)}`}>
@@ -812,10 +857,36 @@ const AccountantBilling = () => {
                     <span>Grand Total:</span>
                     <span>₹{(selectedInvoice.amount || 0).toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between py-1">
-                    <span>Amount Paid:</span>
-                    <span className="text-green-600 font-semibold">₹{(selectedInvoice.paidAmount || 0).toFixed(2)}</span>
-                  </div>
+                  {(() => {
+                    const isRefunded = selectedInvoice.status === 'refunded';
+                    const isPartiallyRefunded = selectedInvoice.status === 'partially_refunded';
+                    
+                    if (isRefunded || isPartiallyRefunded) {
+                      const totalAmount = selectedInvoice.amount || 0;
+                      const remainingAmount = selectedInvoice.paidAmount || 0;
+                      const refundedAmount = totalAmount - remainingAmount;
+                      
+                      return (
+                        <>
+                          <div className="flex justify-between py-1">
+                            <span>Amount Paid:</span>
+                            <span className="text-green-600 font-semibold">₹{totalAmount.toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between py-1">
+                            <span>Amount Refunded:</span>
+                            <span className="text-purple-600 font-semibold">₹{refundedAmount.toFixed(2)}</span>
+                          </div>
+                        </>
+                      );
+                    } else {
+                      return (
+                        <div className="flex justify-between py-1">
+                          <span>Amount Paid:</span>
+                          <span className="text-green-600 font-semibold">₹{(selectedInvoice.paidAmount || 0).toFixed(2)}</span>
+                        </div>
+                      );
+                    }
+                  })()}
                   <div className="flex justify-between py-1">
                     <span>Status:</span>
                     <span className="font-bold uppercase">{selectedInvoice.status}</span>
@@ -874,10 +945,36 @@ const AccountantBilling = () => {
                     <span>Total Bill Amount:</span>
                     <span className="font-semibold">₹{(selectedInvoice.amount || 0).toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between mb-2">
-                    <span>Amount Paid:</span>
-                    <span className="font-semibold text-green-600">₹{(selectedInvoice.paidAmount || 0).toFixed(2)}</span>
-                  </div>
+                  {(() => {
+                    const isRefunded = selectedInvoice.status === 'refunded';
+                    const isPartiallyRefunded = selectedInvoice.status === 'partially_refunded';
+                    
+                    if (isRefunded || isPartiallyRefunded) {
+                      const totalAmount = selectedInvoice.amount || 0;
+                      const remainingAmount = selectedInvoice.paidAmount || 0;
+                      const refundedAmount = totalAmount - remainingAmount;
+                      
+                      return (
+                        <>
+                          <div className="flex justify-between mb-2">
+                            <span>Amount Paid:</span>
+                            <span className="font-semibold text-green-600">₹{totalAmount.toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between mb-2">
+                            <span>Amount Refunded:</span>
+                            <span className="font-semibold text-purple-600">₹{refundedAmount.toFixed(2)}</span>
+                          </div>
+                        </>
+                      );
+                    } else {
+                      return (
+                        <div className="flex justify-between mb-2">
+                          <span>Amount Paid:</span>
+                          <span className="font-semibold text-green-600">₹{(selectedInvoice.paidAmount || 0).toFixed(2)}</span>
+                        </div>
+                      );
+                    }
+                  })()}
                   <div className="flex justify-between">
                     <span>Bill Status:</span>
                     <span className="font-bold">{selectedInvoice.status?.toUpperCase()}</span>

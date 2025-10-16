@@ -89,12 +89,12 @@ export default function ReassignPatient() {
   
   const [invoiceFormData, setInvoiceFormData] = useState({
     registrationFee: 0,
-    consultationFee: 850,
+    consultationFee: 1050,
     serviceCharges: [{ name: '', amount: '', description: '' }],
     taxPercentage: 0,
     discountPercentage: 0,
     notes: '',
-    consultationType: 'OP'
+    consultationType: 'IP'
   });
   
   const [generatedInvoice, setGeneratedInvoice] = useState(null);
@@ -105,7 +105,7 @@ export default function ReassignPatient() {
     paymentType: 'full',
     notes: '',
     appointmentTime: '',
-    consultationType: 'OP',
+    consultationType: 'IP',
     markAsPaid: true
   });
   
@@ -113,9 +113,11 @@ export default function ReassignPatient() {
   const [refundData, setRefundData] = useState({
     amount: '',
     refundMethod: 'cash',
+    refundType: 'partial', // 'partial' or 'full'
     reason: '',
     paymentReference: '',
-    notes: ''
+    notes: '',
+    patientBehavior: 'okay' // 'okay' or 'rude' - determines penalty policy
   });
   
   const [workingHoursReassignData, setWorkingHoursReassignData] = useState({
@@ -446,7 +448,7 @@ export default function ReassignPatient() {
     const isFree = isEligibleForFreeReassignment(patient);
     
     // Determine default consultation type and fee
-    let defaultConsultationType = isFree ? 'followup' : 'OP';
+    let defaultConsultationType = isFree ? 'followup' : 'IP';
     let defaultConsultationFee = getConsultationFee(patient, defaultConsultationType);
     
     setInvoiceFormData({
@@ -509,6 +511,12 @@ export default function ReassignPatient() {
       return { status: 'Bill Refunded', color: 'text-purple-600 bg-purple-100', icon: <RotateCcw className="h-4 w-4" /> };
     }
     
+    // Check if the latest bill is partially refunded
+    if (latestBill && latestBill.status === 'partially_refunded') {
+      console.log('✅ Bill is partially refunded, showing partially refunded status');
+      return { status: 'Partially Refunded', color: 'text-yellow-600 bg-yellow-100', icon: <RotateCcw className="h-4 w-4" /> };
+    }
+    
     const totalAmount = reassignmentBills.reduce((sum, bill) => sum + (bill.totals?.total || bill.amount || 0), 0);
     const totalPaid = reassignmentBills.reduce((sum, bill) => sum + (bill.totals?.paid || bill.paidAmount || 0), 0);
     
@@ -532,11 +540,17 @@ export default function ReassignPatient() {
       return status.status === 'No Invoice' || status.status === 'Pending Payment';
     }).length;
     
+    const refunded = finalFilteredPatients.filter(p => {
+      const status = getReassignmentStatus(p);
+      return status.status === 'Bill Refunded' || status.status === 'Partially Refunded';
+    }).length;
+    
     return { 
       totalPatients, 
       eligibleForFree,
       alreadyReassigned, 
-      pendingBilling
+      pendingBilling,
+      refunded
     };
   };
 
@@ -611,6 +625,7 @@ export default function ReassignPatient() {
                     <option value="free consultation">Free Consultation</option>
                     <option value="bill cancelled">Bill Cancelled</option>
                     <option value="bill refunded">Bill Refunded</option>
+                    <option value="partially refunded">Partially Refunded</option>
                   </select>
                 </div>
 
@@ -640,7 +655,7 @@ export default function ReassignPatient() {
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
             <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
               <div className="flex items-center">
                 <div className="p-2 bg-blue-100 rounded-lg">
@@ -687,6 +702,18 @@ export default function ReassignPatient() {
                   <p className="text-lg font-semibold text-slate-900">{stats.alreadyReassigned}</p>
                 </div>
                 </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
+              <div className="flex items-center">
+                <div className="p-2 bg-orange-100 rounded-lg">
+                  <RotateCcw className="h-5 w-5 text-orange-600" />
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm font-medium text-slate-600">Refunded</p>
+                  <p className="text-lg font-semibold text-slate-900">{stats.refunded}</p>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -893,15 +920,55 @@ export default function ReassignPatient() {
                                       if (!latestBill) return null;
                                       
                                       const totalAmount = latestBill.customData?.totals?.total || latestBill.amount || 0;
-                                      const paidAmount = latestBill.customData?.totals?.paid || latestBill.paidAmount || 0;
+                                      const remainingPaidAmount = latestBill.customData?.totals?.paid || latestBill.paidAmount || 0;
+                                      const refundedAmountFromRefunds = latestBill.refunds?.reduce((sum, refund) => sum + (refund.amount || 0), 0) || 0;
+                                      
+                                      // For reassign patients, calculate refunded amount as: Total - Remaining
+                                      const calculatedRefundedAmount = totalAmount - remainingPaidAmount;
+                                      const refundedAmount = refundedAmountFromRefunds > 0 ? refundedAmountFromRefunds : calculatedRefundedAmount;
+                                      
                                       const isRefunded = latestBill.status === 'refunded';
-                                      const refundAmount = latestBill.refunds?.reduce((sum, refund) => sum + (refund.amount || 0), 0) || 0;
+                                      const isPartiallyRefunded = latestBill.status === 'partially_refunded';
+                                      const isCancelled = latestBill.status === 'cancelled';
                                       
+                                      // Debug logging
+                                      console.log('🔍 Patient List Debug for', patient.name, ':', {
+                                        totalAmount,
+                                        remainingPaidAmount,
+                                        refundedAmountFromRefunds,
+                                        calculatedRefundedAmount,
+                                        refundedAmount,
+                                        isRefunded,
+                                        isPartiallyRefunded,
+                                        isCancelled,
+                                        billStatus: latestBill.status
+                                      });
                                       
-                                      // For refunded bills, show refund amount instead of balance
-                                      const displayAmount = isRefunded ? refundAmount : (totalAmount - paidAmount);
-                                      const displayLabel = isRefunded ? 'Refunded' : 'Bal';
-                                      const displayColor = isRefunded ? 'text-purple-600' : (displayAmount > 0 ? 'text-orange-600' : 'text-green-600');
+                                      // For cancelled/refunded bills, show the actual current state
+                                      let paidAmount = remainingPaidAmount;
+                                      let balance = totalAmount - remainingPaidAmount;
+                                      
+                                      if (isRefunded) {
+                                        // Fully refunded: no amount paid, full balance
+                                        paidAmount = 0;
+                                        balance = totalAmount;
+                                      } else if (isPartiallyRefunded) {
+                                        // Partially refunded: no amount paid (all refunded), balance is penalty amount
+                                        paidAmount = 0;
+                                        balance = totalAmount - refundedAmount; // This gives us the penalty amount
+                                      } else if (isCancelled) {
+                                        // Cancelled: no amount paid, full balance
+                                        paidAmount = 0;
+                                        balance = totalAmount;
+                                      }
+                                      
+                                      console.log('💰 Calculated amounts:', {
+                                        paidAmount,
+                                        balance,
+                                        availableForRefund: paidAmount
+                                      });
+                                      
+                                      const availableForRefund = paidAmount;
                                       
                                       return (
                                         <>
@@ -911,12 +978,37 @@ export default function ReassignPatient() {
                                           <div className="text-slate-600 text-xs">
                                             ₹{totalAmount.toFixed(0)}
                                           </div>
-                                          <div className="text-slate-600 text-xs">
-                                            Paid: ₹{paidAmount.toFixed(0)}
-                                          </div>
-                                          <div className={`font-medium text-xs ${displayColor}`}>
-                                            {displayLabel}: ₹{displayAmount.toFixed(0)}
-                                          </div>
+                                          {/* Show appropriate payment/refund information */}
+                                          {isRefunded || isPartiallyRefunded ? (
+                                            <div className="text-purple-600 text-xs font-medium">
+                                              Refunded: ₹{refundedAmount.toFixed(0)}
+                                            </div>
+                                          ) : (
+                                            <div className="text-slate-600 text-xs">
+                                              Paid: ₹{paidAmount.toFixed(0)}
+                                            </div>
+                                          )}
+                                          {isRefunded ? (
+                                            <div className="text-purple-600 text-xs font-medium">
+                                              Status: Fully Refunded
+                                            </div>
+                                          ) : isPartiallyRefunded ? (
+                                            <div className="text-yellow-600 text-xs font-medium">
+                                              Status: Partially Refunded
+                                            </div>
+                                          ) : isCancelled ? (
+                                            <div className="text-red-600 text-xs font-medium">
+                                              Status: Cancelled
+                                            </div>
+                                          ) : balance > 0 ? (
+                                            <div className="text-orange-600 text-xs font-medium">
+                                              Balance: ₹{balance.toFixed(0)}
+                                            </div>
+                                          ) : (
+                                            <div className="text-green-600 text-xs font-medium">
+                                              Status: Fully Paid
+                                            </div>
+                                          )}
                                         </>
                                       );
                                     })()}
@@ -972,8 +1064,15 @@ export default function ReassignPatient() {
                                       );
                                     }
 
-                                    // Step 2: If reassigned but no bill, show Create Bill (skip for working hours violations)
-                                    if (isReassigned && !hasReassignmentBilling && !isWorkingHoursViolation) {
+                                    // Step 2: If reassigned, show Create Bill (skip for working hours violations)
+                                    // Allow multiple reassignment invoices - only hide if latest bill is not cancelled/refunded
+                                    const latestBillStatus = latestBill?.status;
+                                    const canCreateNewBill = !latestBillStatus || 
+                                      latestBillStatus === 'cancelled' || 
+                                      latestBillStatus === 'refunded' || 
+                                      latestBillStatus === 'partially_refunded';
+                                    
+                                    if (isReassigned && canCreateNewBill && !isWorkingHoursViolation) {
                                       buttons.push(
                                     <button
                                           key="create-bill"
@@ -988,8 +1087,14 @@ export default function ReassignPatient() {
                                       );
                                     }
 
-                                    // Step 3: If bill exists, show View Bill and Pay buttons
-                                    if (hasReassignmentBilling && !isCancelled && !isRefunded) {
+                                    // Step 3: Show View Bill button for any bill that exists (except cancelled bills)
+                                    const isPartiallyRefunded = latestBill?.status === 'partially_refunded';
+                                    const isFullyRefunded = latestBill?.status === 'refunded';
+                                    const canViewBill = hasReassignmentBilling && !isCancelled;
+                                    const canPay = hasReassignmentBilling && !isCancelled && !isFullyRefunded && !isPartiallyRefunded;
+                                    
+                                    // Always show View Bill button if bill exists and not cancelled
+                                    if (canViewBill) {
                                       buttons.push(
                                     <button
                                           key="view-bill"
@@ -1003,26 +1108,36 @@ export default function ReassignPatient() {
                                       <Eye className="h-3 w-3" /> View Bill
                                     </button>
                                       );
-
-                                      buttons.push(
-                                    <button
-                                          key="pay"
-                                          onClick={() => {
-                                            console.log('💳 Process Payment clicked from table for:', patient.name);
-                                            const latestBill = patient.reassignedBilling?.[patient.reassignedBilling.length - 1];
-                                            setGeneratedInvoice(latestBill);
-                                            setSelectedPatient(patient);
-                                            setShowPaymentModal(true);
-                                          }}
-                                          className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-md hover:bg-green-200 transition-colors flex items-center justify-center gap-1 border border-green-200"
-                                        >
-                                          <CreditCard className="h-3 w-3" /> Pay
-                                        </button>
-                                      );
+                                    }
+                                    
+                                    // Show Pay button only if bill can be paid and has balance
+                                    if (canPay) {
+                                      // Only show Pay button if there's actually a balance to pay
+                                      const totalAmount = latestBill?.customData?.totals?.total || latestBill?.amount || 0;
+                                      const paidAmount = latestBill?.customData?.totals?.paid || latestBill?.paidAmount || 0;
+                                      const balance = totalAmount - paidAmount;
+                                      
+                                      if (balance > 0) {
+                                        buttons.push(
+                                      <button
+                                            key="pay"
+                                            onClick={() => {
+                                              console.log('💳 Process Payment clicked from table for:', patient.name);
+                                              const latestBill = patient.reassignedBilling?.[patient.reassignedBilling.length - 1];
+                                              setGeneratedInvoice(latestBill);
+                                              setSelectedPatient(patient);
+                                              setShowPaymentModal(true);
+                                            }}
+                                            className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-md hover:bg-green-200 transition-colors flex items-center justify-center gap-1 border border-green-200"
+                                          >
+                                            <CreditCard className="h-3 w-3" /> Pay
+                                          </button>
+                                        );
+                                      }
                                     }
 
-                                    // Step 4: If bill is paid, show Cancel button
-                                    if (hasReassignmentBilling && hasPayment && !isCancelled && !isRefunded) {
+                                    // Step 4: If bill is paid and not cancelled/refunded, show Cancel button
+                                    if (hasReassignmentBilling && hasPayment && !isCancelled && !isFullyRefunded && !isPartiallyRefunded) {
                                       buttons.push(
                                         <button
                                           key="cancel-bill"
@@ -1037,8 +1152,14 @@ export default function ReassignPatient() {
                                       );
                                     }
 
-                                    // Step 5: If bill is cancelled AND was paid, show Refund button
-                                    if (hasReassignmentBilling && isCancelled && !isRefunded && hasPayment) {
+                                    // Step 5: Show Refund button for cancelled bills with payments OR partially refunded bills
+                                    const hasAvailableRefund = (() => {
+                                      const paidAmount = latestBill?.customData?.totals?.paid || latestBill?.paidAmount || 0;
+                                      const refundedAmount = latestBill?.refunds?.reduce((sum, refund) => sum + (refund.amount || 0), 0) || 0;
+                                      return paidAmount - refundedAmount > 0;
+                                    })();
+                                    
+                                    if (hasReassignmentBilling && hasAvailableRefund && (isCancelled || isPartiallyRefunded)) {
                                       buttons.push(
                                     <button
                                           key="refund"
@@ -1048,7 +1169,8 @@ export default function ReassignPatient() {
                                       }}
                                       className="text-xs px-2 py-1 bg-orange-100 text-orange-800 rounded-md hover:bg-orange-200 transition-colors flex items-center justify-center gap-1 border border-orange-200"
                                     >
-                                      <RotateCcw className="h-3 w-3" /> Refund
+                                      <RotateCcw className="h-3 w-3" /> 
+                                      {isPartiallyRefunded ? 'Refund More' : 'Refund'}
                                     </button>
                                       );
                                     }
@@ -1269,28 +1391,87 @@ export default function ReassignPatient() {
         </div>
       )}
 
-      {/* Invoice Preview Modal */}
+      {/* Invoice Preview Modal - Updated 2025-01-16 15:00 */}
       {showInvoicePreviewModal && selectedPatient && (() => {
         const latestBill = selectedPatient.reassignedBilling?.[selectedPatient.reassignedBilling.length - 1];
         if (!latestBill) return null;
         
-        const totalAmount = latestBill.customData?.totals?.total || latestBill.amount || 0;
-        const paidAmount = latestBill.customData?.totals?.paid || latestBill.paidAmount || 0;
-        const balance = totalAmount - paidAmount;
-        const isFullyPaid = balance <= 0;
+        // COMPREHENSIVE DEBUGGING OF BACKEND DATA
+        console.log('🔍 COMPLETE BILL OBJECT:', latestBill);
+        console.log('🔍 Bill Keys:', Object.keys(latestBill));
+        console.log('🔍 Amount Field:', latestBill.amount);
+        console.log('🔍 PaidAmount Field:', latestBill.paidAmount);
+        console.log('🔍 RefundAmount Field:', latestBill.refundAmount);
+        console.log('🔍 Status Field:', latestBill.status);
+        console.log('🔍 CustomData Field:', latestBill.customData);
+        console.log('🔍 Refunds Array:', latestBill.refunds);
+        
+        // Extract data from backend - let's try different approaches
+        const totalAmount = latestBill.amount || 0;
+        const refundedAmount = latestBill.refundAmount || 0;
+        const remainingPaidAmount = latestBill.paidAmount || 0;
+        
+        // Try alternative data sources
+        const customTotalAmount = latestBill.customData?.totals?.total || 0;
+        const customPaidAmount = latestBill.customData?.totals?.paid || 0;
+        const customRefundedAmount = latestBill.refunds?.reduce((sum, refund) => sum + (refund.amount || 0), 0) || 0;
+        
+        console.log('🔍 PRIMARY DATA:', {
+          totalAmount,
+          refundedAmount,
+          remainingPaidAmount
+        });
+        
+        console.log('🔍 CUSTOM DATA:', {
+          customTotalAmount,
+          customPaidAmount,
+          customRefundedAmount
+        });
+        
+        // Determine which data source to use
+        const finalTotalAmount = customTotalAmount || totalAmount;
+        const finalRefundedAmount = customRefundedAmount || refundedAmount;
+        const finalRemainingPaidAmount = customPaidAmount || remainingPaidAmount;
+        
+        // For reassign patients, the logic is different:
+        // - totalAmount: Total bill amount (1050)
+        // - paidAmount: Amount remaining after refund (450 - this is the penalty)
+        // - refundAmount: Amount that was refunded (600)
+        // - originalPaidAmount: Original payment before refund (1050)
+        const originalPaidAmount = finalTotalAmount; // For reassign patients, original payment = total amount
+        
+        // Calculate refunded amount: Original payment - Remaining amount
+        const calculatedRefundedAmount = originalPaidAmount - finalRemainingPaidAmount;
+        console.log('🔍 REFUND CALCULATION:', {
+          originalPaidAmount,
+          finalRemainingPaidAmount,
+          calculatedRefundedAmount,
+          'finalRefundedAmount (from backend)': finalRefundedAmount
+        });
+        
         const isCancelled = latestBill.status === 'cancelled';
         const isRefunded = latestBill.status === 'refunded';
+        const isPartiallyRefunded = latestBill.status === 'partially_refunded';
         
-        // Debug logging
-        console.log('Invoice Preview - Payment Status:', {
-          totalAmount,
-          paidAmount,
-          balance,
-          isFullyPaid,
-          latestBill: latestBill,
-          customData: latestBill.customData,
-          totals: latestBill.customData?.totals
+        // For invoice display - always show the correct amounts
+        const displayPaidAmount = originalPaidAmount;     // Always show original payment
+        const displayRefundedAmount = calculatedRefundedAmount;     // Use calculated refunded amount
+        const displayBalance = finalRemainingPaidAmount;       // Always show remaining balance (penalty)
+        
+        console.log('🔍 FINAL CALCULATIONS:', {
+          finalTotalAmount,
+          finalRefundedAmount,
+          finalRemainingPaidAmount,
+          originalPaidAmount,
+          displayPaidAmount,
+          displayRefundedAmount,
+          displayBalance,
+          calculatedRefundedAmount,
+          'latestBill.refundAmount': latestBill.refundAmount,
+          'latestBill.refunds': latestBill.refunds
         });
+        
+        const isFullyPaid = displayBalance <= 0;
         
         return (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -1303,22 +1484,7 @@ export default function ReassignPatient() {
                   </div>
                   <div className="flex items-center gap-3">
                     {/* Action Buttons */}
-                    {!isCancelled && !isRefunded && (
-                      <button
-                        onClick={() => {
-                          console.log('💳 Process Payment clicked');
-                          console.log('latestBill:', latestBill);
-                          console.log('selectedPatient:', selectedPatient);
-                          setGeneratedInvoice(latestBill);
-                          setShowInvoicePreviewModal(false);
-                          setShowPaymentModal(true);
-                        }}
-                        className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2"
-                      >
-                        <CreditCard className="h-4 w-4" />
-                        Process Payment
-                      </button>
-                    )}
+                    
                     
                     <button
                       onClick={() => {
@@ -1570,6 +1736,13 @@ export default function ReassignPatient() {
 
                   {/* Services Table */}
                   <div className="mb-4 no-page-break">
+                    {/* Debug: Services Table Values */}
+                    {console.log('🔍 Services Table Values:', {
+                      totalAmount,
+                      displayPaidAmount,
+                      displayBalance,
+                      displayRefundedAmount
+                    })}
                     <table className="min-w-full border-collapse border border-slate-300">
                       <thead>
                         <tr className="bg-slate-100">
@@ -1587,26 +1760,28 @@ export default function ReassignPatient() {
                           <td className="border border-slate-300 px-3 py-2 text-xs">1</td>
                           <td className="border border-slate-300 px-3 py-2 text-xs">{latestBill.consultationType} Consultation Fee</td>
                           <td className="border border-slate-300 px-3 py-2 text-center text-xs">1</td>
-                          <td className="border border-slate-300 px-3 py-2 text-right text-xs">{(latestBill.customData?.consultationFee || 0).toFixed(2)}</td>
-                          <td className="border border-slate-300 px-3 py-2 text-right text-xs">{paidAmount.toFixed(2)}</td>
-                          <td className="border border-slate-300 px-3 py-2 text-right text-xs">{balance.toFixed(2)}</td>
+                          <td className="border border-slate-300 px-3 py-2 text-right text-xs">{finalTotalAmount.toFixed(2)}</td>
+                          <td className="border border-slate-300 px-3 py-2 text-right text-xs">{displayPaidAmount.toFixed(2)}</td>
+                          <td className="border border-slate-300 px-3 py-2 text-right text-xs">{displayBalance.toFixed(2)}</td>
                           <td className="border border-slate-300 px-3 py-2 text-center text-xs">
                             <span className={`font-medium ${
                               isCancelled ? 'text-red-600' : 
                               isRefunded ? 'text-purple-600' : 
+                              isPartiallyRefunded ? 'text-yellow-600' :
                               isFullyPaid ? 'text-green-600' : 
-                              balance > 0 ? 'text-orange-600' : 'text-red-600'
+                              displayBalance > 0 ? 'text-orange-600' : 'text-red-600'
                             }`}>
                               {isCancelled ? 'Cancelled' : 
-                               isRefunded ? 'Refunded' : 
-                               isFullyPaid ? 'Paid' : 
-                               balance > 0 ? 'Pending' : 'Unpaid'}
+                               isRefunded ? 'Fully Refunded' : 
+                               isPartiallyRefunded ? 'Partially Refunded' :
+                              isFullyPaid ? 'Paid' : 
+                              displayBalance > 0 ? 'Pending' : 'Unpaid'}
                             </span>
                         </td>
                       </tr>
                         {latestBill.customData?.serviceCharges?.map((service, index) => {
                           const serviceAmount = parseFloat(service.amount);
-                          const servicePaid = paidAmount > 0 ? Math.min(serviceAmount, paidAmount) : 0;
+                          const servicePaid = displayPaidAmount > 0 ? Math.min(serviceAmount, displayPaidAmount) : 0;
                           const serviceBalance = serviceAmount - servicePaid;
                           const serviceStatus = serviceBalance <= 0 ? 'Paid' : 'Pending';
                           
@@ -1642,7 +1817,7 @@ export default function ReassignPatient() {
                       <div className="space-y-1 text-xs">
                         <div className="flex justify-between">
                           <span>Total Amount:</span>
-                          <span>₹{totalAmount.toFixed(2)}</span>
+                          <span>₹{finalTotalAmount.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between">
                           <span>Discount(-):</span>
@@ -1654,22 +1829,36 @@ export default function ReassignPatient() {
                         </div>
                         <div className="flex justify-between border-t border-slate-300 pt-1">
                           <span>Grand Total:</span>
-                          <span>₹{totalAmount.toFixed(2)}</span>
+                          <span>₹{finalTotalAmount.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between border-t border-slate-300 pt-1">
                           <span>Amount Paid:</span>
-                          <span className="text-green-600 font-medium">₹{paidAmount.toFixed(2)}</span>
+                          <span className="text-green-600 font-medium">₹{displayPaidAmount.toFixed(2)}</span>
                         </div>
-                        {balance > 0 && (
+                        {(isRefunded || isPartiallyRefunded) && (
+                          <div className="flex justify-between">
+                            <span>Amount Refunded:</span>
+                            <span className="text-purple-600 font-medium">₹{displayRefundedAmount.toFixed(2)}</span>
+                          </div>
+                        )}
+                        {displayBalance > 0 && (
                           <div className="flex justify-between">
                             <span>Outstanding:</span>
-                            <span className="text-orange-600 font-medium">₹{balance.toFixed(2)}</span>
+                            <span className="text-orange-600 font-medium">₹{displayBalance.toFixed(2)}</span>
                           </div>
                         )}
                         <div className="flex justify-between">
                           <span>Status:</span>
-                          <span className={`font-bold ${isFullyPaid ? 'text-green-600' : 'text-orange-600'}`}>
-                            {isFullyPaid ? 'FULLY PAID' : 'PENDING'}
+                          <span className={`font-bold ${
+                            isCancelled ? 'text-red-600' :
+                            isRefunded ? 'text-purple-600' :
+                            isPartiallyRefunded ? 'text-yellow-600' :
+                            isFullyPaid ? 'text-green-600' : 'text-orange-600'
+                          }`}>
+                            {isCancelled ? 'CANCELLED' :
+                             isRefunded ? 'FULLY REFUNDED' :
+                             isPartiallyRefunded ? 'PARTIALLY REFUNDED' :
+                             isFullyPaid ? 'FULLY PAID' : 'PENDING'}
                           </span>
                         </div>
                       </div>
@@ -1679,8 +1868,16 @@ export default function ReassignPatient() {
                   {/* Payment Information */}
                   <div className="mb-6">
                     <div className="text-xs">
-                      <div><span className="font-medium">Paid Amount:</span> (Rs.) {paidAmount > 0 ? `${paidAmount.toFixed(0)} Only` : 'Zero Only'}</div>
-                      <div className="mt-1"><span className="font-medium">Payment Status:</span> {isFullyPaid ? 'Fully Paid' : 'Pending'}</div>
+                      <div><span className="font-medium">Paid Amount:</span> (Rs.) {displayPaidAmount > 0 ? `${displayPaidAmount.toFixed(0)} Only` : 'Zero Only'}</div>
+                      {(isRefunded || isPartiallyRefunded) && (
+                        <div className="mt-1"><span className="font-medium">Refunded Amount:</span> (Rs.) {displayRefundedAmount > 0 ? `${displayRefundedAmount.toFixed(0)} Only` : 'Zero Only'}</div>
+                      )}
+                      <div className="mt-1"><span className="font-medium">Payment Status:</span> {
+                        isCancelled ? 'Cancelled' :
+                        isRefunded ? 'Fully Refunded' :
+                        isPartiallyRefunded ? 'Partially Refunded' :
+                        isFullyPaid ? 'Fully Paid' : 'Pending'
+                      }</div>
                     </div>
                   </div>
 
@@ -1701,34 +1898,101 @@ export default function ReassignPatient() {
                         </tr>
                       </thead>
                       <tbody>
-                        <tr>
-                          <td className="border border-slate-300 px-3 py-2 text-xs">{new Date(latestBill.createdAt).toLocaleDateString('en-GB')}</td>
-                          <td className="border border-slate-300 px-3 py-2 text-xs">{latestBill.consultationType} Consultation Fee</td>
-                          <td className="border border-slate-300 px-3 py-2 text-right text-xs">₹{totalAmount.toFixed(2)}</td>
-                          <td className="border border-slate-300 px-3 py-2 text-right text-xs">₹{paidAmount.toFixed(2)}</td>
-                          <td className="border border-slate-300 px-3 py-2 text-center text-xs">
-                            {latestBill.paymentMethod ? (
-                              <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
-                                {latestBill.paymentMethod.charAt(0).toUpperCase() + latestBill.paymentMethod.slice(1)}
-                              </span>
-                            ) : (
+                        {/* Show complete transaction history */}
+                        
+                        {/* 1. Initial Payment Row (if there was a payment) */}
+                        {displayPaidAmount > 0 && (
+                          <tr>
+                            <td className="border border-slate-300 px-3 py-2 text-xs">
+                              {latestBill.paidAt ? new Date(latestBill.paidAt).toLocaleDateString('en-GB') : 
+                               latestBill.createdAt ? new Date(latestBill.createdAt).toLocaleDateString('en-GB') : 
+                               'N/A'}
+                            </td>
+                            <td className="border border-slate-300 px-3 py-2 text-xs">{latestBill.consultationType} Consultation Fee</td>
+                            <td className="border border-slate-300 px-3 py-2 text-right text-xs">₹{finalTotalAmount.toFixed(2)}</td>
+                            <td className="border border-slate-300 px-3 py-2 text-right text-xs">₹{displayPaidAmount.toFixed(2)}</td>
+                            <td className="border border-slate-300 px-3 py-2 text-center text-xs">
+                              {latestBill.paymentMethod ? (
+                                <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                                  {latestBill.paymentMethod.charAt(0).toUpperCase() + latestBill.paymentMethod.slice(1)}
+                                </span>
+                              ) : (
+                                <span className="text-slate-400">-</span>
+                              )}
+                            </td>
+                            <td className="border border-slate-300 px-3 py-2 text-right text-xs">₹0.00</td>
+                            <td className="border border-slate-300 px-3 py-2 text-right text-xs">₹{(finalTotalAmount - displayPaidAmount).toFixed(2)}</td>
+                            <td className="border border-slate-300 px-3 py-2 text-center text-xs">
+                              <span className="font-medium text-green-600">Paid</span>
+                            </td>
+                          </tr>
+                        )}
+                        
+                        {/* 2. Cancellation Row (if cancelled) */}
+                        {isCancelled && (
+                          <tr>
+                            <td className="border border-slate-300 px-3 py-2 text-xs">
+                              {latestBill.cancelledAt ? new Date(latestBill.cancelledAt).toLocaleDateString('en-GB') : 
+                               latestBill.createdAt ? new Date(latestBill.createdAt).toLocaleDateString('en-GB') : 
+                               'N/A'}
+                            </td>
+                            <td className="border border-slate-300 px-3 py-2 text-xs">{latestBill.consultationType} Consultation Fee</td>
+                            <td className="border border-slate-300 px-3 py-2 text-right text-xs">₹{finalTotalAmount.toFixed(2)}</td>
+                            <td className="border border-slate-300 px-3 py-2 text-right text-xs">₹{originalPaidAmount.toFixed(2)}</td>
+                            <td className="border border-slate-300 px-3 py-2 text-center text-xs">
                               <span className="text-slate-400">-</span>
-                            )}
-                        </td>
-                          <td className="border border-slate-300 px-3 py-2 text-right text-xs">₹0.00</td>
-                          <td className="border border-slate-300 px-3 py-2 text-right text-xs">₹{balance.toFixed(2)}</td>
-                          <td className="border border-slate-300 px-3 py-2 text-center text-xs">
-                            <span className={`font-medium ${
-                              isCancelled ? 'text-red-600' : 
-                              isRefunded ? 'text-purple-600' : 
-                              isFullyPaid ? 'text-green-600' : 'text-orange-600'
-                            }`}>
-                              {isCancelled ? 'Cancelled' : 
-                               isRefunded ? 'Refunded' : 
-                               isFullyPaid ? 'Paid' : 'Pending'}
-                            </span>
-                        </td>
-                      </tr>
+                            </td>
+                            <td className="border border-slate-300 px-3 py-2 text-right text-xs">₹0.00</td>
+                            <td className="border border-slate-300 px-3 py-2 text-right text-xs">₹{finalTotalAmount.toFixed(2)}</td>
+                            <td className="border border-slate-300 px-3 py-2 text-center text-xs">
+                              <span className="font-medium text-red-600">Cancelled</span>
+                            </td>
+                          </tr>
+                        )}
+                        
+                        {/* 3. Refund Row (if refunded) */}
+                        {(isRefunded || isPartiallyRefunded) && (
+                          <tr>
+                            <td className="border border-slate-300 px-3 py-2 text-xs">
+                              {latestBill.refundedAt ? new Date(latestBill.refundedAt).toLocaleDateString('en-GB') : 
+                               latestBill.createdAt ? new Date(latestBill.createdAt).toLocaleDateString('en-GB') : 
+                               'N/A'}
+                            </td>
+                            <td className="border border-slate-300 px-3 py-2 text-xs">{latestBill.consultationType} Consultation Fee</td>
+                            <td className="border border-slate-300 px-3 py-2 text-right text-xs">₹{finalTotalAmount.toFixed(2)}</td>
+                            <td className="border border-slate-300 px-3 py-2 text-right text-xs">₹{displayPaidAmount.toFixed(2)}</td>
+                            <td className="border border-slate-300 px-3 py-2 text-center text-xs">
+                              <span className="text-slate-400">-</span>
+                            </td>
+                            <td className="border border-slate-300 px-3 py-2 text-right text-xs">₹{displayRefundedAmount.toFixed(2)}</td>
+                            <td className="border border-slate-300 px-3 py-2 text-right text-xs">₹{displayBalance.toFixed(2)}</td>
+                            <td className="border border-slate-300 px-3 py-2 text-center text-xs">
+                              <span className={`font-medium ${
+                                isRefunded ? 'text-purple-600' : 'text-yellow-600'
+                              }`}>
+                                {isRefunded ? 'Fully Refunded' : 'Partially Refunded'}
+                              </span>
+                            </td>
+                          </tr>
+                        )}
+                        
+                        {/* 4. Current State Row (if no payment history) */}
+                        {displayPaidAmount === 0 && !isCancelled && !isRefunded && !isPartiallyRefunded && (
+                          <tr>
+                            <td className="border border-slate-300 px-3 py-2 text-xs">{new Date(latestBill.createdAt).toLocaleDateString('en-GB')}</td>
+                            <td className="border border-slate-300 px-3 py-2 text-xs">{latestBill.consultationType} Consultation Fee</td>
+                            <td className="border border-slate-300 px-3 py-2 text-right text-xs">₹{finalTotalAmount.toFixed(2)}</td>
+                            <td className="border border-slate-300 px-3 py-2 text-right text-xs">₹{displayPaidAmount.toFixed(2)}</td>
+                            <td className="border border-slate-300 px-3 py-2 text-center text-xs">
+                              <span className="text-slate-400">-</span>
+                            </td>
+                            <td className="border border-slate-300 px-3 py-2 text-right text-xs">₹0.00</td>
+                            <td className="border border-slate-300 px-3 py-2 text-right text-xs">₹{displayBalance.toFixed(2)}</td>
+                            <td className="border border-slate-300 px-3 py-2 text-center text-xs">
+                              <span className="font-medium text-orange-600">Pending</span>
+                            </td>
+                          </tr>
+                        )}
                       </tbody>
                   </table>
                 </div>
@@ -1740,12 +2004,18 @@ export default function ReassignPatient() {
                       <div>
                         <div className="flex justify-between mb-1">
                           <span>Total Bill Amount:</span>
-                          <span className="font-medium">₹{totalAmount.toFixed(2)}</span>
+                          <span className="font-medium">₹{finalTotalAmount.toFixed(2)}</span>
                   </div>
                         <div className="flex justify-between mb-1">
                           <span>Amount Paid:</span>
-                          <span className="font-medium text-green-600">₹{paidAmount.toFixed(2)}</span>
+                          <span className="font-medium text-green-600">₹{displayPaidAmount.toFixed(2)}</span>
                         </div>
+                        {(isRefunded || isPartiallyRefunded) && (
+                          <div className="flex justify-between mb-1">
+                            <span>Amount Refunded:</span>
+                            <span className="font-medium text-purple-600">₹{displayRefundedAmount.toFixed(2)}</span>
+                          </div>
+                        )}
                       </div>
                       <div>
                         <div className="flex justify-between mb-1">
@@ -1756,7 +2026,8 @@ export default function ReassignPatient() {
                             isFullyPaid ? 'text-green-600' : 'text-orange-600'
                           }`}>
                             {isCancelled ? 'Cancelled' : 
-                             isRefunded ? 'Refunded' : 
+                             isRefunded ? 'Fully Refunded' : 
+                             isPartiallyRefunded ? 'Partially Refunded' :
                              isFullyPaid ? 'Fully Paid' : 'Pending'}
                           </span>
                         </div>
@@ -1907,7 +2178,6 @@ export default function ReassignPatient() {
                       required
                       className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
                     >
-                      <option value="OP">OP Consultation (₹850)</option>
                       <option value="IP">IP Consultation (₹1050)</option>
                       <option value="followup">Free Follow-up Visit (₹0)</option>
                     </select>
@@ -2378,8 +2648,16 @@ export default function ReassignPatient() {
         // Auto-populate refund amount when modal opens
         const latestBill = selectedPatient.reassignedBilling?.[selectedPatient.reassignedBilling.length - 1];
         const paidAmount = latestBill?.customData?.totals?.paid || latestBill?.paidAmount || 0;
-        if (refundData.amount === '' && paidAmount > 0) {
-          setRefundData(prev => ({...prev, amount: paidAmount.toFixed(2)}));
+        const refundedAmount = latestBill?.refunds?.reduce((sum, refund) => sum + (refund.amount || 0), 0) || 0;
+        const availableForRefund = paidAmount - refundedAmount;
+        
+        if (refundData.amount === '' && availableForRefund > 0) {
+          setRefundData(prev => ({
+            ...prev, 
+            amount: availableForRefund.toFixed(2),
+            refundType: 'partial',
+            patientBehavior: 'okay' // Default to okay behavior
+          }));
         }
         return null;
       })()}
@@ -2409,35 +2687,56 @@ export default function ReassignPatient() {
                 const latestBill = selectedPatient.reassignedBilling?.[selectedPatient.reassignedBilling.length - 1];
                 const paidAmount = latestBill?.customData?.totals?.paid || latestBill?.paidAmount || 0;
                 const totalAmount = latestBill?.customData?.totals?.total || latestBill?.amount || 0;
+                const refundedAmount = latestBill?.refunds?.reduce((sum, refund) => sum + (refund.amount || 0), 0) || 0;
+                const availableForRefund = paidAmount - refundedAmount;
                 
                 return (
               <div className="bg-orange-50 p-3 rounded-lg border border-orange-200 mb-4">
-                    <p className="text-xs font-medium text-orange-700">💰 Refund Information:</p>
-                    <p className="text-xs text-orange-600 mt-1">Total Bill: ₹{totalAmount.toFixed(2)}</p>
-                    <p className="text-xs text-orange-600">Amount Paid: ₹{paidAmount.toFixed(2)}</p>
-                    <p className="text-xs text-orange-600">Max Refund: ₹{paidAmount.toFixed(2)}</p>
-                <p className="text-xs text-orange-600 mt-1">This action cannot be undone.</p>
+                    <p className="text-xs font-medium text-orange-700">💰 Refund Summary:</p>
+                    <div className="grid grid-cols-2 gap-2 mt-2 text-xs">
+                      <div>
+                        <p className="text-orange-600">Total Paid: ₹{paidAmount.toFixed(2)}</p>
+                        <p className="text-orange-600">Already Refunded: ₹{refundedAmount.toFixed(2)}</p>
+                      </div>
+                      <div>
+                        <p className="text-orange-600">Available for Refund: ₹{availableForRefund.toFixed(2)}</p>
+                        <p className="text-orange-600">Total Bill: ₹{totalAmount.toFixed(2)}</p>
+                      </div>
+                    </div>
+                <p className="text-xs text-orange-600 mt-2 font-medium">⚠️ This action cannot be undone.</p>
               </div>
                 );
               })()}
 
               <form onSubmit={async (e) => {
                 e.preventDefault();
+                if (!refundData.reason.trim()) {
+                  toast.error('Please provide a refund reason');
+                  return;
+                }
+                if (!refundData.amount || parseFloat(refundData.amount) <= 0) {
+                  toast.error('Please enter a valid refund amount');
+                  return;
+                }
                 try {
-                  const response = await API.post('/reassignment-billing/process-refund', {
+                  const refundPayload = {
                     patientId: selectedPatient._id,
                     amount: parseFloat(refundData.amount),
-                    method: refundData.refundMethod,
-                    reason: refundData.reason,
+                    refundMethod: refundData.refundMethod,
+                    refundType: refundData.refundType,
+                    reason: refundData.reason.trim(),
                     notes: refundData.notes,
+                    patientBehavior: refundData.patientBehavior, // Include patient behavior for penalty policy
                     centerId: getCenterId()
-                  });
+                  };
+                  console.log('Processing refund:', refundPayload);
+                  const response = await API.post('/reassignment-billing/process-refund', refundPayload);
                   
                   if (response.data.success) {
-                    toast.success('Refund processed successfully');
+                    toast.success(`${refundData.refundType === 'full' ? 'Full' : 'Partial'} refund processed successfully!`);
                     dispatch(fetchReceptionistPatients());
                     setShowRefundModal(false);
-                    setRefundData({ amount: '', refundMethod: 'cash', reason: '', notes: '' });
+                    setRefundData({ amount: '', refundMethod: 'cash', refundType: 'partial', reason: '', notes: '', patientBehavior: 'okay' });
                   } else {
                     toast.error(response.data.message || 'Failed to process refund');
                   }
@@ -2447,29 +2746,79 @@ export default function ReassignPatient() {
                 }
               }} className="space-y-4">
                 
+                {/* Refund Type Selection */}
+                <div>
+                  <label htmlFor="refundType" className="block text-sm font-medium text-slate-700 mb-2">
+                    Refund Type *
+                  </label>
+                  <select
+                    id="refundType"
+                    value={refundData.refundType}
+                    onChange={(e) => {
+                      const newRefundType = e.target.value;
+                      const latestBill = selectedPatient.reassignedBilling?.[selectedPatient.reassignedBilling.length - 1];
+                      const paidAmount = latestBill?.customData?.totals?.paid || latestBill?.paidAmount || 0;
+                      const refundedAmount = latestBill?.refunds?.reduce((sum, refund) => sum + (refund.amount || 0), 0) || 0;
+                      const availableForRefund = paidAmount - refundedAmount;
+                      
+                      setRefundData(prev => ({
+                        ...prev,
+                        refundType: newRefundType,
+                        amount: newRefundType === 'full' ? availableForRefund.toFixed(2) : prev.amount,
+                        patientBehavior: 'okay' // Default to okay behavior
+                      }));
+                    }}
+                    required
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
+                  >
+                    <option value="partial">Partial Refund</option>
+                    <option value="full">Full Refund</option>
+                  </select>
+                </div>
+
+                {/* Refund Amount */}
                 <div>
                   <label htmlFor="refundAmount" className="block text-sm font-medium text-slate-700 mb-2">
                     Refund Amount *
                   </label>
-                  <input
-                    id="refundAmount"
-                    type="number"
-                    value={refundData.amount}
-                    onChange={(e) => setRefundData({...refundData, amount: e.target.value})}
-                    required
-                    min="0.01"
-                    step="0.01"
-                    max={(() => {
-                      const latestBill = selectedPatient.reassignedBilling?.[selectedPatient.reassignedBilling.length - 1];
-                      return latestBill?.customData?.totals?.paid || latestBill?.paidAmount || 0;
-                    })()}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
-                    placeholder="e.g., 850.00"
-                  />
+                  <div className="flex gap-2">
+                    <input
+                      id="refundAmount"
+                      type="number"
+                      value={refundData.amount}
+                      onChange={(e) => setRefundData({...refundData, amount: e.target.value})}
+                      required
+                      min="0.01"
+                      step="0.01"
+                      max={(() => {
+                        const latestBill = selectedPatient.reassignedBilling?.[selectedPatient.reassignedBilling.length - 1];
+                        const paidAmount = latestBill?.customData?.totals?.paid || latestBill?.paidAmount || 0;
+                        const refundedAmount = latestBill?.refunds?.reduce((sum, refund) => sum + (refund.amount || 0), 0) || 0;
+                        return paidAmount - refundedAmount;
+                      })()}
+                      className="flex-1 px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
+                      placeholder="e.g., 850.00"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const latestBill = selectedPatient.reassignedBilling?.[selectedPatient.reassignedBilling.length - 1];
+                        const paidAmount = latestBill?.customData?.totals?.paid || latestBill?.paidAmount || 0;
+                        const refundedAmount = latestBill?.refunds?.reduce((sum, refund) => sum + (refund.amount || 0), 0) || 0;
+                        const availableForRefund = paidAmount - refundedAmount;
+                        setRefundData(prev => ({...prev, amount: availableForRefund.toFixed(2), patientBehavior: 'okay'}));
+                      }}
+                      className="px-3 py-2 bg-orange-100 text-orange-700 border border-orange-200 rounded-lg hover:bg-orange-200 transition-colors text-xs font-medium"
+                    >
+                      Refund All
+                    </button>
+                  </div>
                   <p className="text-xs text-slate-500 mt-1">
-                    Maximum refund: ₹{(() => {
+                    Available for refund: ₹{(() => {
                       const latestBill = selectedPatient.reassignedBilling?.[selectedPatient.reassignedBilling.length - 1];
-                      return (latestBill?.customData?.totals?.paid || latestBill?.paidAmount || 0).toFixed(2);
+                      const paidAmount = latestBill?.customData?.totals?.paid || latestBill?.paidAmount || 0;
+                      const refundedAmount = latestBill?.refunds?.reduce((sum, refund) => sum + (refund.amount || 0), 0) || 0;
+                      return (paidAmount - refundedAmount).toFixed(2);
                     })()}
                   </p>
                 </div>
@@ -2508,6 +2857,42 @@ export default function ReassignPatient() {
                   />
                 </div>
 
+                {/* Patient Behavior Assessment */}
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-2">
+                    Patient Behavior Assessment *
+                  </label>
+                  <div className="space-y-2">
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="patientBehavior"
+                        value="okay"
+                        checked={refundData.patientBehavior === 'okay'}
+                        onChange={(e) => setRefundData({...refundData, patientBehavior: e.target.value})}
+                        className="mr-2"
+                      />
+                      <span className="text-xs text-slate-700">Patient is okay - Registration fee (₹150) will be held as penalty</span>
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="patientBehavior"
+                        value="rude"
+                        checked={refundData.patientBehavior === 'rude'}
+                        onChange={(e) => setRefundData({...refundData, patientBehavior: e.target.value})}
+                        className="mr-2"
+                      />
+                      <span className="text-xs text-slate-700">Patient is rude - Full refund including registration fee</span>
+                    </label>
+                  </div>
+                  <div className="mt-2 p-2 bg-orange-50 border border-orange-200 rounded text-xs text-orange-700">
+                    <p><strong>Penalty Policy:</strong></p>
+                    <p>• <strong>Okay Patient:</strong> Registration fee (₹150) held as penalty, only consultation/service fees refunded</p>
+                    <p>• <strong>Rude Patient:</strong> Full refund including registration fee (no penalty)</p>
+                  </div>
+                </div>
+
                 <div>
                   <label htmlFor="refundNotes" className="block text-sm font-medium text-slate-700 mb-2">
                     Internal Notes
@@ -2535,7 +2920,7 @@ export default function ReassignPatient() {
                     className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-sm font-medium flex items-center justify-center gap-2"
                   >
                     <RotateCcw className="h-5 w-5" />
-                    Process Refund
+                    {refundData.refundType === 'full' ? 'Process Full Refund' : 'Process Partial Refund'}
                   </button>
                 </div>
               </form>
