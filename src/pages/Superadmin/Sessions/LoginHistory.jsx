@@ -4,11 +4,6 @@ import { toast } from 'react-toastify';
 import API from '../../../services/api';
 import Pagination from '../../../components/Pagination';
 import { 
-  deleteLoginHistory,
-  bulkDeleteLoginHistory,
-  deleteAllLoginHistory
-} from '../../../features/loginHistory/loginHistoryThunks';
-import { 
   ComputerDesktopIcon, 
   DevicePhoneMobileIcon, 
   DeviceTabletIcon,
@@ -23,7 +18,6 @@ import {
 } from '@heroicons/react/24/outline';
 
 const LoginHistory = () => {
-  const dispatch = useDispatch();
   const [loginHistory, setLoginHistory] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -73,7 +67,8 @@ const LoginHistory = () => {
     if (window.confirm('Are you sure you want to delete this login history record?')) {
       setDeleting(true);
       try {
-        await dispatch(deleteLoginHistory(recordId));
+        await API.delete(`/login-history/${recordId}`);
+        toast.success('Login history record deleted successfully');
         fetchLoginHistory(); // Refresh the list
       } catch (error) {
         toast.error('Failed to delete record');
@@ -112,19 +107,29 @@ const LoginHistory = () => {
     }
     
     if (window.confirm(`Are you sure you want to delete ${selectedRecords.length} selected login history records?`)) {
-      await dispatch(bulkDeleteLoginHistory(selectedRecords));
-      setSelectedRecords([]);
-      setSelectAll(false);
-      fetchLoginHistory(); // Refresh the list
+      try {
+        await API.delete('/login-history/bulk', { data: { ids: selectedRecords } });
+        toast.success(`Deleted ${selectedRecords.length} login history records`);
+        setSelectedRecords([]);
+        setSelectAll(false);
+        fetchLoginHistory(); // Refresh the list
+      } catch (error) {
+        toast.error('Failed to bulk delete records');
+      }
     }
   };
 
   const handleDeleteAll = async () => {
     if (window.confirm('Are you sure you want to delete ALL login history records? This action cannot be undone.')) {
-      await dispatch(deleteAllLoginHistory());
-      setSelectedRecords([]);
-      setSelectAll(false);
-      fetchLoginHistory(); // Refresh the list
+      try {
+        await API.delete('/login-history/all');
+        toast.success('All login history records deleted successfully');
+        setSelectedRecords([]);
+        setSelectAll(false);
+        fetchLoginHistory(); // Refresh the list
+      } catch (error) {
+        toast.error('Failed to delete all records');
+      }
     }
   };
 

@@ -1,12 +1,28 @@
 // src/pages/Home.jsx
 import { useState, useEffect } from "react";
 import { MdExpandMore } from "react-icons/md";
+import emailjs from '@emailjs/browser';
+import { toast } from 'react-toastify';
 import HomeHeader from "../components/HomeHeader";
 
 export default function Home() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [currentTeamSlide, setCurrentTeamSlide] = useState(0);
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
+  
+  // Contact form state
+  const [formData, setFormData] = useState({
+    fullName: '',
+    email: '',
+    subject: '',
+    message: ''
+  });
+  const [isLoading, setIsLoading] = useState(false);
+
+  // EmailJS configuration - same as Contact page
+  const EMAILJS_SERVICE_ID = 'service_hdhh07g';
+  const EMAILJS_TEMPLATE_ID = 'template_rawsov2';
+  const EMAILJS_PUBLIC_KEY = 'LNyTnmDabZbcns92G';
 
   const teamData = [
     { name: "Dr.Chandrashekara S.", specialization: "Rheumatology & Autoimmune Diseases", image: "1.png" },
@@ -74,10 +90,76 @@ export default function Home() {
     return teamData.slice(startIndex, startIndex + slideCount);
   };
 
-  const handleSubmit = (e) => {
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Add form submission logic (e.g., Axios post, fetch, etc.)
-    console.log('Form submitted!');
+    
+    // Basic validation
+    if (!formData.fullName.trim() || !formData.email.trim() || !formData.subject.trim() || !formData.message.trim()) {
+      toast.error('Please fill in all fields');
+      return;
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Send email using EmailJS
+      const templateParams = {
+        from_name: formData.fullName,
+        from_email: formData.email,
+        subject: formData.subject,
+        message: formData.message,
+        to_email: 'corporaterelation@chanrerier.com' // Your receiving email
+      };
+
+      const response = await emailjs.send(
+        EMAILJS_SERVICE_ID,
+        EMAILJS_TEMPLATE_ID,
+        templateParams,
+        EMAILJS_PUBLIC_KEY
+      );
+
+      console.log('EmailJS Response:', response);
+      toast.success('Message sent successfully! We\'ll get back to you soon.');
+      
+      // Reset form
+      setFormData({
+        fullName: '',
+        email: '',
+        subject: '',
+        message: ''
+      });
+
+    } catch (error) {
+      console.error('Error sending email:', error);
+      
+      // More specific error handling
+      if (error.status === 400) {
+        toast.error('Invalid email configuration. Please check your EmailJS settings.');
+      } else if (error.status === 401) {
+        toast.error('EmailJS authentication failed. Please check your public key.');
+      } else if (error.status === 404) {
+        toast.error('EmailJS service or template not found. Please check your configuration.');
+      } else {
+        toast.error('Failed to send message. Please try again later.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -111,25 +193,20 @@ export default function Home() {
 
             {/* Social Media Links */}
             <div className="flex space-x-4">
-              <a href="#" className="hover:text-blue-200 transition-colors">
+              <a href="https://www.facebook.com/ChanRericr/" className="hover:text-blue-200 transition-colors">
                 <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
                   <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
                 </svg>
               </a>
-              <a href="#" className="hover:text-blue-200 transition-colors">
+              <a href="https://x.com/ChanRecricr2002" className="hover:text-blue-200 transition-colors">
                 <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
                   <path d="M22.46 6c-.77.35-1.6.58-2.46.69.88-.53 1.56-1.37 1.88-2.38-.83.5-1.75.85-2.72 1.05C18.37 4.5 17.26 4 16 4c-2.35 0-4.27 1.92-4.27 4.29 0 .34.04.67.11.98C8.28 9.09 5.11 7.38 3 4.79c-.37.63-.58 1.37-.58 2.15 0 1.49.75 2.81 1.91 3.56-.71 0-1.37-.2-1.95-.5v.03c0 2.08 1.48 3.82 3.44 4.21a4.22 4.22 0 0 1-1.93.07 4.28 4.28 0 0 0 4 2.98 8.521 8.521 0 0 1-5.33 1.84c-.34 0-.68-.02-1.02-.06C3.44 20.29 5.7 21 8.12 21 16 21 20.33 14.46 20.33 8.79c0-.19 0-.37-.01-.56.84-.6 1.56-1.36 2.14-2.23z" />
                 </svg>
               </a>
-              <a href="#" className="hover:text-blue-200 transition-colors">
+              <a href="https://www.linkedin.com/in/chanre-rheumatology-and-immunology-center-and-research-928728111/" className="hover:text-blue-200 transition-colors">
                 <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                  <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 6.62 5.367 11.987 11.988 11.987s11.988-5.367 11.988-11.987C24.005 5.367 18.638.001 12.017.001zM8.449 16.988c-1.297 0-2.348-1.051-2.348-2.348s1.051-2.348 2.348-2.348 2.348 1.051 2.348 2.348-1.051 2.348-2.348 2.348zm7.718 0c-1.297 0-2.348-1.051-2.348-2.348s1.051-2.348 2.348-2.348 2.348 1.051 2.348 2.348-1.051 2.348-2.348 2.348z" />
+                  <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
                 </svg>
-              </a>
-              <a href="#" className="hover:text-blue-200 transition-colors">
-                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                  <path d="M12.17 0C5.662 0 0.348 5.314 0.348 11.821c0 5.264 3.414 9.715 8.134 11.297a.665.665 0 0 0.348-1.047C7.027 18.051 5.526 15.903 5.526 12.829c0-1.535.123-3.052.362-4.507.6-3.772 4.358-6.996 8.274-6.996 4.918 0 8.274 3.99 8.274 8.996 0 5.474-4.466 9.914-11.726 9.914-1.726 0-2.343-1.047-2.343-2.343 0-.873.174-1.535.6-2.138.475-1.205 2.286-1.535 3.481-1.535 4.359 0 7.284 3.052 7.284 7.284 0 3.743-2.862 6.227-6.923 6.227z" />
-        </svg>
               </a>
             </div>
           </div>
@@ -224,7 +301,8 @@ export default function Home() {
                 <svg className="w-6 h-6 text-white mr-3" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
                 </svg>
-                <span className="text-2xl font-bold">987 654 321</span>
+                <span className="text-2xl font-bold">08 0425 16699
+                </span>
               </div>
             </div>
 
@@ -447,17 +525,18 @@ export default function Home() {
               </div>
 
               {/* Form */}
-              <form action="#" className="mt-8" noValidate onSubmit={handleSubmit}>
+              <form className="mt-8" noValidate onSubmit={handleSubmit}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-                  {/* Name Field */}
+                  {/* Full Name Field */}
                   <div className="col-span-1">
                     <input
                       type="text"
-                      name="your-name"
-                      id="first-name"
+                      name="fullName"
+                      value={formData.fullName}
+                      onChange={handleInputChange}
                       className="w-full bg-[#c8d8f3] text-black placeholder-gray-600 rounded-lg border-0 py-3 px-4 focus:outline-none focus:ring-2 focus:ring-white"
-                      placeholder="Your Name"
+                      placeholder="Full Name"
                       required
                     />
                   </div>
@@ -466,58 +545,51 @@ export default function Home() {
                   <div className="col-span-1">
                     <input
                       type="email"
-                      name="your-email"
-                      id="e-mail"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
                       className="w-full bg-[#c8d8f3] text-black placeholder-gray-600 rounded-lg border-0 py-3 px-4 focus:outline-none focus:ring-2 focus:ring-white"
-                      placeholder="Your Email"
+                      placeholder="Email Address"
                       required
                     />
                   </div>
 
-                  {/* Doctor Name Field */}
+                  {/* Subject Field */}
                   <div className="col-span-1">
                     <input
                       type="text"
-                      name="your-doctor-name"
-                      id="doctor-name"
+                      name="subject"
+                      value={formData.subject}
+                      onChange={handleInputChange}
                       className="w-full bg-[#c8d8f3] text-black placeholder-gray-600 rounded-lg border-0 py-3 px-4 focus:outline-none focus:ring-2 focus:ring-white"
-                      placeholder="Your Doctor Name"
+                      placeholder="Subject"
                       required
                     />
                   </div>
 
-                  {/* Disease Name Field */}
+                  {/* Message Field */}
                   <div className="col-span-1">
                     <input
                       type="text"
-                      name="your-disease"
-                      id="disease-name"
+                      name="message"
+                      value={formData.message}
+                      onChange={handleInputChange}
                       className="w-full bg-[#c8d8f3] text-black placeholder-gray-600 rounded-lg border-0 py-3 px-4 focus:outline-none focus:ring-2 focus:ring-white"
-                      placeholder="Your Disease Name"
+                      placeholder="Message"
                       required
                     />
-                  </div>
-
-                  {/* Message Textarea */}
-                  <div className="col-span-full">
-                    {/* Corrected name and id for message textarea for better practice */}
-                    <textarea
-                      name="your-message"
-                      id="your-message"
-                      rows="4"
-                      className="w-full bg-white text-black placeholder-gray-500 rounded-lg border shadow-md focus:outline-none resize-none py-3 px-4 mt-4"
-                      placeholder="Write your message here ..."
-                      required
-                    ></textarea>
                   </div>
 
                   {/* Button */}
                   <div className="col-span-full mt-4 mb-4">
                     <button
                       type="submit"
-                      className="bg-white text-black font-bold py-3 px-6 rounded-lg inline-flex items-center justify-center uppercase tracking-wider hover:bg-gray-100 transition duration-300 w-full md:w-auto"
+                      disabled={isLoading}
+                      className={`bg-white text-black font-bold py-3 px-6 rounded-lg inline-flex items-center justify-center uppercase tracking-wider transition duration-300 w-full md:w-auto ${
+                        isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'
+                      }`}
                     >
-                      <span className="me-0">SEND MESSAGE</span>
+                      <span className="me-0">{isLoading ? 'SENDING...' : 'SEND MESSAGE'}</span>
                     </button>
                   </div>
                 </div>
@@ -579,33 +651,28 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-800 py-16">
+      <footer className="bg-gray-800 py-12 md:py-16">
         <div className="w-4/5 mx-auto px-4">
-          <div className="grid md:grid-cols-4 gap-8 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
             {/* Column 1 - About Clinic */}
-            <div>
+            <div className="sm:col-span-2 lg:col-span-1">
               <h3 className="text-white text-xl font-bold mb-4">ChanRe Allergy Clinic</h3>
-              <p className="text-gray-300 mb-6 leading-relaxed">
+              <p className="text-gray-300 mb-6 leading-relaxed text-sm md:text-base">
                 Your trusted partner in allergy care and clinical immunology. We provide comprehensive diagnosis, 
                 treatment, and management of allergic conditions with state-of-the-art facilities and expert medical care.
               </p>
               <div className="flex space-x-4">
-                <a href="https://facebook.com/chanreallergyclinic" className="text-gray-400 hover:text-white transition-colors">
+                <a href="https://www.facebook.com/ChanRericr/" className="text-gray-400 hover:text-white transition-colors">
                   <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
                   </svg>
                 </a>
-                <a href="https://twitter.com/chanreallergy" className="text-gray-400 hover:text-white transition-colors">
+                <a href="https://x.com/ChanRecricr2002" className="text-gray-400 hover:text-white transition-colors">
                   <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M22.46 6c-.77.35-1.6.58-2.46.69.88-.53 1.56-1.37 1.88-2.38-.83.5-1.75.85-2.72 1.05C18.37 4.5 17.26 4 16 4c-2.35 0-4.27 1.92-4.27 4.29 0 .34.04.67.11.98C8.28 9.09 5.11 7.38 3 4.79c-.37.63-.58 1.37-.58 2.15 0 1.49.75 2.81 1.91 3.56-.71 0-1.37-.2-1.95-.5v.03c0 2.08 1.48 3.82 3.44 4.21a4.22 4.22 0 0 1-1.93.07 4.28 4.28 0 0 0 4 2.98 8.521 8.521 0 0 1-5.33 1.84c-.34 0-.68-.02-1.02-.06C3.44 20.29 5.7 21 8.12 21 16 21 20.33 14.46 20.33 8.79c0-.19 0-.37-.01-.56.84-.6 1.56-1.36 2.14-2.23z" />
                   </svg>
                 </a>
-                <a href="https://instagram.com/chanreallergyclinic" className="text-gray-400 hover:text-white transition-colors">
-                  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 6.62 5.367 11.987 11.988 11.987s11.988-5.367 11.988-11.987C24.005 5.367 18.638.001 12.017.001zM8.449 16.988c-1.297 0-2.348-1.051-2.348-2.348s1.051-2.348 2.348-2.348 2.348 1.051 2.348 2.348-1.051 2.348-2.348 2.348zm7.718 0c-1.297 0-2.348-1.051-2.348-2.348s1.051-2.348 2.348-2.348 2.348 1.051 2.348 2.348-1.051 2.348-2.348 2.348z" />
-                  </svg>
-                </a>
-                <a href="https://linkedin.com/company/chanreallergyclinic" className="text-gray-400 hover:text-white transition-colors">
+                <a href="https://www.linkedin.com/in/chanre-rheumatology-and-immunology-center-and-research-928728111/" className="text-gray-400 hover:text-white transition-colors">
                   <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
                   </svg>
@@ -618,22 +685,22 @@ export default function Home() {
               <h3 className="text-white text-lg font-semibold mb-4">Quick Links</h3>
               <ul className="space-y-3 text-gray-300">
                 <li>
-                  <a href="#home" className="hover:text-white transition-colors">Home</a>
+                  <a href="/" className="hover:text-white transition-colors">Home</a>
                 </li>
                 <li>
-                  <a href="#about" className="hover:text-white transition-colors">About Us</a>
+                  <a href="/about" className="hover:text-white transition-colors">About Us</a>
                 </li>
                 <li>
-                  <a href="#team" className="hover:text-white transition-colors">Our Team</a>
+                  <a href="/contact" className="hover:text-white transition-colors">Contact Us</a>
                 </li>
                 <li>
-                  <a href="#services" className="hover:text-white transition-colors">Our Services</a>
+                  <a href="/login" className="hover:text-white transition-colors">Patient Login</a>
                 </li>
                 <li>
-                  <a href="#patients" className="hover:text-white transition-colors">Patient Feedback</a>
+                  <a href="/register" className="hover:text-white transition-colors">Register</a>
                 </li>
                 <li>
-                  <a href="#contact" className="hover:text-white transition-colors">Contact Us</a>
+                  <a href="/forgot-password" className="hover:text-white transition-colors">Forgot Password</a>
                 </li>
               </ul>
             </div>
@@ -641,7 +708,7 @@ export default function Home() {
             {/* Column 3 - Contact Information */}
             <div>
               <h3 className="text-white text-lg font-semibold mb-4">Contact Info</h3>
-              <div className="space-y-4 text-gray-300">
+              <div className="space-y-4 text-gray-300 text-sm">
                 <div className="flex items-start">
                   <svg className="w-5 h-5 text-[#2490eb] mt-1 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
@@ -684,43 +751,21 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Column 4 - Newsletter Subscription */}
+            {/* Column 4 - Working Hours */}
             <div>
-              <h3 className="text-white text-lg font-semibold mb-4">Stay Updated</h3>
-              <p className="text-gray-300 mb-4">
-                Subscribe to our newsletter for health tips, allergy alerts, and clinic updates.
-              </p>
-              <form onSubmit={(e) => { e.preventDefault(); console.log('Newsletter subscription'); }} className="space-y-3">
-                <div>
-                  <input
-                    type="email"
-                    placeholder="Enter your email address"
-                    className="w-full bg-gray-700 text-white placeholder-gray-400 rounded-lg border border-gray-600 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#2490eb] focus:border-transparent"
-                    required
-                  />
+              <h3 className="text-white text-lg font-semibold mb-4">Working Hours</h3>
+              <div className="space-y-3 text-gray-300 text-sm">
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">Mon - Fri:</span>
+                  <span className="text-white">9:00 AM - 5:00 PM</span>
                 </div>
-                <button
-                  type="submit"
-                  className="w-full bg-[#2490eb] hover:bg-[#14457b] text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-300"
-                >
-                  Subscribe Now
-                </button>
-              </form>
-              <div className="mt-6">
-                <h4 className="text-white text-sm font-semibold mb-2">Working Hours</h4>
-                <div className="space-y-1 text-gray-300 text-sm">
-                  <div className="flex justify-between">
-                    <span>Mon - Fri:</span>
-                    <span>9:00 AM - 5:00 PM</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Saturday:</span>
-                    <span>10:00 AM - 2:00 PM</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Sunday:</span>
-                    <span>Closed</span>
-                  </div>
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">Saturday:</span>
+                  <span className="text-white">10:00 AM - 2:00 PM</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">Sunday:</span>
+                  <span className="text-red-400">Closed</span>
                 </div>
               </div>
             </div>
@@ -729,12 +774,12 @@ export default function Home() {
         
         {/* Bottom Border */}
         <div className="border-t border-gray-700">
-          <div className="w-4/5 mx-auto px-4 py-6">
-            <div className="flex flex-col md:flex-row justify-between items-center">
-              <p className="text-gray-400 text-sm mb-2 md:mb-0">
+          <div className="w-4/5 mx-auto px-4 py-4 md:py-6">
+            <div className="flex flex-col sm:flex-row justify-between items-center space-y-2 sm:space-y-0">
+              <p className="text-gray-400 text-xs md:text-sm text-center sm:text-left">
                 © 2024 ChanRe Allergy Clinic. All Rights Reserved.
               </p>
-              <div className="flex space-x-6 text-gray-400 text-sm">
+              <div className="flex flex-wrap justify-center sm:justify-end space-x-4 md:space-x-6 text-gray-400 text-xs md:text-sm">
                 <a href="/privacy-policy" className="hover:text-white transition-colors">Privacy Policy</a>
                 <a href="/terms-of-service" className="hover:text-white transition-colors">Terms of Service</a>
                 <a href="/patient-info" className="hover:text-white transition-colors">Patient Information</a>

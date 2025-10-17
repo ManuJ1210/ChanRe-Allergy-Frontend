@@ -1,6 +1,82 @@
+import { useState } from "react";
+import emailjs from '@emailjs/browser';
+import { toast } from 'react-toastify';
 import HomeHeader from "../components/HomeHeader";
 
 const Contact = () => {
+  const [formData, setFormData] = useState({
+    fullName: '',
+    email: '',
+    subject: '',
+    message: ''
+  });
+  const [isLoading, setIsLoading] = useState(false);
+
+  // EmailJS configuration - you'll need to replace these with your actual values
+  const EMAILJS_SERVICE_ID = 'service_hdhh07g';
+  const EMAILJS_TEMPLATE_ID = 'template_rawsov2';
+  const EMAILJS_PUBLIC_KEY = 'LNyTnmDabZbcns92G';
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    // Basic validation
+    if (!formData.fullName.trim() || !formData.email.trim() || !formData.subject.trim() || !formData.message.trim()) {
+      toast.error('Please fill in all fields');
+      return;
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Send email using EmailJS
+      const templateParams = {
+        from_name: formData.fullName,
+        from_email: formData.email,
+        subject: formData.subject,
+        message: formData.message,
+        to_email: 'corporaterelation@chanrerier.com' // Your receiving email
+      };
+
+      await emailjs.send(
+        EMAILJS_SERVICE_ID,
+        EMAILJS_TEMPLATE_ID,
+        templateParams,
+        EMAILJS_PUBLIC_KEY
+      );
+
+      toast.success('Message sent successfully! We\'ll get back to you soon.');
+      
+      // Reset form
+      setFormData({
+        fullName: '',
+        email: '',
+        subject: '',
+        message: ''
+      });
+
+    } catch (error) {
+      console.error('Error sending email:', error);
+      toast.error('Failed to send message. Please try again later.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
   return (
     <>
     <HomeHeader/>
@@ -121,44 +197,65 @@ const Contact = () => {
                 <div className="p-8 flex flex-col justify-center h-full">
                   <h3 className="text-xl font-bold text-gray-900 mb-6">Send us a Message</h3>
                   
-                  <form className="space-y-6">
+                  <form onSubmit={handleSubmit} className="space-y-6">
                     <div>
                       <label className="block text-sm font-medium mb-2 text-gray-700">Full Name</label>
                       <input
                         type="text"
+                        name="fullName"
+                        value={formData.fullName}
+                        onChange={handleInputChange}
                         placeholder="Full Name"
                         className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2490eb] focus:border-[#2490eb] bg-gray-50 text-gray-700 placeholder-gray-500 transition"
+                        required
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-2 text-gray-700">Email Address</label>
                       <input
                         type="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleInputChange}
                         placeholder="example@domain.com"
                         className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2490eb] focus:border-[#2490eb] bg-gray-50 text-gray-700 placeholder-gray-500 transition"
+                        required
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-2 text-gray-700">Subject</label>
                       <input
                         type="text"
+                        name="subject"
+                        value={formData.subject}
+                        onChange={handleInputChange}
                         placeholder="Enter your subject"
                         className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2490eb] focus:border-[#2490eb] bg-gray-50 text-gray-700 placeholder-gray-500 transition"
+                        required
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-2 text-gray-700">Message</label>
                       <textarea
                         rows="4"
+                        name="message"
+                        value={formData.message}
+                        onChange={handleInputChange}
                         placeholder="Type your message here..."
                         className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2490eb] focus:border-[#2490eb] bg-gray-50 text-gray-700 placeholder-gray-500 transition resize-none"
+                        required
                       />
                     </div>
                     <button
                       type="submit"
-                      className="w-full bg-[#2490eb] hover:bg-[#14457b] text-white py-3 rounded-lg shadow-md font-semibold text-lg transition-all duration-200"
+                      disabled={isLoading}
+                      className={`w-full py-3 rounded-lg shadow-md font-semibold text-lg transition-all duration-200 ${
+                        isLoading 
+                          ? 'bg-gray-400 cursor-not-allowed' 
+                          : 'bg-[#2490eb] hover:bg-[#14457b]'
+                      } text-white`}
                     >
-                      Send Message
+                      {isLoading ? 'Sending...' : 'Send Message'}
                     </button>
                   </form>
                 </div>
