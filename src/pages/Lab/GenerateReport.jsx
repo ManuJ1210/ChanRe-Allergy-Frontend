@@ -171,7 +171,7 @@ Generated on: ${new Date().toLocaleString()}
           <head>
             <title>Report Preview</title>
             <style>
-              body { font-family: Arial, sans-serif; margin: 20px; }
+              body { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif; margin: 20px; }
               h1 { color: #333; text-align: center; }
               pre { white-space: pre-wrap; background: #f5f5f5; padding: 15px; border-radius: 5px; }
             </style>
@@ -218,7 +218,7 @@ Generated on: ${new Date().toLocaleString()}
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
+      <div className="min-h-screen bg-gray-50 p-6 font-sans">
         <div className="max-w-4xl mx-auto">
           <div className="bg-white rounded-lg shadow-lg p-6">
             <div className="animate-pulse space-y-4">
@@ -238,7 +238,7 @@ Generated on: ${new Date().toLocaleString()}
 
   if (error && !testRequest) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
+      <div className="min-h-screen bg-gray-50 p-6 font-sans">
         <div className="max-w-4xl mx-auto">
           <div className="bg-white rounded-lg shadow-lg p-6">
             <div className="text-center">
@@ -260,7 +260,7 @@ Generated on: ${new Date().toLocaleString()}
 
   if (!testRequest) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
+      <div className="min-h-screen bg-gray-50 p-6 font-sans">
         <div className="max-w-4xl mx-auto">
           <div className="bg-white rounded-lg shadow-lg p-6">
             <div className="text-center">
@@ -281,7 +281,7 @@ Generated on: ${new Date().toLocaleString()}
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 font-sans">
       <div className="max-w-5xl mx-auto p-6">
         {/* Header */}
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">

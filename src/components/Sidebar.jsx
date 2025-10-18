@@ -20,6 +20,7 @@ import {
   FaPlus,
   FaMoneyBillWave,
   FaCalculator,
+  FaCalendarCheck,
 } from 'react-icons/fa';
 
 export default function Sidebar(props) {
@@ -255,6 +256,12 @@ export default function Sidebar(props) {
                 icon={<FaHospitalAlt />}
                 isActive={isActive("/dashboard/centeradmin/center-profile")}
               />
+              <SidebarLink
+                to="/dashboard/centeradmin/appointment-approvals"
+                label="Appointment Approvals"
+                icon={<FaCalendarCheck />}
+                isActive={isActive("/dashboard/centeradmin/appointment-approvals")}
+              />
               <SidebarGroup
                 label="Billing"
                 icon={<FaMoneyBillWave />}
@@ -347,6 +354,12 @@ export default function Sidebar(props) {
                 label="Transaction History"
                 icon={<FaClipboardList />}
                 isActive={isActive("/dashboard/receptionist/transactions")}
+              />
+              <SidebarLink
+                to="/dashboard/receptionist/appointment-approvals"
+                label="Appointment Approvals"
+                icon={<FaCalendarCheck />}
+                isActive={isActive("/dashboard/receptionist/appointment-approvals")}
               />
             </>
           )}

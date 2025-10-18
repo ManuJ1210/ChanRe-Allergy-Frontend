@@ -256,14 +256,21 @@ export default function Home() {
                     It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout.
                   </p>
 
-                  {/* CTA Button */}
-                  <div className="pt-4">
+                  {/* CTA Buttons */}
+                  <div className="pt-4 flex flex-col sm:flex-row gap-4">
                     <a
                       href="/about"
                       className="inline-block bg-[#2490eb] hover:bg-[#14457b] text-white font-semibold uppercase px-8 py-4 rounded-md transition-all duration-300"
                       style={{ fontFamily: 'Quicksand, sans-serif', fontSize: '14px', fontWeight: '600' }}
                     >
                       READ MORE
+                    </a>
+                    <a
+                      href="/book-appointment"
+                      className="inline-block bg-white hover:bg-gray-100 text-[#2490eb] font-semibold uppercase px-8 py-4 rounded-md border-2 border-[#2490eb] transition-all duration-300"
+                      style={{ fontFamily: 'Quicksand, sans-serif', fontSize: '14px', fontWeight: '600' }}
+                    >
+                      BOOK APPOINTMENT
                     </a>
                   </div>
                 </div>

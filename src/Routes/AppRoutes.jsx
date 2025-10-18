@@ -3,6 +3,8 @@ import Login from '../pages/Login';
 import Register from '../pages/Register';
 import ForgotPassword from '../pages/ForgotPassword';
 import Home from '../pages/Homepage';
+import BookAppointment from '../pages/BookAppointment';
+import CheckAppointment from '../pages/CheckAppointment';
 import Contact from '../pages/Contact';
 import About from '../pages/About';
 import DashboardLayout from '../layouts/DashboardLayout';
@@ -159,6 +161,9 @@ import ReceptionistBillingTracker from '../pages/Receptionist/BillingTracker';
 import TransactionView from '../pages/Receptionist/TransactionView';
 import AddReceptionistPatient from '../pages/Receptionist/AddPatient';
 import ReceptionistEditPatient from '../pages/Receptionist/EditPatient';
+import AppointmentManagement from '../pages/Receptionist/AppointmentManagement';
+import ReceptionistAppointmentApprovals from '../pages/Receptionist/AppointmentApprovals';
+import CenterAdminAppointmentApprovals from '../pages/CenterAdmin/AppointmentApprovals';
 
 // Doctor Pages
 import DoctorDashboard from '../pages/Doctor/Dashboard';
@@ -215,6 +220,8 @@ export default function AppRoutes() {
     <Routes>
       {/* Public Routes */}
       <Route path="/" element={<Home />} />
+      <Route path="/book-appointment" element={<BookAppointment />} />
+      <Route path="/check-appointment" element={<CheckAppointment />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -468,6 +475,9 @@ export default function AppRoutes() {
         <Route path="centeradmin/test-requests" element={<ErrorBoundary><CenterAdminTestRequestsList /></ErrorBoundary>} />
         <Route path="centeradmin/test-requests/:id" element={<ErrorBoundary><CenterAdminTestRequestDetails /></ErrorBoundary>} />
 
+        {/* Center Admin Appointment Approvals */}
+        <Route path="centeradmin/appointment-approvals" element={<ErrorBoundary><CenterAdminAppointmentApprovals /></ErrorBoundary>} />
+
         {/* Center Admin Billing Routes */}
         <Route path="centeradmin/billing" element={<ErrorBoundary><CenterAdminBilling /></ErrorBoundary>} />
         <Route path="centeradmin/consultation-fee-billing" element={<ErrorBoundary><CenterAdminConsultationFeeBilling /></ErrorBoundary>} />
@@ -510,6 +520,8 @@ export default function AppRoutes() {
         <Route path="receptionist/reassign-patient" element={<ReceptionistLayout><ReassignPatient /></ReceptionistLayout>} />
         <Route path="receptionist/billing-tracker" element={<ReceptionistLayout><ReceptionistBillingTracker /></ReceptionistLayout>} />
         <Route path="receptionist/transactions" element={<ReceptionistLayout><TransactionView /></ReceptionistLayout>} />
+        <Route path="receptionist/appointment-management" element={<ReceptionistLayout><AppointmentManagement /></ReceptionistLayout>} />
+        <Route path="receptionist/appointment-approvals" element={<ReceptionistLayout><ReceptionistAppointmentApprovals /></ReceptionistLayout>} />
 
         {/* Doctor Routes */}
         <Route path="doctor/dashboard" element={<DoctorDashboard />} />

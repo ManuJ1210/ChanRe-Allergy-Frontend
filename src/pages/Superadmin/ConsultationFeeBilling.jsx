@@ -976,7 +976,7 @@ const SuperadminConsultationFeeBilling = () => {
                                 }
                                 
                               body { 
-                                font-family: Arial, sans-serif; 
+                                font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif; 
                                   margin: 0;
                                   padding: 5mm;
                                   color: #000;

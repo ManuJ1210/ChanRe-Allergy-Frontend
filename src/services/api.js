@@ -131,4 +131,97 @@ export const getAccountantStats = async () => {
   }
 };
 
+// Patient Appointment API functions
+export const getAllCentersForBooking = async () => {
+  try {
+    const response = await API.get('/patient-appointments/centers');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching centers for booking:', error);
+    throw error;
+  }
+};
+
+export const getNearbyCenters = async (latitude, longitude, radius = 50) => {
+  try {
+    const response = await API.get('/patient-appointments/centers/nearby', {
+      params: { latitude, longitude, radius }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching nearby centers:', error);
+    throw error;
+  }
+};
+
+export const bookAppointment = async (appointmentData) => {
+  try {
+    const response = await API.post('/patient-appointments/book', appointmentData);
+    return response.data;
+  } catch (error) {
+    console.error('Error booking appointment:', error);
+    throw error;
+  }
+};
+
+export const getAppointmentByCode = async (confirmationCode) => {
+  try {
+    const response = await API.get(`/patient-appointments/confirmation/${confirmationCode}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching appointment:', error);
+    throw error;
+  }
+};
+
+export const cancelAppointment = async (confirmationCode, cancellationReason) => {
+  try {
+    const response = await API.post(`/patient-appointments/cancel/${confirmationCode}`, {
+      cancellationReason
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error cancelling appointment:', error);
+    throw error;
+  }
+};
+
+export const approveAppointment = async (confirmationCode) => {
+  try {
+    const response = await API.post(`/patient-appointments/approve/${confirmationCode}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error approving appointment:', error);
+    throw error;
+  }
+};
+
+export const getCenterAppointments = async (centerId, status, date) => {
+  try {
+    const params = {};
+    if (status) params.status = status;
+    if (date) params.date = date;
+    
+    const response = await API.get(`/patient-appointments/center/${centerId}`, {
+      params
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching center appointments:', error);
+    throw error;
+  }
+};
+
+export const updateAppointmentStatus = async (appointmentId, status, notes) => {
+  try {
+    const response = await API.put(`/patient-appointments/${appointmentId}/status`, {
+      status, notes
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating appointment status:', error);
+    throw error;
+  }
+};
+
 export default API;

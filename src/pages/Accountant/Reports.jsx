@@ -229,7 +229,7 @@ const AccountantReports = () => {
           <style>
             @page { margin: 1cm; }
             body { 
-              font-family: Arial, sans-serif; 
+              font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif; 
               padding: 20px;
               font-size: 12px;
             }
@@ -533,7 +533,7 @@ const AccountantReports = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen font-sans">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
       </div>
     );

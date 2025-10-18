@@ -181,7 +181,7 @@ const AccountantBilling = () => {
           <style>
             @page { margin: 1cm; }
             body { 
-              font-family: Arial, sans-serif; 
+              font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif; 
               padding: 20px;
               font-size: 12px;
             }

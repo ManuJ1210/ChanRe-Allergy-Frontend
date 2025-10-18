@@ -19,6 +19,8 @@ export default function HomeHeader() {
             <Link to="/" className="hover:text-blue-500 transition-colors">Home</Link>
             <Link to="/About" className="hover:text-blue-500 transition-colors">About</Link>
             <Link to="/Contact" className="hover:text-blue-500 transition-colors">Contact</Link>
+            <Link to="/book-appointment" className="hover:text-blue-500 transition-colors">Book Appointment</Link>
+            <Link to="/check-appointment" className="hover:text-blue-500 transition-colors">Check Status</Link>
             <Link to="/login">
               <button className="inline-block bg-[#2490eb] hover:bg-[#14457b] text-white font-semibold  px-5 py-1 rounded-md transition-all duration-300">
                 Login
@@ -71,6 +73,20 @@ export default function HomeHeader() {
                 onClick={() => setIsMenuOpen(false)}
               >
                 Contact
+              </Link>
+              <Link 
+                to="/book-appointment" 
+                className="block text-blue-700 hover:text-blue-500 transition-colors py-2"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Book Appointment
+              </Link>
+              <Link 
+                to="/check-appointment" 
+                className="block text-blue-700 hover:text-blue-500 transition-colors py-2"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Check Status
               </Link>
               <Link to="/login" onClick={() => setIsMenuOpen(false)}>
                 <button className="inline-block bg-[#2490eb] hover:bg-[#14457b] text-white font-semibold uppercase px-8 py-4 rounded-md transition-all duration-300">

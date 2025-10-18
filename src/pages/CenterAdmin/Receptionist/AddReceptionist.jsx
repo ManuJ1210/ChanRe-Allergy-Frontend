@@ -151,6 +151,17 @@ const AddReceptionist = () => {
           </p>
         </div>
 
+        {/* Debug Information */}
+        <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <h3 className="text-sm font-semibold text-yellow-800 mb-2">Debug Info:</h3>
+          <div className="text-xs text-yellow-700">
+            <p><strong>Form Errors:</strong> {JSON.stringify(errors)}</p>
+            <p><strong>Has Form Errors:</strong> {hasFormErrors(errors).toString()}</p>
+            <p><strong>Touched Fields:</strong> {JSON.stringify(touched)}</p>
+            <p><strong>Form Data:</strong> {JSON.stringify(formData)}</p>
+          </div>
+        </div>
+
         {/* Alert Messages */}
         {success && (
           <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4 flex items-center">
@@ -335,10 +346,21 @@ const AddReceptionist = () => {
                     name="address"
                     value={formData.address}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     rows="3"
-                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs ${
+                      touched.address && errors.address 
+                        ? 'border-red-300 bg-red-50' 
+                        : 'border-slate-200'
+                    }`}
                     placeholder="Enter full address"
                   />
+                  {touched.address && errors.address && (
+                    <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {errors.address}
+                    </p>
+                  )}
                 </div>
 
                 <div>

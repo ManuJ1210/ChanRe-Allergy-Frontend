@@ -116,6 +116,13 @@ export const validateBio = (bio) => {
   return null;
 };
 
+export const validateAddress = (address) => {
+  if (!address) return null; // Optional field
+  if (address.length < 5) return 'Address must be at least 5 characters long';
+  if (address.length > 200) return 'Address must be less than 200 characters';
+  return null;
+};
+
 export const validateSpecialization = (specialization) => {
   if (!specialization) return 'Specialization is required';
   if (specialization.length < 2) return 'Specialization must be at least 2 characters long';
@@ -162,10 +169,11 @@ export const validateReceptionistForm = (formData) => {
   const errors = {};
   
   errors.name = validateName(formData.name);
-  errors.phone = validatePhone(formData.phone);
+  errors.mobile = validatePhone(formData.mobile);
   errors.email = validateEmail(formData.email);
   errors.username = validateUsername(formData.username);
   errors.password = validatePassword(formData.password);
+  errors.address = validateAddress(formData.address);
   
   return errors;
 };
