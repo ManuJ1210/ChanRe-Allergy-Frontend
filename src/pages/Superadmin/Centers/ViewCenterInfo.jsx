@@ -33,8 +33,8 @@ const FilterControls = memo(({ sectionType, sortOptions, filters, updateFilter }
   }, [sectionType, updateFilter]);
   
   return (
-    <div className="flex flex-wrap gap-4 mb-4">
-      <div className="flex-1 min-w-64">
+    <div className="flex flex-col sm:flex-row gap-4 mb-4">
+      <div className="flex-1 min-w-0">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input
@@ -55,12 +55,12 @@ const FilterControls = memo(({ sectionType, sortOptions, filters, updateFilter }
         </div>
       </div>
       
-      <div className="flex items-center gap-2">
-        <Filter className="h-4 w-4 text-slate-400" />
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <Filter className="h-4 w-4 text-slate-400 hidden sm:block" />
         <select
           value={sectionFilters.sortBy}
           onChange={handleSortByChange}
-          className="text-xs border border-slate-300 rounded px-2 py-2"
+          className="text-xs border border-slate-300 rounded px-2 py-2 min-w-0"
         >
           {sortOptions.map(option => (
             <option key={option.value} value={option.value}>
@@ -71,7 +71,7 @@ const FilterControls = memo(({ sectionType, sortOptions, filters, updateFilter }
         
         <button
           onClick={handleSortOrderToggle}
-          className="p-2 border border-slate-300 rounded hover:bg-slate-50"
+          className="p-2 border border-slate-300 rounded hover:bg-slate-50 flex-shrink-0"
         >
           {sectionFilters.sortOrder === 'asc' ? 
             <SortAsc className="h-4 w-4" /> : 
@@ -313,97 +313,99 @@ export default function ViewCenterInfo() {
     if (filteredItems.length === 0) return null;
 
     return (
-      <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-200">
-        <div className="flex items-center gap-4">
-          <span className="text-xs text-slate-600">
-            Showing {startItem}-{endItem} of {filteredItems.length} items
-          </span>
-          <select
-            value={itemsPerPage}
-            onChange={(e) => changeItemsPerPage(sectionType, parseInt(e.target.value))}
-            className="text-xs border border-slate-300 rounded px-2 py-1"
-          >
-            <option value={5}>5 per page</option>
-            <option value={10}>10 per page</option>
-            <option value={20}>20 per page</option>
-            <option value={50}>50 per page</option>
-          </select>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => updatePagination(sectionType, currentPage - 1)}
-            disabled={currentPage === 1}
-            className="p-2 rounded border border-slate-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 flex items-center gap-1"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            <span className="text-xs">Previous</span>
-          </button>
-          
-          <div className="flex items-center gap-1">
-            {/* Show first page if not in current range */}
-            {totalPages > 5 && currentPage > 3 && (
-              <>
-                <button
-                  onClick={() => updatePagination(sectionType, 1)}
-                  className="px-2 py-1 text-xs rounded border border-slate-300 hover:bg-slate-50"
-                >
-                  1
-                </button>
-                {currentPage > 4 && <span className="text-xs text-slate-400">...</span>}
-              </>
-            )}
-            
-            {/* Show page numbers */}
-            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-              let pageNum;
-              if (totalPages <= 5) {
-                pageNum = i + 1;
-              } else if (currentPage <= 3) {
-                pageNum = i + 1;
-              } else if (currentPage >= totalPages - 2) {
-                pageNum = totalPages - 4 + i;
-              } else {
-                pageNum = currentPage - 2 + i;
-              }
-              
-              return (
-                <button
-                  key={pageNum}
-                  onClick={() => updatePagination(sectionType, pageNum)}
-                  className={`px-3 py-1 text-xs rounded font-medium ${
-                    currentPage === pageNum
-                      ? 'bg-blue-500 text-white'
-                      : 'border border-slate-300 hover:bg-slate-50'
-                  }`}
-                >
-                  {pageNum}
-                </button>
-              );
-            })}
-            
-            {/* Show last page if not in current range */}
-            {totalPages > 5 && currentPage < totalPages - 2 && (
-              <>
-                {currentPage < totalPages - 3 && <span className="text-xs text-slate-400">...</span>}
-                <button
-                  onClick={() => updatePagination(sectionType, totalPages)}
-                  className="px-2 py-1 text-xs rounded border border-slate-300 hover:bg-slate-50"
-                >
-                  {totalPages}
-                </button>
-              </>
-            )}
+      <div className="mt-4 pt-4 border-t border-slate-200">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
+            <span className="text-xs text-slate-600">
+              Showing {startItem}-{endItem} of {filteredItems.length} items
+            </span>
+            <select
+              value={itemsPerPage}
+              onChange={(e) => changeItemsPerPage(sectionType, parseInt(e.target.value))}
+              className="text-xs border border-slate-300 rounded px-2 py-1"
+            >
+              <option value={5}>5 per page</option>
+              <option value={10}>10 per page</option>
+              <option value={20}>20 per page</option>
+              <option value={50}>50 per page</option>
+            </select>
           </div>
           
-          <button
-            onClick={() => updatePagination(sectionType, currentPage + 1)}
-            disabled={currentPage === totalPages}
-            className="p-2 rounded border border-slate-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 flex items-center gap-1"
-          >
-            <span className="text-xs">Next</span>
-            <ChevronRight className="h-4 w-4" />
-          </button>
+          <div className="flex items-center gap-1 sm:gap-2">
+            <button
+              onClick={() => updatePagination(sectionType, currentPage - 1)}
+              disabled={currentPage === 1}
+              className="p-2 rounded border border-slate-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 flex items-center gap-1"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              <span className="text-xs hidden sm:inline">Previous</span>
+            </button>
+            
+            <div className="flex items-center gap-1">
+              {/* Show first page if not in current range */}
+              {totalPages > 5 && currentPage > 3 && (
+                <>
+                  <button
+                    onClick={() => updatePagination(sectionType, 1)}
+                    className="px-2 py-1 text-xs rounded border border-slate-300 hover:bg-slate-50"
+                  >
+                    1
+                  </button>
+                  {currentPage > 4 && <span className="text-xs text-slate-400 hidden sm:inline">...</span>}
+                </>
+              )}
+              
+              {/* Show page numbers */}
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+                
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => updatePagination(sectionType, pageNum)}
+                    className={`px-2 sm:px-3 py-1 text-xs rounded font-medium ${
+                      currentPage === pageNum
+                        ? 'bg-blue-500 text-white'
+                        : 'border border-slate-300 hover:bg-slate-50'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+              
+              {/* Show last page if not in current range */}
+              {totalPages > 5 && currentPage < totalPages - 2 && (
+                <>
+                  {currentPage < totalPages - 3 && <span className="text-xs text-slate-400 hidden sm:inline">...</span>}
+                  <button
+                    onClick={() => updatePagination(sectionType, totalPages)}
+                    className="px-2 py-1 text-xs rounded border border-slate-300 hover:bg-slate-50"
+                  >
+                    {totalPages}
+                  </button>
+                </>
+              )}
+            </div>
+            
+            <button
+              onClick={() => updatePagination(sectionType, currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="p-2 rounded border border-slate-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 flex items-center gap-1"
+            >
+              <span className="text-xs hidden sm:inline">Next</span>
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -441,8 +443,8 @@ export default function ViewCenterInfo() {
   if (!center) return null;
 
   return (
-    <div className="min-h-screen  p-4 sm:p-6">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-slate-50 p-2 sm:p-4 lg:p-6">
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <button
@@ -510,7 +512,7 @@ export default function ViewCenterInfo() {
         </div>
 
         {/* Statistics Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
           <div className="bg-white rounded-xl p-6 shadow-sm border border-blue-100">
             <div className="flex items-center justify-between">
               <div>
@@ -630,57 +632,107 @@ export default function ViewCenterInfo() {
                     
                     return (
                       <>
-                        <div className="max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
-                          <div className="overflow-x-auto">
-                            <table className="w-full text-xs">
-                              <thead className="bg-slate-50 sticky top-0">
-                                <tr className="border-b border-slate-200">
-                                  <th className="text-left py-3 px-4 font-semibold text-slate-700">Name</th>
-                                  <th className="text-left py-3 px-4 font-semibold text-slate-700">Age</th>
-                                  <th className="text-left py-3 px-4 font-semibold text-slate-700">Gender</th>
-                                  <th className="text-left py-3 px-4 font-semibold text-slate-700">Phone</th>
-                                  <th className="text-left py-3 px-4 font-semibold text-slate-700">Email</th>
-                                  <th className="text-left py-3 px-4 font-semibold text-slate-700">Address</th>
-                                  <th className="text-left py-3 px-4 font-semibold text-slate-700">Doctor</th>
-                                  <th className="text-left py-3 px-4 font-semibold text-slate-700">Center Code</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {paginatedPatients.map((patient, index) => (
-                                  <tr key={patient._id} className={`border-b border-slate-100 hover:bg-slate-50 ${index % 2 === 0 ? 'bg-white' : 'bg-slate-25'}`}>
-                                    <td className="py-3 px-4 font-medium text-slate-800">
-                                      {patient.name || 'N/A'}
-                                    </td>
-                                    <td className="py-3 px-4 text-slate-600">
-                                      {String(patient.age) || 'N/A'}
-                                    </td>
-                                    <td className="py-3 px-4 text-slate-600">
-                                      {String(patient.gender) || 'N/A'}
-                                    </td>
-                                    <td className="py-3 px-4 text-slate-600">
-                                      {String(patient.phone || patient.contact || patient.mobile) || 'N/A'}
-                                    </td>
-                                    <td className="py-3 px-4 text-slate-600">
-                                      {patient.email || 'N/A'}
-                                    </td>
-                                    <td className="py-3 px-4 text-slate-600 max-w-xs truncate">
-                                      {patient.address || 'N/A'}
-                                    </td>
-                                    <td className="py-3 px-4 text-slate-600">
-                                      {patient.assignedDoctor ? 
-                                        (typeof patient.assignedDoctor === 'object' ? 
-                                          `Dr. ${patient.assignedDoctor.name}` : 
-                                          `Dr. ${patient.assignedDoctor}`) : 
-                                        'N/A'
-                                      }
-                                    </td>
-                                    <td className="py-3 px-4 text-slate-600">
-                                      {patient.centerCode || 'N/A'}
-                                    </td>
+                        {/* Mobile Card View */}
+                        <div className="block sm:hidden">
+                          <div className="space-y-3">
+                            {paginatedPatients.map((patient) => (
+                              <div key={patient._id} className="bg-white border border-slate-200 rounded-lg p-4 shadow-sm">
+                                <div className="space-y-2">
+                                  <div className="flex justify-between items-start">
+                                    <h3 className="font-medium text-slate-800 text-sm">{patient.name || 'N/A'}</h3>
+                                    <span className="text-xs text-slate-500">{patient.age || 'N/A'} years</span>
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-2 text-xs">
+                                    <div>
+                                      <span className="text-slate-500">Gender:</span>
+                                      <span className="ml-1 text-slate-700">{patient.gender || 'N/A'}</span>
+                                    </div>
+                                    <div>
+                                      <span className="text-slate-500">Phone:</span>
+                                      <span className="ml-1 text-slate-700">{patient.phone || patient.contact || patient.mobile || 'N/A'}</span>
+                                    </div>
+                                    <div className="col-span-2">
+                                      <span className="text-slate-500">Email:</span>
+                                      <span className="ml-1 text-slate-700">{patient.email || 'N/A'}</span>
+                                    </div>
+                                    <div className="col-span-2">
+                                      <span className="text-slate-500">Doctor:</span>
+                                      <span className="ml-1 text-slate-700">
+                                        {patient.assignedDoctor ? 
+                                          (typeof patient.assignedDoctor === 'object' ? 
+                                            `Dr. ${patient.assignedDoctor.name}` : 
+                                            `Dr. ${patient.assignedDoctor}`) : 
+                                          'N/A'
+                                        }
+                                      </span>
+                                    </div>
+                                    {patient.address && (
+                                      <div className="col-span-2">
+                                        <span className="text-slate-500">Address:</span>
+                                        <span className="ml-1 text-slate-700">{patient.address}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Desktop Table View */}
+                        <div className="hidden sm:block">
+                          <div className="max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-xs min-w-[800px]">
+                                <thead className="bg-slate-50 sticky top-0">
+                                  <tr className="border-b border-slate-200">
+                                    <th className="text-left py-3 px-4 font-semibold text-slate-700">Name</th>
+                                    <th className="text-left py-3 px-4 font-semibold text-slate-700">Age</th>
+                                    <th className="text-left py-3 px-4 font-semibold text-slate-700">Gender</th>
+                                    <th className="text-left py-3 px-4 font-semibold text-slate-700">Phone</th>
+                                    <th className="text-left py-3 px-4 font-semibold text-slate-700">Email</th>
+                                    <th className="text-left py-3 px-4 font-semibold text-slate-700">Address</th>
+                                    <th className="text-left py-3 px-4 font-semibold text-slate-700">Doctor</th>
+                                    <th className="text-left py-3 px-4 font-semibold text-slate-700">Center Code</th>
                                   </tr>
-                                ))}
-                              </tbody>
-                            </table>
+                                </thead>
+                                <tbody>
+                                  {paginatedPatients.map((patient, index) => (
+                                    <tr key={patient._id} className={`border-b border-slate-100 hover:bg-slate-50 ${index % 2 === 0 ? 'bg-white' : 'bg-slate-25'}`}>
+                                      <td className="py-3 px-4 font-medium text-slate-800">
+                                        {patient.name || 'N/A'}
+                                      </td>
+                                      <td className="py-3 px-4 text-slate-600">
+                                        {String(patient.age) || 'N/A'}
+                                      </td>
+                                      <td className="py-3 px-4 text-slate-600">
+                                        {String(patient.gender) || 'N/A'}
+                                      </td>
+                                      <td className="py-3 px-4 text-slate-600">
+                                        {String(patient.phone || patient.contact || patient.mobile) || 'N/A'}
+                                      </td>
+                                      <td className="py-3 px-4 text-slate-600">
+                                        {patient.email || 'N/A'}
+                                      </td>
+                                      <td className="py-3 px-4 text-slate-600 max-w-xs truncate">
+                                        {patient.address || 'N/A'}
+                                      </td>
+                                      <td className="py-3 px-4 text-slate-600">
+                                        {patient.assignedDoctor ? 
+                                          (typeof patient.assignedDoctor === 'object' ? 
+                                            `Dr. ${patient.assignedDoctor.name}` : 
+                                            `Dr. ${patient.assignedDoctor}`) : 
+                                          'N/A'
+                                        }
+                                      </td>
+                                      <td className="py-3 px-4 text-slate-600">
+                                        {patient.centerCode || 'N/A'}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
                           </div>
                         </div>
                         
@@ -742,58 +794,111 @@ export default function ViewCenterInfo() {
                     
                     return (
                       <>
-                        <div className="max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
-                          <div className="overflow-x-auto">
-                            <table className="w-full text-xs">
-                              <thead className="bg-green-50 sticky top-0">
-                                <tr className="border-b border-green-200">
-                                  <th className="text-left py-3 px-4 font-semibold text-slate-700">Name</th>
-                                  <th className="text-left py-3 px-4 font-semibold text-slate-700">Email</th>
-                                  <th className="text-left py-3 px-4 font-semibold text-slate-700">Phone</th>
-                                  <th className="text-left py-3 px-4 font-semibold text-slate-700">Username</th>
-                                  <th className="text-left py-3 px-4 font-semibold text-slate-700">Qualification</th>
-                                  <th className="text-left py-3 px-4 font-semibold text-slate-700">Designation</th>
-                                  <th className="text-left py-3 px-4 font-semibold text-slate-700">Experience</th>
-                                  <th className="text-left py-3 px-4 font-semibold text-slate-700">KMC Number</th>
-                                  <th className="text-left py-3 px-4 font-semibold text-slate-700">Specializations</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {paginatedDoctors.map((doctor, index) => (
-                                  <tr key={doctor._id} className={`border-b border-green-100 hover:bg-green-25 ${index % 2 === 0 ? 'bg-white' : 'bg-green-25'}`}>
-                                    <td className="py-3 px-4 font-medium text-slate-800">
-                                      Dr. {doctor.name || 'N/A'}
-                                    </td>
-                                    <td className="py-3 px-4 text-slate-600">
-                                      {doctor.email || 'N/A'}
-                                    </td>
-                                    <td className="py-3 px-4 text-slate-600">
-                                      {doctor.phone || 'N/A'}
-                                    </td>
-                                    <td className="py-3 px-4 text-slate-600">
-                                      {doctor.username ? `@${doctor.username}` : 'N/A'}
-                                    </td>
-                                    <td className="py-3 px-4 text-slate-600 max-w-xs truncate">
-                                      {doctor.qualification || 'N/A'}
-                                    </td>
-                                    <td className="py-3 px-4 text-slate-600">
-                                      {doctor.designation || 'N/A'}
-                                    </td>
-                                    <td className="py-3 px-4 text-slate-600">
-                                      {doctor.experience || 'N/A'}
-                                    </td>
-                                    <td className="py-3 px-4 text-slate-600">
-                                      {doctor.kmcNumber || 'N/A'}
-                                    </td>
-                                    <td className="py-3 px-4 text-slate-600 max-w-xs truncate">
-                                      {doctor.specializations && doctor.specializations.length > 0 ? 
-                                        doctor.specializations.join(', ') : 'N/A'
-                                      }
-                                    </td>
+                        {/* Mobile Card View */}
+                        <div className="block sm:hidden">
+                          <div className="space-y-3">
+                            {paginatedDoctors.map((doctor) => (
+                              <div key={doctor._id} className="bg-white border border-green-200 rounded-lg p-4 shadow-sm">
+                                <div className="space-y-2">
+                                  <div className="flex justify-between items-start">
+                                    <h3 className="font-medium text-slate-800 text-sm">Dr. {doctor.name || 'N/A'}</h3>
+                                    <span className="text-xs text-green-600">{doctor.experience || 'N/A'} years exp</span>
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-2 text-xs">
+                                    <div>
+                                      <span className="text-slate-500">Email:</span>
+                                      <span className="ml-1 text-slate-700">{doctor.email || 'N/A'}</span>
+                                    </div>
+                                    <div>
+                                      <span className="text-slate-500">Phone:</span>
+                                      <span className="ml-1 text-slate-700">{doctor.phone || 'N/A'}</span>
+                                    </div>
+                                    <div className="col-span-2">
+                                      <span className="text-slate-500">Username:</span>
+                                      <span className="ml-1 text-slate-700">{doctor.username ? `@${doctor.username}` : 'N/A'}</span>
+                                    </div>
+                                    <div className="col-span-2">
+                                      <span className="text-slate-500">Qualification:</span>
+                                      <span className="ml-1 text-slate-700">{doctor.qualification || 'N/A'}</span>
+                                    </div>
+                                    <div className="col-span-2">
+                                      <span className="text-slate-500">Designation:</span>
+                                      <span className="ml-1 text-slate-700">{doctor.designation || 'N/A'}</span>
+                                    </div>
+                                    {doctor.kmcNumber && (
+                                      <div className="col-span-2">
+                                        <span className="text-slate-500">KMC Number:</span>
+                                        <span className="ml-1 text-slate-700">{doctor.kmcNumber}</span>
+                                      </div>
+                                    )}
+                                    {doctor.specializations && doctor.specializations.length > 0 && (
+                                      <div className="col-span-2">
+                                        <span className="text-slate-500">Specializations:</span>
+                                        <span className="ml-1 text-slate-700">{doctor.specializations.join(', ')}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Desktop Table View */}
+                        <div className="hidden sm:block">
+                          <div className="max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-xs min-w-[900px]">
+                                <thead className="bg-green-50 sticky top-0">
+                                  <tr className="border-b border-green-200">
+                                    <th className="text-left py-3 px-4 font-semibold text-slate-700">Name</th>
+                                    <th className="text-left py-3 px-4 font-semibold text-slate-700">Email</th>
+                                    <th className="text-left py-3 px-4 font-semibold text-slate-700">Phone</th>
+                                    <th className="text-left py-3 px-4 font-semibold text-slate-700">Username</th>
+                                    <th className="text-left py-3 px-4 font-semibold text-slate-700">Qualification</th>
+                                    <th className="text-left py-3 px-4 font-semibold text-slate-700">Designation</th>
+                                    <th className="text-left py-3 px-4 font-semibold text-slate-700">Experience</th>
+                                    <th className="text-left py-3 px-4 font-semibold text-slate-700">KMC Number</th>
+                                    <th className="text-left py-3 px-4 font-semibold text-slate-700">Specializations</th>
                                   </tr>
-                                ))}
-                              </tbody>
-                            </table>
+                                </thead>
+                                <tbody>
+                                  {paginatedDoctors.map((doctor, index) => (
+                                    <tr key={doctor._id} className={`border-b border-green-100 hover:bg-green-25 ${index % 2 === 0 ? 'bg-white' : 'bg-green-25'}`}>
+                                      <td className="py-3 px-4 font-medium text-slate-800">
+                                        Dr. {doctor.name || 'N/A'}
+                                      </td>
+                                      <td className="py-3 px-4 text-slate-600">
+                                        {doctor.email || 'N/A'}
+                                      </td>
+                                      <td className="py-3 px-4 text-slate-600">
+                                        {doctor.phone || 'N/A'}
+                                      </td>
+                                      <td className="py-3 px-4 text-slate-600">
+                                        {doctor.username ? `@${doctor.username}` : 'N/A'}
+                                      </td>
+                                      <td className="py-3 px-4 text-slate-600 max-w-xs truncate">
+                                        {doctor.qualification || 'N/A'}
+                                      </td>
+                                      <td className="py-3 px-4 text-slate-600">
+                                        {doctor.designation || 'N/A'}
+                                      </td>
+                                      <td className="py-3 px-4 text-slate-600">
+                                        {doctor.experience || 'N/A'}
+                                      </td>
+                                      <td className="py-3 px-4 text-slate-600">
+                                        {doctor.kmcNumber || 'N/A'}
+                                      </td>
+                                      <td className="py-3 px-4 text-slate-600 max-w-xs truncate">
+                                        {doctor.specializations && doctor.specializations.length > 0 ? 
+                                          doctor.specializations.join(', ') : 'N/A'
+                                        }
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
                           </div>
                         </div>
                         
@@ -855,57 +960,110 @@ export default function ViewCenterInfo() {
                     
                     return (
                       <>
-                        <div className="max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
-                          <div className="overflow-x-auto">
-                            <table className="w-full text-xs">
-                              <thead className="bg-purple-50 sticky top-0">
-                                <tr className="border-b border-purple-200">
-                                  <th className="text-left py-3 px-4 font-semibold text-slate-700">Name</th>
-                                  <th className="text-left py-3 px-4 font-semibold text-slate-700">Email</th>
-                                  <th className="text-left py-3 px-4 font-semibold text-slate-700">Phone</th>
-                                  <th className="text-left py-3 px-4 font-semibold text-slate-700">Username</th>
-                                  <th className="text-left py-3 px-4 font-semibold text-slate-700">Address</th>
-                                  <th className="text-left py-3 px-4 font-semibold text-slate-700">Emergency Contact</th>
-                                  <th className="text-left py-3 px-4 font-semibold text-slate-700">Status</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {paginatedReceptionists.map((receptionist, index) => (
-                                  <tr key={receptionist._id} className={`border-b border-purple-100 hover:bg-purple-25 ${index % 2 === 0 ? 'bg-white' : 'bg-purple-25'}`}>
-                                    <td className="py-3 px-4 font-medium text-slate-800">
-                                      {receptionist.name || 'N/A'}
-                                    </td>
-                                    <td className="py-3 px-4 text-slate-600">
-                                      {receptionist.email || 'N/A'}
-                                    </td>
-                                    <td className="py-3 px-4 text-slate-600">
-                                      {receptionist.phone || receptionist.mobile || 'N/A'}
-                                    </td>
-                                    <td className="py-3 px-4 text-slate-600">
-                                      {receptionist.username ? `@${receptionist.username}` : 'N/A'}
-                                    </td>
-                                    <td className="py-3 px-4 text-slate-600 max-w-xs truncate">
-                                      {receptionist.address || 'N/A'}
-                                    </td>
-                                    <td className="py-3 px-4 text-slate-600">
-                                      {receptionist.emergencyContact ? 
-                                        `${receptionist.emergencyContact}${receptionist.emergencyContactName ? ` (${receptionist.emergencyContactName})` : ''}` : 
-                                        'N/A'
-                                      }
-                                    </td>
-                                    <td className="py-3 px-4 text-slate-600">
-                                      <span className={`px-2 py-1 rounded text-xs ${
-                                        receptionist.status === 'active' ? 'bg-green-100 text-green-800' :
-                                        receptionist.status === 'inactive' ? 'bg-red-100 text-red-800' :
-                                        'bg-gray-100 text-gray-800'
-                                      }`}>
-                                        {receptionist.status || 'N/A'}
-                                      </span>
-                                    </td>
+                        {/* Mobile Card View */}
+                        <div className="block sm:hidden">
+                          <div className="space-y-3">
+                            {paginatedReceptionists.map((receptionist) => (
+                              <div key={receptionist._id} className="bg-white border border-purple-200 rounded-lg p-4 shadow-sm">
+                                <div className="space-y-2">
+                                  <div className="flex justify-between items-start">
+                                    <h3 className="font-medium text-slate-800 text-sm">{receptionist.name || 'N/A'}</h3>
+                                    <span className={`px-2 py-1 rounded text-xs ${
+                                      receptionist.status === 'active' ? 'bg-green-100 text-green-800' :
+                                      receptionist.status === 'inactive' ? 'bg-red-100 text-red-800' :
+                                      'bg-gray-100 text-gray-800'
+                                    }`}>
+                                      {receptionist.status || 'N/A'}
+                                    </span>
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-2 text-xs">
+                                    <div>
+                                      <span className="text-slate-500">Email:</span>
+                                      <span className="ml-1 text-slate-700">{receptionist.email || 'N/A'}</span>
+                                    </div>
+                                    <div>
+                                      <span className="text-slate-500">Phone:</span>
+                                      <span className="ml-1 text-slate-700">{receptionist.phone || receptionist.mobile || 'N/A'}</span>
+                                    </div>
+                                    <div className="col-span-2">
+                                      <span className="text-slate-500">Username:</span>
+                                      <span className="ml-1 text-slate-700">{receptionist.username ? `@${receptionist.username}` : 'N/A'}</span>
+                                    </div>
+                                    {receptionist.address && (
+                                      <div className="col-span-2">
+                                        <span className="text-slate-500">Address:</span>
+                                        <span className="ml-1 text-slate-700">{receptionist.address}</span>
+                                      </div>
+                                    )}
+                                    {receptionist.emergencyContact && (
+                                      <div className="col-span-2">
+                                        <span className="text-slate-500">Emergency Contact:</span>
+                                        <span className="ml-1 text-slate-700">
+                                          {receptionist.emergencyContact}{receptionist.emergencyContactName ? ` (${receptionist.emergencyContactName})` : ''}
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Desktop Table View */}
+                        <div className="hidden sm:block">
+                          <div className="max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-xs min-w-[800px]">
+                                <thead className="bg-purple-50 sticky top-0">
+                                  <tr className="border-b border-purple-200">
+                                    <th className="text-left py-3 px-4 font-semibold text-slate-700">Name</th>
+                                    <th className="text-left py-3 px-4 font-semibold text-slate-700">Email</th>
+                                    <th className="text-left py-3 px-4 font-semibold text-slate-700">Phone</th>
+                                    <th className="text-left py-3 px-4 font-semibold text-slate-700">Username</th>
+                                    <th className="text-left py-3 px-4 font-semibold text-slate-700">Address</th>
+                                    <th className="text-left py-3 px-4 font-semibold text-slate-700">Emergency Contact</th>
+                                    <th className="text-left py-3 px-4 font-semibold text-slate-700">Status</th>
                                   </tr>
-                                ))}
-                              </tbody>
-                            </table>
+                                </thead>
+                                <tbody>
+                                  {paginatedReceptionists.map((receptionist, index) => (
+                                    <tr key={receptionist._id} className={`border-b border-purple-100 hover:bg-purple-25 ${index % 2 === 0 ? 'bg-white' : 'bg-purple-25'}`}>
+                                      <td className="py-3 px-4 font-medium text-slate-800">
+                                        {receptionist.name || 'N/A'}
+                                      </td>
+                                      <td className="py-3 px-4 text-slate-600">
+                                        {receptionist.email || 'N/A'}
+                                      </td>
+                                      <td className="py-3 px-4 text-slate-600">
+                                        {receptionist.phone || receptionist.mobile || 'N/A'}
+                                      </td>
+                                      <td className="py-3 px-4 text-slate-600">
+                                        {receptionist.username ? `@${receptionist.username}` : 'N/A'}
+                                      </td>
+                                      <td className="py-3 px-4 text-slate-600 max-w-xs truncate">
+                                        {receptionist.address || 'N/A'}
+                                      </td>
+                                      <td className="py-3 px-4 text-slate-600">
+                                        {receptionist.emergencyContact ? 
+                                          `${receptionist.emergencyContact}${receptionist.emergencyContactName ? ` (${receptionist.emergencyContactName})` : ''}` : 
+                                          'N/A'
+                                        }
+                                      </td>
+                                      <td className="py-3 px-4 text-slate-600">
+                                        <span className={`px-2 py-1 rounded text-xs ${
+                                          receptionist.status === 'active' ? 'bg-green-100 text-green-800' :
+                                          receptionist.status === 'inactive' ? 'bg-red-100 text-red-800' :
+                                          'bg-gray-100 text-gray-800'
+                                        }`}>
+                                          {receptionist.status || 'N/A'}
+                                        </span>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
                           </div>
                         </div>
                         
@@ -966,50 +1124,95 @@ export default function ViewCenterInfo() {
                     
                     return (
                       <>
-                        <div className="max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
-                          <div className="overflow-x-auto">
-                            <table className="w-full text-xs">
-                              <thead className="bg-orange-50 sticky top-0">
-                                <tr className="border-b border-orange-200">
-                                  <th className="text-left py-3 px-4 font-semibold text-slate-700">Name</th>
-                                  <th className="text-left py-3 px-4 font-semibold text-slate-700">Email</th>
-                                  <th className="text-left py-3 px-4 font-semibold text-slate-700">Mobile</th>
-                                  <th className="text-left py-3 px-4 font-semibold text-slate-700">Username</th>
-                                  <th className="text-left py-3 px-4 font-semibold text-slate-700">Address</th>
-                                  <th className="text-left py-3 px-4 font-semibold text-slate-700">Status</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {paginatedAccountants.map((accountant, index) => (
-                                  <tr key={accountant._id} className={`border-b border-orange-100 hover:bg-orange-25 ${index % 2 === 0 ? 'bg-white' : 'bg-orange-25'}`}>
-                                    <td className="py-3 px-4 font-medium text-slate-800">
-                                      {accountant.name || 'N/A'}
-                                    </td>
-                                    <td className="py-3 px-4 text-slate-600">
-                                      {accountant.email || 'N/A'}
-                                    </td>
-                                    <td className="py-3 px-4 text-slate-600">
-                                      {accountant.mobile || 'N/A'}
-                                    </td>
-                                    <td className="py-3 px-4 text-slate-600">
-                                      {accountant.username ? `@${accountant.username}` : 'N/A'}
-                                    </td>
-                                    <td className="py-3 px-4 text-slate-600 max-w-xs truncate">
-                                      {accountant.address || 'N/A'}
-                                    </td>
-                                    <td className="py-3 px-4 text-slate-600">
-                                      <span className={`px-2 py-1 rounded text-xs ${
-                                        accountant.status === 'active' ? 'bg-green-100 text-green-800' :
-                                        accountant.status === 'inactive' ? 'bg-red-100 text-red-800' :
-                                        'bg-gray-100 text-gray-800'
-                                      }`}>
-                                        {accountant.status || 'N/A'}
-                                      </span>
-                                    </td>
+                        {/* Mobile Card View */}
+                        <div className="block sm:hidden">
+                          <div className="space-y-3">
+                            {paginatedAccountants.map((accountant) => (
+                              <div key={accountant._id} className="bg-white border border-orange-200 rounded-lg p-4 shadow-sm">
+                                <div className="space-y-2">
+                                  <div className="flex justify-between items-start">
+                                    <h3 className="font-medium text-slate-800 text-sm">{accountant.name || 'N/A'}</h3>
+                                    <span className={`px-2 py-1 rounded text-xs ${
+                                      accountant.status === 'active' ? 'bg-green-100 text-green-800' :
+                                      accountant.status === 'inactive' ? 'bg-red-100 text-red-800' :
+                                      'bg-gray-100 text-gray-800'
+                                    }`}>
+                                      {accountant.status || 'N/A'}
+                                    </span>
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-2 text-xs">
+                                    <div>
+                                      <span className="text-slate-500">Email:</span>
+                                      <span className="ml-1 text-slate-700">{accountant.email || 'N/A'}</span>
+                                    </div>
+                                    <div>
+                                      <span className="text-slate-500">Mobile:</span>
+                                      <span className="ml-1 text-slate-700">{accountant.mobile || 'N/A'}</span>
+                                    </div>
+                                    <div className="col-span-2">
+                                      <span className="text-slate-500">Username:</span>
+                                      <span className="ml-1 text-slate-700">{accountant.username ? `@${accountant.username}` : 'N/A'}</span>
+                                    </div>
+                                    {accountant.address && (
+                                      <div className="col-span-2">
+                                        <span className="text-slate-500">Address:</span>
+                                        <span className="ml-1 text-slate-700">{accountant.address}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Desktop Table View */}
+                        <div className="hidden sm:block">
+                          <div className="max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-xs min-w-[700px]">
+                                <thead className="bg-orange-50 sticky top-0">
+                                  <tr className="border-b border-orange-200">
+                                    <th className="text-left py-3 px-4 font-semibold text-slate-700">Name</th>
+                                    <th className="text-left py-3 px-4 font-semibold text-slate-700">Email</th>
+                                    <th className="text-left py-3 px-4 font-semibold text-slate-700">Mobile</th>
+                                    <th className="text-left py-3 px-4 font-semibold text-slate-700">Username</th>
+                                    <th className="text-left py-3 px-4 font-semibold text-slate-700">Address</th>
+                                    <th className="text-left py-3 px-4 font-semibold text-slate-700">Status</th>
                                   </tr>
-                                ))}
-                              </tbody>
-                            </table>
+                                </thead>
+                                <tbody>
+                                  {paginatedAccountants.map((accountant, index) => (
+                                    <tr key={accountant._id} className={`border-b border-orange-100 hover:bg-orange-25 ${index % 2 === 0 ? 'bg-white' : 'bg-orange-25'}`}>
+                                      <td className="py-3 px-4 font-medium text-slate-800">
+                                        {accountant.name || 'N/A'}
+                                      </td>
+                                      <td className="py-3 px-4 text-slate-600">
+                                        {accountant.email || 'N/A'}
+                                      </td>
+                                      <td className="py-3 px-4 text-slate-600">
+                                        {accountant.mobile || 'N/A'}
+                                      </td>
+                                      <td className="py-3 px-4 text-slate-600">
+                                        {accountant.username ? `@${accountant.username}` : 'N/A'}
+                                      </td>
+                                      <td className="py-3 px-4 text-slate-600 max-w-xs truncate">
+                                        {accountant.address || 'N/A'}
+                                      </td>
+                                      <td className="py-3 px-4 text-slate-600">
+                                        <span className={`px-2 py-1 rounded text-xs ${
+                                          accountant.status === 'active' ? 'bg-green-100 text-green-800' :
+                                          accountant.status === 'inactive' ? 'bg-red-100 text-red-800' :
+                                          'bg-gray-100 text-gray-800'
+                                        }`}>
+                                          {accountant.status || 'N/A'}
+                                        </span>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
                           </div>
                         </div>
                         
@@ -1040,25 +1243,25 @@ export default function ViewCenterInfo() {
               Manage this healthcare center
             </p>
           </div>
-          <div className="p-6">
-            <div className="flex flex-wrap gap-4">
+          <div className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <button
                 onClick={() => navigate(`/dashboard/Superadmin/Centers/EditCenter/${id}`)}
-                className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2 text-xs"
+                className="bg-blue-500 hover:bg-blue-600 text-white px-4 sm:px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 text-xs"
               >
                 <Building2 className="h-4 w-4" />
                 Edit Center
               </button>
               <button
                 onClick={() => navigate(`/dashboard/Superadmin/Centers/EditCenterAdmin/${id}`)}
-                className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2 text-xs"
+                className="bg-green-500 hover:bg-green-600 text-white px-4 sm:px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 text-xs"
               >
                 <UserCheck className="h-4 w-4" />
                 Manage Admin
               </button>
               <button
                 onClick={() => navigate('/dashboard/Superadmin/Centers/CentersList')}
-                className="bg-slate-500 hover:bg-slate-600 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2 text-xs"
+                className="bg-slate-500 hover:bg-slate-600 text-white px-4 sm:px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 text-xs"
               >
                 <ArrowLeft className="h-4 w-4" />
                 Back to Centers

@@ -486,10 +486,10 @@ const TestRequestDetails = () => {
               <UserCheck className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-blue-600" />
               Test Request Information
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs sm:text-xs font-medium text-gray-500">Request ID</label>
-                <p className="text-gray-900 font-medium text-xs sm:text-base">{testRequest._id || 'N/A'}</p>
+                <p className="text-gray-900 font-medium text-xs sm:text-base break-all">{testRequest._id || 'N/A'}</p>
               </div>
               <div>
                 <label className="block text-xs sm:text-xs font-medium text-gray-500">Status</label>
@@ -585,7 +585,7 @@ const TestRequestDetails = () => {
               <User className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-blue-600" />
               Patient Information
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
               <div>
                 <label className="block text-xs sm:text-xs font-medium text-gray-500">Patient Name</label>
                 <p className="text-gray-900 font-medium text-xs sm:text-base">{testRequest.patientName || 'N/A'}</p>

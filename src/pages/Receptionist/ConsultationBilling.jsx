@@ -40,6 +40,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import API from '../../services/api';
+import { getPatientAppointment } from '../../services/api';
 
 export default function ConsultationBilling() {
   const dispatch = useDispatch();
@@ -62,6 +63,60 @@ export default function ConsultationBilling() {
   
   // Invoice creation time state
   const [invoiceCreationTime, setInvoiceCreationTime] = useState(null);
+
+  // Function to fetch appointment data for a patient
+  const fetchPatientAppointmentData = async (patient) => {
+    if (!patient.fromAppointment || !patient.appointmentId) return null;
+    
+    try {
+      const response = await getPatientAppointment(patient._id);
+      if (response.success && response.data.appointmentId) {
+        return response.data.appointmentId;
+      }
+    } catch (error) {
+      console.error('Error fetching patient appointment data:', error);
+    }
+    return null;
+  };
+
+  // Enhanced function to get appointment display data
+  const getAppointmentDisplayData = (patient) => {
+    // If patient has appointmentTime, use that (manual appointment)
+    if (patient.appointmentTime) {
+      return {
+        type: 'manual',
+        date: patient.appointmentTime,
+        status: patient.appointmentStatus,
+        notes: patient.appointmentNotes,
+        fromAppointment: patient.fromAppointment
+      };
+    }
+    
+    // If patient has populated appointmentId, use that
+    if (patient.appointmentId && typeof patient.appointmentId === 'object') {
+      return {
+        type: 'online',
+        date: patient.appointmentId.confirmedDate || patient.appointmentId.preferredDate,
+        time: patient.appointmentId.confirmedTime || patient.appointmentId.preferredTime,
+        status: patient.appointmentId.status,
+        type: patient.appointmentId.appointmentType,
+        code: patient.appointmentId.confirmationCode,
+        reason: patient.appointmentId.reasonForVisit,
+        symptoms: patient.appointmentId.symptoms,
+        fromAppointment: true
+      };
+    }
+    
+    // If patient is from appointment but no data, indicate that
+    if (patient.fromAppointment) {
+      return {
+        type: 'linked',
+        fromAppointment: true
+      };
+    }
+    
+    return null;
+  };
 
   // Function to get center ID
   const getCenterId = () => {
@@ -131,7 +186,8 @@ export default function ConsultationBilling() {
     serviceCharges: [{ name: '', amount: '', description: '' }],
     notes: '',
     taxPercentage: 0,
-    discountPercentage: 0
+    discountPercentage: 0,
+    appointmentTime: ''
   });
 
   // Step 2: Invoice Preview & Payment
@@ -146,6 +202,10 @@ export default function ConsultationBilling() {
     appointmentTime: '',
     consultationType: 'OP' // OP, IP, or followup
   });
+  
+  // Appointment autocomplete states
+  const [patientAppointment, setPatientAppointment] = useState(null);
+  const [appointmentLoading, setAppointmentLoading] = useState(false);
 
   // Step 3: Bill Management
   const [showCancelBillModal, setShowCancelBillModal] = useState(false);
@@ -463,6 +523,231 @@ export default function ConsultationBilling() {
     });
     
     setShowPaymentModal(true);
+    
+    // Fetch appointment details for the selected patient
+    if (selectedPatient) {
+      fetchPatientAppointment(selectedPatient);
+    }
+  };
+
+  // Fetch appointment details for selected patient
+  const fetchPatientAppointment = async (patient) => {
+    if (!patient) return;
+    
+    setAppointmentLoading(true);
+    try {
+      console.log('Searching for appointment for patient:', patient.name, patient.phone, patient.email);
+      
+      // First, check if patient has a linked appointment (from online booking)
+      if (patient.fromAppointment && patient.appointmentId) {
+        console.log('Patient has linked appointment, fetching appointment data...');
+        try {
+          const appointmentResponse = await getPatientAppointment(patient._id);
+          if (appointmentResponse.success && appointmentResponse.data.appointmentId) {
+            const appointment = appointmentResponse.data.appointmentId;
+            console.log('Found linked appointment:', appointment);
+            setPatientAppointment(appointment);
+            
+            // Auto-fill appointment time if available
+            let appointmentDateTime = null;
+            
+            if (appointment.confirmedDate && appointment.confirmedTime) {
+              console.log('Using confirmed date/time:', appointment.confirmedDate, appointment.confirmedTime);
+              appointmentDateTime = new Date(appointment.confirmedDate);
+              const [hours, minutes] = appointment.confirmedTime.split(':');
+              appointmentDateTime.setHours(parseInt(hours), parseInt(minutes));
+            } else if (appointment.preferredDate && appointment.preferredTime) {
+              console.log('Using preferred date/time:', appointment.preferredDate, appointment.preferredTime);
+              appointmentDateTime = new Date(appointment.preferredDate);
+              const [hours, minutes] = appointment.preferredTime.split(':');
+              appointmentDateTime.setHours(parseInt(hours), parseInt(minutes));
+            }
+            
+            if (appointmentDateTime) {
+              const formattedDateTime = appointmentDateTime.toISOString().slice(0, 16);
+              console.log('Setting appointment time to:', formattedDateTime);
+              
+              setPaymentData(prev => ({
+                ...prev,
+                appointmentTime: formattedDateTime
+              }));
+            }
+            
+            // Show success message
+            toast.success(`Found linked appointment: ${appointment.appointmentType} on ${appointmentDateTime ? appointmentDateTime.toLocaleDateString() : 'TBD'}`);
+            return; // Exit early since we found the appointment
+          }
+        } catch (appointmentError) {
+          console.error('Error fetching linked appointment:', appointmentError);
+          // Continue with regular search if linked appointment fetch fails
+        }
+      }
+      
+      // If no linked appointment found, proceed with regular search
+      console.log('No linked appointment found, proceeding with regular search...');
+      
+      // Try multiple search approaches with enhanced criteria
+      let response = null;
+      let searchAttempts = [];
+      
+      // First try: Search by name and phone together (most accurate)
+      if (patient.name && patient.phone) {
+        searchAttempts.push('name + phone');
+        try {
+          response = await API.get('/patient-appointments/search', {
+            params: { 
+              name: patient.name.trim(),
+              phone: patient.phone.trim()
+            }
+          });
+          console.log('Search attempt (name + phone):', response?.data);
+        } catch (err) {
+          console.log('Search failed (name + phone):', err.message);
+        }
+      }
+      
+      // Second try: Search by name and email if first search fails
+      if ((!response || !response.data.success || response.data.data.length === 0) && patient.name && patient.email) {
+        searchAttempts.push('name + email');
+        try {
+          console.log('Trying name + email search...');
+          response = await API.get('/patient-appointments/search', {
+            params: { 
+              name: patient.name.trim(),
+              email: patient.email.trim()
+            }
+          });
+          console.log('Search attempt (name + email):', response?.data);
+        } catch (err) {
+          console.log('Search failed (name + email):', err.message);
+        }
+      }
+      
+      // Third try: Search by name only if previous searches fail
+      if ((!response || !response.data.success || response.data.data.length === 0) && patient.name) {
+        searchAttempts.push('name only');
+        try {
+          console.log('Trying name-only search...');
+          response = await API.get('/patient-appointments/search', {
+            params: { 
+              name: patient.name.trim()
+            }
+          });
+          console.log('Search attempt (name only):', response?.data);
+        } catch (err) {
+          console.log('Search failed (name only):', err.message);
+        }
+      }
+      
+      // Fourth try: Search by phone only if previous searches fail
+      if ((!response || !response.data.success || response.data.data.length === 0) && patient.phone) {
+        searchAttempts.push('phone only');
+        try {
+          console.log('Trying phone-only search...');
+          response = await API.get('/patient-appointments/search', {
+            params: { 
+              phone: patient.phone.trim()
+            }
+          });
+          console.log('Search attempt (phone only):', response?.data);
+        } catch (err) {
+          console.log('Search failed (phone only):', err.message);
+        }
+      }
+      
+      // Fifth try: Search by email only if previous searches fail
+      if ((!response || !response.data.success || response.data.data.length === 0) && patient.email) {
+        searchAttempts.push('email only');
+        try {
+          console.log('Trying email-only search...');
+          response = await API.get('/patient-appointments/search', {
+            params: { 
+              email: patient.email.trim()
+            }
+          });
+          console.log('Search attempt (email only):', response?.data);
+        } catch (err) {
+          console.log('Search failed (email only):', err.message);
+        }
+      }
+      
+      console.log('All search attempts:', searchAttempts);
+      console.log('Final appointment search response:', response?.data);
+      
+      if (response?.data.success && response.data.data.length > 0) {
+        // Find the most recent appointment or best match
+        let appointment = response.data.data[0];
+        
+        // If multiple appointments found, try to find the best match
+        if (response.data.data.length > 1) {
+          console.log(`Found ${response.data.data.length} appointments, selecting best match`);
+          
+          // Prioritize confirmed appointments
+          const confirmedAppointment = response.data.data.find(apt => 
+            apt.status === 'confirmed' || apt.status === 'pending'
+          );
+          
+          if (confirmedAppointment) {
+            appointment = confirmedAppointment;
+            console.log('Selected confirmed appointment:', appointment);
+          } else {
+            // Select the most recent one
+            appointment = response.data.data.sort((a, b) => 
+              new Date(b.bookedAt || b.createdAt) - new Date(a.bookedAt || a.createdAt)
+            )[0];
+            console.log('Selected most recent appointment:', appointment);
+          }
+        }
+        
+        console.log('Selected appointment:', appointment);
+        setPatientAppointment(appointment);
+        
+        // Auto-fill appointment time if available
+        let appointmentDateTime = null;
+        
+        if (appointment.confirmedDate && appointment.confirmedTime) {
+          console.log('Using confirmed date/time:', appointment.confirmedDate, appointment.confirmedTime);
+          appointmentDateTime = new Date(appointment.confirmedDate);
+          const [hours, minutes] = appointment.confirmedTime.split(':');
+          appointmentDateTime.setHours(parseInt(hours), parseInt(minutes));
+        } else if (appointment.preferredDate && appointment.preferredTime) {
+          console.log('Using preferred date/time:', appointment.preferredDate, appointment.preferredTime);
+          appointmentDateTime = new Date(appointment.preferredDate);
+          const [hours, minutes] = appointment.preferredTime.split(':');
+          appointmentDateTime.setHours(parseInt(hours), parseInt(minutes));
+        }
+        
+        if (appointmentDateTime) {
+          const formattedDateTime = appointmentDateTime.toISOString().slice(0, 16);
+          console.log('Setting appointment time to:', formattedDateTime);
+          
+          setPaymentData(prev => ({
+            ...prev,
+            appointmentTime: formattedDateTime
+          }));
+        }
+        
+        // Show success message
+        toast.success(`Found appointment: ${appointment.appointmentType} on ${appointmentDateTime ? appointmentDateTime.toLocaleDateString() : 'TBD'}`);
+        
+      } else {
+        console.log('No appointment found for patient after all search attempts');
+        setPatientAppointment(null);
+        
+        // Show informative message
+        if (searchAttempts.length > 0) {
+          toast.info(`No appointment found for ${patient.name}. Searched by: ${searchAttempts.join(', ')}`);
+        } else {
+          toast.info(`No appointment found for ${patient.name}. No search criteria available.`);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching appointment:', error);
+      setPatientAppointment(null);
+      toast.error('Failed to search for appointments. Please try again.');
+    } finally {
+      setAppointmentLoading(false);
+    }
   };
 
   const handlePaymentSubmit = async (e) => {
@@ -1651,30 +1936,95 @@ export default function ConsultationBilling() {
                             </td>
                             <td className="px-4 py-4 whitespace-nowrap">
                               <div className="text-xs text-slate-600 space-y-1">
-                                {patient.appointmentTime ? (
-                                  <>
-                                    <div className="font-medium text-slate-900">
-                                      {new Date(patient.appointmentTime).toLocaleDateString('en-GB')}
-                                    </div>
-                                    <div className="text-slate-500">
-                                      {new Date(patient.appointmentTime).toLocaleTimeString('en-GB', { 
-                                        hour: '2-digit', 
-                                        minute: '2-digit',
-                                        hour12: true 
-                                      })}
-                                    </div>
-                                    <div className={`text-xs px-2 py-1 rounded-full inline-block ${
-                                      patient.appointmentStatus === 'viewed' ? 'bg-green-100 text-green-700' :
-                                      patient.appointmentStatus === 'missed' ? 'bg-red-100 text-red-700' :
-                                      patient.appointmentStatus === 'reassigned' ? 'bg-orange-100 text-orange-700' :
-                                      'bg-blue-100 text-blue-700'
-                                    }`}>
-                                      {patient.appointmentStatus || 'scheduled'}
-                                    </div>
-                                  </>
-                                ) : (
-                                  <span className="text-slate-400">No appointment</span>
-                                )}
+                                {(() => {
+                                  const appointmentData = getAppointmentDisplayData(patient);
+                                  
+                                  if (!appointmentData) {
+                                    return (
+                                      <div className="space-y-1">
+                                        <span className="text-slate-400">No appointment</span>
+                                      </div>
+                                    );
+                                  }
+                                  
+                                  if (appointmentData.type === 'manual') {
+                                    return (
+                                      <>
+                                        <div className="font-medium text-slate-900">
+                                          {new Date(appointmentData.date).toLocaleDateString('en-GB')}
+                                        </div>
+                                        <div className="text-slate-500">
+                                          {new Date(appointmentData.date).toLocaleTimeString('en-GB', { 
+                                            hour: '2-digit', 
+                                            minute: '2-digit',
+                                            hour12: true 
+                                          })}
+                                        </div>
+                                        <div className={`text-xs px-2 py-1 rounded-full inline-block ${
+                                          appointmentData.status === 'viewed' ? 'bg-green-100 text-green-700' :
+                                          appointmentData.status === 'missed' ? 'bg-red-100 text-red-700' :
+                                          appointmentData.status === 'reassigned' ? 'bg-orange-100 text-orange-700' :
+                                          appointmentData.status === 'working_hours_violation' ? 'bg-purple-100 text-purple-700' :
+                                          'bg-blue-100 text-blue-700'
+                                        }`}>
+                                          {appointmentData.status || 'scheduled'}
+                                        </div>
+                                        {appointmentData.notes && (
+                                          <div className="text-slate-400 text-xs mt-1 max-w-32 truncate" title={appointmentData.notes}>
+                                            📝 {appointmentData.notes}
+                                          </div>
+                                        )}
+                                        {appointmentData.fromAppointment && (
+                                          <div className="text-green-600 text-xs mt-1">
+                                            🌐 Online Booking
+                                          </div>
+                                        )}
+                                      </>
+                                    );
+                                  }
+                                  
+                                  if (appointmentData.type === 'online') {
+                                    return (
+                                      <>
+                                        <div className="font-medium text-slate-900">
+                                          {new Date(appointmentData.date).toLocaleDateString('en-GB')}
+                                        </div>
+                                        <div className="text-slate-500">
+                                          {appointmentData.time}
+                                        </div>
+                                        <div className={`text-xs px-2 py-1 rounded-full inline-block ${
+                                          appointmentData.status === 'confirmed' ? 'bg-green-100 text-green-700' :
+                                          appointmentData.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                                          appointmentData.status === 'cancelled' ? 'bg-red-100 text-red-700' :
+                                          'bg-gray-100 text-gray-700'
+                                        }`}>
+                                          {appointmentData.status?.toUpperCase() || 'UNKNOWN'}
+                                        </div>
+                                        <div className="text-green-600 text-xs">
+                                          🌐 Online Booking
+                                        </div>
+                                        {appointmentData.code && (
+                                          <div className="text-slate-400 text-xs">
+                                            Code: {appointmentData.code}
+                                          </div>
+                                        )}
+                                      </>
+                                    );
+                                  }
+                                  
+                                  if (appointmentData.type === 'linked') {
+                                    return (
+                                      <div className="space-y-1">
+                                        <div className="text-slate-400">Appointment Linked</div>
+                                        <div className="text-green-600 text-xs">
+                                          🌐 From Online Booking
+                                        </div>
+                                      </div>
+                                    );
+                                  }
+                                  
+                                  return null;
+                                })()}
                               </div>
                             </td>
                             <td className="px-4 py-4 whitespace-nowrap">
@@ -1871,9 +2221,10 @@ export default function ConsultationBilling() {
 
       {/* Create Invoice Modal */}
       {showCreateInvoiceModal && selectedPatient && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Header - Fixed */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
               <h3 className="text-lg font-semibold text-slate-800">
                 Create Invoice for {selectedPatient.name}
               </h3>
@@ -1884,6 +2235,9 @@ export default function ConsultationBilling() {
                 <X className="h-5 w-5" />
               </button>
             </div>
+            
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto p-6">
             
             <form onSubmit={handleInvoiceFormSubmit} className="space-y-4">
               {/* Registration Fee */}
@@ -2033,6 +2387,103 @@ export default function ConsultationBilling() {
                 />
               </div>
 
+              {/* Appointment Confirmation Section */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center mb-3">
+                  <Calendar className="h-4 w-4 text-blue-500 mr-2" />
+                  <h4 className="font-medium text-blue-800 text-sm">Appointment Confirmation</h4>
+                </div>
+                
+                {/* Search for existing appointment */}
+                <div className="mb-3">
+                  <button
+                    type="button"
+                    onClick={() => fetchPatientAppointment(selectedPatient)}
+                    disabled={appointmentLoading}
+                    className="w-full px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-medium flex items-center justify-center gap-2"
+                  >
+                    {appointmentLoading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        Searching for appointments...
+                      </>
+                    ) : (
+                      <>
+                        <Calendar className="h-4 w-4" />
+                        Search for Existing Appointment
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* Display found appointment */}
+                {patientAppointment && (
+                  <div className="mb-3 bg-white border border-blue-300 rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-blue-700 font-semibold text-sm">Found Appointment</span>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                        patientAppointment.status === 'confirmed' 
+                          ? 'bg-green-100 text-green-700' 
+                          : patientAppointment.status === 'pending'
+                          ? 'bg-yellow-100 text-yellow-700'
+                          : 'bg-gray-100 text-gray-700'
+                      }`}>
+                        {patientAppointment.status.toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <span className="text-blue-600">Date:</span>
+                        <span className="font-medium ml-1">
+                          {patientAppointment.confirmedDate 
+                            ? new Date(patientAppointment.confirmedDate).toLocaleDateString('en-GB')
+                            : new Date(patientAppointment.preferredDate).toLocaleDateString('en-GB')
+                          }
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-blue-600">Time:</span>
+                        <span className="font-medium ml-1">
+                          {patientAppointment.confirmedTime || patientAppointment.preferredTime}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-blue-600">Code:</span>
+                        <span className="font-mono font-semibold text-blue-600 ml-1">{patientAppointment.confirmationCode}</span>
+                      </div>
+                      <div>
+                        <span className="text-blue-600">Type:</span>
+                        <span className="font-medium ml-1 capitalize">
+                          {patientAppointment.appointmentType || 'consultation'}
+                        </span>
+                      </div>
+                    </div>
+                    {patientAppointment.status === 'pending' && (
+                      <div className="mt-2 p-2 bg-yellow-100 border border-yellow-300 rounded text-xs text-yellow-800">
+                        ⚠️ This appointment needs confirmation. Consider confirming it after invoice creation.
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Manual appointment scheduling */}
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-2">
+                    Schedule New Appointment (Optional)
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={invoiceFormData.appointmentTime || ''}
+                    onChange={(e) => setInvoiceFormData({...invoiceFormData, appointmentTime: e.target.value})}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
+                    min={new Date().toISOString().slice(0, 16)}
+                  />
+                  <p className="text-xs text-slate-500 mt-1">
+                    📅 This will schedule a new appointment for the patient after invoice creation
+                  </p>
+                </div>
+              </div>
+
               {/* Invoice Preview */}
               <div className="bg-slate-50 rounded-lg p-4">
                 <h4 className="font-medium text-slate-700 mb-2">Invoice Preview</h4>
@@ -2104,6 +2555,14 @@ export default function ConsultationBilling() {
                 </button>
               </div>
             </form>
+            </div>
+            
+            {/* Footer - Fixed */}
+            <div className="border-t border-gray-200 p-4 flex-shrink-0">
+              <div className="text-xs text-gray-500 text-center">
+                📄 Invoice will be generated and previewed after creation
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -2903,21 +3362,27 @@ export default function ConsultationBilling() {
 
       {/* Payment Processing Modal */}
       {showPaymentModal && selectedPatient && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
-            <div className="flex items-center justify-between mb-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Header - Fixed */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
               <h3 className="text-lg font-semibold text-slate-800">
                 Process Payment - {selectedPatient.name}
               </h3>
-                <button
-                onClick={() => setShowPaymentModal(false)}
-                  className="text-slate-400 hover:text-slate-600"
-                >
-                  <X className="h-5 w-5" />
-                </button>
+              <button
+                onClick={() => {
+                  setShowPaymentModal(false);
+                  setPatientAppointment(null);
+                }}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
             </div>
             
-            <form onSubmit={handlePaymentSubmit} className="space-y-4">
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              <form onSubmit={handlePaymentSubmit} className="space-y-4">
               {/* Outstanding Amount Display */}
               {selectedPatient.billing && selectedPatient.billing.length > 0 && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
@@ -3007,15 +3472,147 @@ export default function ConsultationBilling() {
                 <label className="block text-xs font-medium text-slate-700 mb-2">
                   Appointment Time
                     </label>
+                    
+                    {/* Appointment Details Display */}
+                    {patientAppointment && (
+                      <div className="mb-3 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                        <div className="flex items-center mb-2">
+                          <Calendar className="h-4 w-4 text-blue-500 mr-2" />
+                          <span className="text-blue-700 font-semibold text-sm">Existing Appointment Found</span>
+                          <div className="ml-auto">
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                              patientAppointment.status === 'confirmed' 
+                                ? 'bg-green-100 text-green-700' 
+                                : patientAppointment.status === 'pending'
+                                ? 'bg-yellow-100 text-yellow-700'
+                                : patientAppointment.status === 'cancelled'
+                                ? 'bg-red-100 text-red-700'
+                                : 'bg-gray-100 text-gray-700'
+                            }`}>
+                              {patientAppointment.status.toUpperCase()}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 gap-2 text-xs">
+                          <div className="flex justify-between">
+                            <span className="text-blue-600">Date:</span>
+                            <span className="font-medium">
+                              {patientAppointment.confirmedDate 
+                                ? new Date(patientAppointment.confirmedDate).toLocaleDateString('en-GB')
+                                : new Date(patientAppointment.preferredDate).toLocaleDateString('en-GB')
+                              }
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-blue-600">Time:</span>
+                            <span className="font-medium">
+                              {patientAppointment.confirmedTime || patientAppointment.preferredTime}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-blue-600">Type:</span>
+                            <span className="font-medium capitalize">
+                              {patientAppointment.appointmentType || 'consultation'}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-blue-600">Code:</span>
+                            <span className="font-mono font-semibold text-blue-600">{patientAppointment.confirmationCode}</span>
+                          </div>
+                          {patientAppointment.reasonForVisit && (
+                            <div className="flex justify-between">
+                              <span className="text-blue-600">Reason:</span>
+                              <span className="font-medium text-right max-w-32 truncate" title={patientAppointment.reasonForVisit}>
+                                {patientAppointment.reasonForVisit}
+                              </span>
+                            </div>
+                          )}
+                          {patientAppointment.symptoms && (
+                            <div className="flex justify-between">
+                              <span className="text-blue-600">Symptoms:</span>
+                              <span className="font-medium text-right max-w-32 truncate" title={patientAppointment.symptoms}>
+                                {patientAppointment.symptoms}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="mt-2 p-2 bg-blue-100 rounded border border-blue-300">
+                          <p className="text-blue-800 text-xs font-medium">
+                            ✅ Appointment time has been auto-filled below
+                          </p>
+                          {patientAppointment.status === 'pending' && (
+                            <p className="text-yellow-700 text-xs mt-1">
+                              ⚠️ This appointment needs confirmation
+                            </p>
+                          )}
+                          {patientAppointment.status === 'cancelled' && (
+                            <p className="text-red-700 text-xs mt-1">
+                              ❌ This appointment was cancelled
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {appointmentLoading && (
+                      <div className="mb-3 flex items-center text-blue-600 text-xs">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                        Searching for appointment details...
+                      </div>
+                    )}
+                    
+                    {!patientAppointment && !appointmentLoading && (
+                      <div className="mb-3 bg-gray-50 border border-gray-200 rounded-lg p-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <Calendar className="h-4 w-4 text-gray-500 mr-2" />
+                            <span className="text-gray-700 font-medium text-sm">
+                              {selectedPatient.fromAppointment ? 'Appointment Linked' : 'No appointment found'}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => fetchPatientAppointment(selectedPatient)}
+                            className="px-3 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 transition-colors"
+                          >
+                            🔍 Search Again
+                          </button>
+                        </div>
+                        <p className="text-gray-600 text-xs mt-1">
+                          {selectedPatient.fromAppointment ? (
+                            <>
+                              This patient was created from an online booking. 
+                              {selectedPatient.appointmentId ? ' Appointment data is linked but not populated.' : ' No appointment data available.'}
+                              <br />
+                              You can manually set the appointment time below or search for existing appointments.
+                            </>
+                          ) : (
+                            'You can manually set the appointment time below or search for existing appointments.'
+                          )}
+                        </p>
+                        {selectedPatient.fromAppointment && (
+                          <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-xs text-green-700">
+                            🌐 This patient was created from an online appointment booking
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
                     <input
                   type="datetime-local"
                   value={paymentData.appointmentTime}
                   onChange={(e) => setPaymentData({...paymentData, appointmentTime: e.target.value})}
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
-                  placeholder="Select appointment time"
+                  placeholder="Select appointment date and time"
+                  min={new Date().toISOString().slice(0, 16)}
                     />
                     <p className="text-xs text-slate-500 mt-1">
-                      This will schedule the patient's appointment after payment
+                      📅 This will schedule the patient's appointment after payment
+                      {paymentData.appointmentTime && (
+                        <span className="block mt-1 text-green-600 font-medium">
+                          ✅ Scheduled for: {new Date(paymentData.appointmentTime).toLocaleString()}
+                        </span>
+                      )}
                     </p>
                   </div>
                   
@@ -3062,7 +3659,10 @@ export default function ConsultationBilling() {
               <div className="flex gap-3 pt-4">
                     <button
                   type="button"
-                  onClick={() => setShowPaymentModal(false)}
+                  onClick={() => {
+                    setShowPaymentModal(false);
+                    setPatientAppointment(null);
+                  }}
                   className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-xs"
                     >
                   Cancel
@@ -3074,16 +3674,25 @@ export default function ConsultationBilling() {
                   Record Payment
                     </button>
                   </div>
-            </form>
+              </form>
+            </div>
+            
+            {/* Footer - Fixed */}
+            <div className="border-t border-gray-200 p-4 flex-shrink-0">
+              <div className="text-xs text-gray-500 text-center">
+                💡 Tip: You can schedule an appointment after payment processing
+              </div>
+            </div>
           </div>
         </div>
       )}
 
       {/* Cancel Bill Modal */}
       {showCancelBillModal && selectedPatient && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
-            <div className="flex items-center justify-between mb-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Header - Fixed */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
               <h3 className="text-lg font-semibold text-slate-800">
                 Cancel Bill - {selectedPatient.name}
               </h3>
@@ -3094,6 +3703,9 @@ export default function ConsultationBilling() {
                 <X className="h-5 w-5" />
               </button>
             </div>
+            
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto p-6">
             
             <form onSubmit={handleCancelBillSubmit} className="space-y-4">
               <div>
@@ -3255,15 +3867,24 @@ export default function ConsultationBilling() {
                 </button>
               </div>
             </form>
+            </div>
+            
+            {/* Footer - Fixed */}
+            <div className="border-t border-gray-200 p-4 flex-shrink-0">
+              <div className="text-xs text-gray-500 text-center">
+                ⚠️ This action cannot be undone
+              </div>
+            </div>
           </div>
         </div>
       )}
 
       {/* Process Refund Modal */}
       {showRefundModal && selectedPatient && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
-            <div className="flex items-center justify-between mb-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Header - Fixed */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
               <h3 className="text-lg font-semibold text-slate-800">
                 Process Refund - {selectedPatient.name}
               </h3>
@@ -3274,6 +3895,9 @@ export default function ConsultationBilling() {
                 <X className="h-5 w-5" />
               </button>
             </div>
+            
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto p-6">
             
             <form onSubmit={handleRefundSubmit} className="space-y-4">
               {/* Payment Summary */}
@@ -3460,6 +4084,14 @@ export default function ConsultationBilling() {
                 </button>
               </div>
             </form>
+            </div>
+            
+            {/* Footer - Fixed */}
+            <div className="border-t border-gray-200 p-4 flex-shrink-0">
+              <div className="text-xs text-gray-500 text-center">
+                💰 Refund will be processed immediately
+              </div>
+            </div>
           </div>
         </div>
       )}

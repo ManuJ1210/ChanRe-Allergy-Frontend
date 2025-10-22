@@ -324,7 +324,7 @@ const BillingDetails = () => {
           {/* Patient & Test Information */}
           <div className="mb-8">
             <h2 className="text-lg font-bold text-slate-800 mb-4 border-b border-slate-200 pb-2">Patient & Test Information</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
               <div>
                 <label className="text-xs font-medium text-slate-600">Patient Name</label>
                 <p className="text-sm font-semibold text-slate-800 mt-1">{billingDetails.patientName}</p>
@@ -366,7 +366,7 @@ const BillingDetails = () => {
           {/* Payment Summary */}
           <div className="mb-8">
             <h2 className="text-lg font-bold text-slate-800 mb-4 border-b border-slate-200 pb-2">Payment Summary</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
               <div className="p-4 bg-slate-50 rounded-lg">
                 <label className="text-xs font-medium text-slate-600">Total Amount</label>
                 <p className="text-lg font-bold text-slate-800 mt-1">₹{totalAmount.toLocaleString()}</p>
@@ -491,7 +491,7 @@ const BillingDetails = () => {
           {/* Important Dates */}
           <div className="mb-8">
             <h2 className="text-lg font-bold text-slate-800 mb-4 border-b border-slate-200 pb-2">Important Dates</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
               <div>
                 <label className="text-xs font-medium text-slate-600">Created</label>
                 <p className="text-sm text-slate-800 mt-1">
@@ -544,7 +544,7 @@ const BillingDetails = () => {
           {billingDetails.billing?.invoiceNumber && (
             <div>
               <h2 className="text-lg font-bold text-slate-800 mb-4 border-b border-slate-200 pb-2">Invoice Information</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                 <div>
                   <label className="text-xs font-medium text-slate-600">Invoice Number</label>
                   <p className="text-sm font-mono text-slate-800 mt-1">{billingDetails.billing.invoiceNumber}</p>

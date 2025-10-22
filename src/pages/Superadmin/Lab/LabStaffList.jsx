@@ -117,9 +117,9 @@ export default function LabStaffList() {
         {labStaff.length > 0 && (
           <div className="bg-white rounded-xl shadow-sm border border-blue-100 mb-6">
             <div className="p-4 sm:p-6">
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 {/* Left side - Results info and items per page */}
-                <div className="flex flex-col sm:flex-row items-center gap-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
                   <div className="text-xs text-slate-600">
                     Showing {startIndex + 1} to {Math.min(endIndex, labStaff.length)} of {labStaff.length} results
                   </div>
@@ -128,7 +128,7 @@ export default function LabStaffList() {
                     <select
                       value={itemsPerPage}
                       onChange={(e) => handleItemsPerPageChange(parseInt(e.target.value))}
-                      className="px-3 py-1 border border-slate-300 rounded-md text-xs focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="px-2 sm:px-3 py-1 border border-slate-300 rounded-md text-xs focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                       <option value={5}>5</option>
                       <option value={7}>7</option>
@@ -141,26 +141,27 @@ export default function LabStaffList() {
                 </div>
 
                 {/* Right side - Page navigation */}
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-600">
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <span className="text-xs text-slate-600 hidden sm:inline">
                     Page {currentPage} of {totalPages}
                   </span>
                   <div className="flex items-center gap-1">
                     <button
                       onClick={handlePreviousPage}
                       disabled={currentPage === 1}
-                      className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                      className={`px-2 sm:px-3 py-1 rounded-md text-xs font-medium transition-colors flex items-center gap-1 ${
                         currentPage === 1
                           ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
                           : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 hover:border-slate-400'
                       }`}
                     >
-                      Previous
+                      <ArrowLeft className="h-3 w-3" />
+                      <span className="hidden sm:inline">Previous</span>
                     </button>
                     
                     <button
                       onClick={() => handlePageChange(currentPage)}
-                      className="px-3 py-1 rounded-md text-xs font-medium bg-blue-600 text-white border border-blue-600"
+                      className="px-2 sm:px-3 py-1 rounded-md text-xs font-medium bg-blue-600 text-white border border-blue-600"
                     >
                       {currentPage}
                     </button>
@@ -168,13 +169,14 @@ export default function LabStaffList() {
                     <button
                       onClick={handleNextPage}
                       disabled={currentPage === totalPages}
-                      className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                      className={`px-2 sm:px-3 py-1 rounded-md text-xs font-medium transition-colors flex items-center gap-1 ${
                         currentPage === totalPages
                           ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
                           : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 hover:border-slate-400'
                       }`}
                     >
-                      Next
+                      <span className="hidden sm:inline">Next</span>
+                      <ArrowRight className="h-3 w-3" />
                     </button>
                   </div>
                 </div>
@@ -186,7 +188,7 @@ export default function LabStaffList() {
         {/* Lab Staff Table */}
         <div className="bg-white rounded-2xl shadow-lg border border-blue-100 overflow-hidden">
           {/* Mobile Card View */}
-          <div className="block lg:hidden">
+          <div className="block md:hidden">
             {loading ? (
               <div className="p-8 sm:p-12 text-center">
                 <div className="animate-spin rounded-full h-12 w-12 sm:h-16 sm:w-16 border-4 border-blue-200 border-t-blue-600 mx-auto mb-4"></div>
@@ -211,34 +213,34 @@ export default function LabStaffList() {
             ) : (
               <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
                 {currentLabStaff.map((staff) => (
-                  <div key={staff._id} className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-4 sm:p-5 space-y-4 border border-slate-200 hover:border-blue-300 transition-all duration-200 hover:shadow-md">
+                  <div key={staff._id} className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-4 space-y-3 border border-slate-200 hover:border-blue-300 transition-all duration-200 hover:shadow-md">
                     {/* Staff Info Header */}
                     <div className="flex items-start justify-between">
                       <div className="flex items-center flex-1">
-                        <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full flex items-center justify-center mr-3 sm:mr-4">
-                          <User className="h-6 w-6 sm:h-7 sm:w-7 text-blue-600" />
+                        <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full flex items-center justify-center mr-3">
+                          <User className="h-5 w-5 text-blue-600" />
                         </div>
                         <div className="flex-1">
-                          <h3 className="font-semibold text-slate-800 text-base sm:text-sm mb-1">{staff.staffName}</h3>
+                          <h3 className="font-semibold text-slate-800 text-sm mb-1">{staff.staffName}</h3>
                           <div className="flex items-center gap-2 text-xs text-slate-600">
-                            <Mail className="h-4 w-4 text-slate-400" />
+                            <Mail className="h-3 w-3 text-slate-400" />
                             <span className="truncate">{staff.email}</span>
                           </div>
                         </div>
                       </div>
-                      <span className="bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-700 px-3 py-1 rounded-full text-xs font-medium border border-blue-200">
+                      <span className="bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-700 px-2 py-1 rounded-full text-xs font-medium border border-blue-200">
                         {staff.role || 'Lab Staff'}
                       </span>
                     </div>
                     
                     {/* Contact & Date Info */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 gap-2">
                       <div className="flex items-center gap-2 bg-white p-2 rounded-lg border border-slate-200">
-                        <Phone className="h-4 w-4 text-blue-500" />
+                        <Phone className="h-3 w-3 text-blue-500" />
                         <span className="text-slate-700 text-xs font-medium">{staff.phone}</span>
                       </div>
                       <div className="flex items-center gap-2 bg-white p-2 rounded-lg border border-slate-200">
-                        <Calendar className="h-4 w-4 text-green-500" />
+                        <Calendar className="h-3 w-3 text-green-500" />
                         <span className="text-slate-700 text-xs font-medium">
                           {new Date(staff.createdAt).toLocaleDateString('en-US', {
                             year: 'numeric',
@@ -250,20 +252,20 @@ export default function LabStaffList() {
                     </div>
                     
                     {/* Actions */}
-                    <div className="flex gap-2 pt-3 border-t border-slate-200">
+                    <div className="flex gap-2 pt-2 border-t border-slate-200">
                       <button
                         onClick={() => navigate(`/dashboard/Superadmin/Lab/EditLabStaff/${staff._id}`)}
-                        className="flex-1 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 text-blue-700 px-3 py-2.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center justify-center gap-2 border border-blue-200 hover:border-blue-300 hover:shadow-sm"
+                        className="flex-1 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 text-blue-700 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 flex items-center justify-center gap-2 border border-blue-200 hover:border-blue-300 hover:shadow-sm"
                       >
-                        <Edit className="h-4 w-4" />
+                        <Edit className="h-3 w-3" />
                         Edit
                       </button>
                       <button
                         onClick={() => handleDelete(staff._id)}
                         disabled={loading}
-                        className="flex-1 bg-gradient-to-r from-red-50 to-pink-50 hover:from-red-100 hover:to-pink-100 text-red-700 px-3 py-2.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center justify-center gap-2 border border-red-200 hover:border-red-300 hover:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex-1 bg-gradient-to-r from-red-50 to-pink-50 hover:from-red-100 hover:to-pink-100 text-red-700 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 flex items-center justify-center gap-2 border border-red-200 hover:border-red-300 hover:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-3 w-3" />
                         {loading ? 'Deleting...' : 'Delete'}
                       </button>
                     </div>
@@ -274,9 +276,9 @@ export default function LabStaffList() {
           </div>
 
           {/* Desktop Table View */}
-          <div className="hidden lg:block">
+          <div className="hidden md:block">
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full min-w-[800px]">
                 <thead className="bg-gradient-to-r from-slate-50 to-blue-50 border-b border-slate-200">
                   <tr>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">

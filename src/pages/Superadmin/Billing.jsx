@@ -548,70 +548,75 @@ const SuperadminBilling = () => {
     };
 
     return (
-      <div className="flex items-center justify-between bg-white px-6 py-4 border-t border-gray-200">
-        <div className="flex items-center space-x-4">
-          <div className="text-sm text-gray-700">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-white px-4 sm:px-6 py-4 border-t border-gray-200 gap-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
+          <div className="text-xs sm:text-sm text-gray-700">
             Showing <span className="font-medium">{startIndex + 1}</span> to{' '}
             <span className="font-medium">{Math.min(endIndex, filteredBillingData?.length || 0)}</span> of{' '}
             <span className="font-medium">{filteredBillingData?.length || 0}</span> results
           </div>
-          <div className="text-sm text-gray-600">
+          <div className="text-xs sm:text-sm text-gray-600 hidden sm:block">
             Page <span className="font-medium">{currentPage}</span> of <span className="font-medium">{totalPages}</span>
           </div>
           <div className="flex items-center space-x-2">
-            <label className="text-sm text-gray-700">Show:</label>
+            <label className="text-xs sm:text-sm text-gray-700">Show:</label>
             <select
               value={itemsPerPage}
               onChange={(e) => {
                 setItemsPerPage(Number(e.target.value));
                 setCurrentPage(1);
               }}
-              className="border border-gray-300 rounded-md px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="border border-gray-300 rounded-md px-2 py-1 text-xs sm:text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value={5}>5</option>
               <option value={10}>10</option>
               <option value={25}>25</option>
               <option value={50}>50</option>
             </select>
-            <span className="text-sm text-gray-700">per page</span>
+            <span className="text-xs sm:text-sm text-gray-700">per page</span>
           </div>
         </div>
         
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-            disabled={currentPage === 1}
-            className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-          >
-            Previous
-          </button>
-          
-          <div className="flex space-x-1">
-            {getPageNumbers().map((page, index) => (
-              <button
-                key={index}
-                onClick={() => typeof page === 'number' && setCurrentPage(page)}
-                disabled={page === '...'}
-                className={`px-3 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
-                  page === currentPage
-                    ? 'bg-blue-600 text-white shadow-md'
-                    : page === '...'
-                    ? 'text-gray-500 cursor-default'
-                    : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 hover:border-blue-300'
-                }`}
-              >
-                {page}
-              </button>
-            ))}
+        <div className="flex items-center space-x-1 sm:space-x-2">
+          <div className="text-xs sm:text-sm text-gray-600 sm:hidden">
+            Page {currentPage} of {totalPages}
           </div>
-          
-          <button
-            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-            disabled={currentPage === totalPages}
-            className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-          >
-            Next
-          </button>
+          <div className="flex items-center space-x-1">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+            >
+              Previous
+            </button>
+            
+            <div className="flex space-x-1">
+              {getPageNumbers().map((page, index) => (
+                <button
+                  key={index}
+                  onClick={() => typeof page === 'number' && setCurrentPage(page)}
+                  disabled={page === '...'}
+                  className={`px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium rounded-md transition-colors duration-200 ${
+                    page === currentPage
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : page === '...'
+                      ? 'text-gray-500 cursor-default hidden sm:inline'
+                      : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 hover:border-blue-300'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+            </div>
+            
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+            >
+              Next
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -845,8 +850,156 @@ const SuperadminBilling = () => {
 
         {/* Enhanced Billing Table */}
         <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200">
+          {/* Mobile Card View */}
+          <div className="block md:hidden">
+            {paginatedData.length === 0 && !loading ? (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4 mx-auto">
+                  <FileText className="w-8 h-8 text-slate-400" />
+                </div>
+                <p className="text-slate-600 text-lg font-medium">No billing records found</p>
+                <p className="text-slate-500 text-sm mt-2">Try adjusting your filters or search terms</p>
+              </div>
+            ) : (
+              <div className="p-4 space-y-4">
+                {paginatedData.map((item) => {
+                  // Enhance item with partial payment data
+                  const partialData = getPartialPaymentData(item._id);
+                  const enhancedItem = {
+                    ...item,
+                    billing: item.billing ? {
+                      ...item.billing,
+                      paidAmount: item.billing.paidAmount || partialData.totalPaid,
+                      partialPayments: partialData.payments
+                    } : null
+                  };
+
+                  return (
+                    <div key={item._id} className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-4 space-y-3 border border-slate-200 hover:border-blue-300 transition-all duration-200 hover:shadow-md">
+                      {/* Header */}
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-slate-800 text-sm mb-1">{item.patientName}</h3>
+                          <p className="text-slate-600 text-xs">{item.testType}</p>
+                        </div>
+                        {getStatusBadge(enhancedItem.billing?.status || 'not_generated', enhancedItem.billing, item._id)}
+                      </div>
+
+                      {/* Center & Doctor */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <span className="text-slate-500 text-xs">Center:</span>
+                          <p className="text-slate-700 text-xs font-medium">{item.centerName}</p>
+                        </div>
+                        <div>
+                          <span className="text-slate-500 text-xs">Doctor:</span>
+                          <p className="text-slate-700 text-xs font-medium">Dr. {item.doctorName}</p>
+                        </div>
+                      </div>
+
+                      {/* Billing Details */}
+                      <div className="bg-white rounded-lg p-3 space-y-2">
+                        {enhancedItem.billing ? (
+                          <>
+                            <div className="flex justify-between items-center">
+                              <span className="text-slate-500 text-xs">Total Amount:</span>
+                              <span className="text-slate-800 font-bold text-sm">₹{enhancedItem.billing.amount?.toLocaleString()}</span>
+                            </div>
+                            
+                            {/* Enhanced payment display */}
+                            {(() => {
+                              const partialData = getPartialPaymentData(item._id);
+                              const totalPaidFromStorage = partialData.totalPaid;
+                              const backendPaidAmount = item.billing?.paidAmount || 0;
+                              const totalAmount = item.billing?.amount || 0;
+                              const hasMultiplePayments = partialData.paymentCount > 1;
+                              
+                              // Check if bill is fully paid by status
+                              const isFullyPaidByStatus = item.billing?.status === 'paid' || 
+                                                        item.billing?.status === 'verified';
+                              
+                              // Calculate actual paid amount - prioritize localStorage data over backend status
+                              let actualPaidAmount;
+                              if (totalPaidFromStorage > 0) {
+                                actualPaidAmount = totalPaidFromStorage;
+                              } else if (isFullyPaidByStatus && backendPaidAmount === 0) {
+                                actualPaidAmount = totalAmount;
+                              } else {
+                                actualPaidAmount = backendPaidAmount;
+                              }
+                              
+                              const remainingAmount = totalAmount - actualPaidAmount;
+                              const isFullyPaid = isFullyPaidByStatus || actualPaidAmount >= totalAmount;
+                              
+                              return (
+                                <div className="space-y-1">
+                                  {actualPaidAmount > 0 && (
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-green-600 text-xs">Paid:</span>
+                                      <span className="text-green-600 font-medium text-xs">₹{actualPaidAmount.toLocaleString()}</span>
+                                    </div>
+                                  )}
+                                  {!isFullyPaid && remainingAmount > 0 && (
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-orange-600 text-xs">Remaining:</span>
+                                      <span className="text-orange-600 font-medium text-xs">₹{remainingAmount.toLocaleString()}</span>
+                                    </div>
+                                  )}
+                                  {hasMultiplePayments && (
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-blue-600 text-xs">Payments:</span>
+                                      <span className="text-blue-600 font-medium text-xs">{partialData.paymentCount}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })()}
+                            
+                            <div className="text-xs text-gray-500">
+                              Invoice: {enhancedItem.billing.invoiceNumber}
+                            </div>
+                          </>
+                        ) : (
+                          <div className="text-xs text-gray-500">No bill generated</div>
+                        )}
+                      </div>
+
+                      {/* Date & Actions */}
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-200">
+                        <div className="text-xs text-slate-500">
+                          {new Date(item.billing?.generatedAt || item.createdAt).toLocaleDateString()}
+                        </div>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => viewBillingDetails(enhancedItem)}
+                            className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors duration-200"
+                            title="View Details"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          {!item.billing?.invoiceNumber && (
+                            <button
+                              onClick={() => handleGenerateInvoice(item._id)}
+                              className="p-2 text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded-lg transition-colors duration-200"
+                              title="Generate Invoice"
+                              disabled={actionLoading}
+                            >
+                              <FileText className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden md:block">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-slate-200 min-w-[1000px]">
               <thead className="bg-gradient-to-r from-slate-50 to-blue-50">
                 <tr>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
@@ -1032,6 +1185,7 @@ const SuperadminBilling = () => {
           
           {/* Pagination Controls */}
           <PaginationControls />
+          </div>
         </div>
       </div>
 

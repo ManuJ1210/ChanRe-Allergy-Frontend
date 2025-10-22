@@ -218,50 +218,50 @@ const TestRequestsList = () => {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-6 sm:mb-8">
-          <h1 className="text-md font-bold text-slate-800 mb-2 text-center sm:text-left">
+          <h1 className="text-lg sm:text-xl font-bold text-slate-800 mb-2 text-center sm:text-left">
             Test Requests Overview
           </h1>
-          <p className="text-slate-600 text-xs text-center sm:text-left">
+          <p className="text-slate-600 text-xs sm:text-sm text-center sm:text-left">
             Monitor test requests for your center
           </p>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
-          <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-blue-100">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
+          <div className="bg-white rounded-xl p-3 sm:p-4 lg:p-6 shadow-sm border border-blue-100">
             <div className="flex items-center">
-              <div className="bg-blue-100 p-3 rounded-full mr-4">
-                <TestTube className="h-6 w-6 text-blue-600" />
+              <div className="bg-blue-100 p-2 sm:p-3 rounded-full mr-3 sm:mr-4">
+                <TestTube className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-blue-600" />
               </div>
               <div>
-                <p className="text-xs font-medium text-slate-600">Total Requests</p>
-                <p className="text-sm font-bold text-slate-800">{testRequests.length}</p>
+                <p className="text-xs sm:text-sm font-medium text-slate-600">Total Requests</p>
+                <p className="text-sm sm:text-base font-bold text-slate-800">{testRequests.length}</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-orange-100">
+          <div className="bg-white rounded-xl p-3 sm:p-4 lg:p-6 shadow-sm border border-orange-100">
             <div className="flex items-center">
-              <div className="bg-orange-100 p-3 rounded-full mr-4">
-                <Clock className="h-6 w-6 text-orange-600" />
+              <div className="bg-orange-100 p-2 sm:p-3 rounded-full mr-3 sm:mr-4">
+                <Clock className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-orange-600" />
               </div>
               <div>
-                <p className="text-xs font-medium text-slate-600">Bill Pending</p>
-                <p className="text-sm font-bold text-slate-800">
+                <p className="text-xs sm:text-sm font-medium text-slate-600">Bill Pending</p>
+                <p className="text-sm sm:text-base font-bold text-slate-800">
                   {testRequests.filter(tr => tr.status === 'Report_Generated' || tr.status === 'Report_Sent').length}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-green-100">
+          <div className="bg-white rounded-xl p-3 sm:p-4 lg:p-6 shadow-sm border border-green-100">
             <div className="flex items-center">
-              <div className="bg-green-100 p-3 rounded-full mr-4">
-                <CheckCircle className="h-6 w-6 text-green-600" />
+              <div className="bg-green-100 p-2 sm:p-3 rounded-full mr-3 sm:mr-4">
+                <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-green-600" />
               </div>
               <div>
-                <p className="text-xs font-medium text-slate-600">Test Completed</p>
-                <p className="text-sm font-bold text-slate-800">
+                <p className="text-xs sm:text-sm font-medium text-slate-600">Test Completed</p>
+                <p className="text-sm sm:text-base font-bold text-slate-800">
                   {testRequests.filter(tr => 
                     tr.status === 'Report_Generated' || 
                     tr.status === 'Report_Sent' || 
@@ -272,14 +272,14 @@ const TestRequestsList = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-red-100">
+          <div className="bg-white rounded-xl p-3 sm:p-4 lg:p-6 shadow-sm border border-red-100">
             <div className="flex items-center">
-              <div className="bg-red-100 p-3 rounded-full mr-4">
-                <XCircle className="h-6 w-6 text-red-600" />
+              <div className="bg-red-100 p-2 sm:p-3 rounded-full mr-3 sm:mr-4">
+                <XCircle className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-red-600" />
               </div>
               <div>
-                <p className="text-xs font-medium text-slate-600">Rejected</p>
-                <p className="text-sm font-bold text-slate-800">
+                <p className="text-xs sm:text-sm font-medium text-slate-600">Rejected</p>
+                <p className="text-sm sm:text-base font-bold text-slate-800">
                   {testRequests.filter(tr => tr.status === 'Superadmin_Rejected').length}
                 </p>
               </div>
@@ -288,28 +288,28 @@ const TestRequestsList = () => {
         </div>
 
         {/* Search and Filters */}
-        <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-4 sm:p-6 mb-6 sm:mb-8">
-          <div className="flex flex-col lg:flex-row gap-4">
+        <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-3 sm:p-4 lg:p-6 mb-4 sm:mb-6 lg:mb-8">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             {/* Search */}
             <div className="flex-1">
               <form onSubmit={handleSearch} className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 w-3 sm:h-4 sm:w-4 text-slate-400" />
                 <input
                   type="text"
                   placeholder="Search by patient name, doctor name, or test type..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
+                  className="w-full pl-8 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs sm:text-sm"
                 />
               </form>
             </div>
 
             {/* Filters */}
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
+                className="px-2 sm:px-3 py-1.5 sm:py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
               >
                 <option value="all">All Statuses</option>
                 <option value="Superadmin_Review">Pending Review</option>
@@ -322,7 +322,7 @@ const TestRequestsList = () => {
               <select
                 value={urgencyFilter}
                 onChange={(e) => setUrgencyFilter(e.target.value)}
-                className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
+                className="px-2 sm:px-3 py-1.5 sm:py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
               >
                 <option value="all">All Urgencies</option>
                 <option value="Emergency">Emergency</option>
@@ -333,7 +333,7 @@ const TestRequestsList = () => {
               <select
                 value={centerFilter}
                 onChange={(e) => setCenterFilter(e.target.value)}
-                className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
+                className="px-2 sm:px-3 py-1.5 sm:py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
                 disabled
               >
                 <option value={user?.centerId || 'all'}>
@@ -343,10 +343,10 @@ const TestRequestsList = () => {
 
               <button
                 onClick={handleFilterReset}
-                className="px-3 py-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors text-xs flex items-center"
+                className="px-2 sm:px-3 py-1.5 sm:py-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors text-xs flex items-center justify-center"
               >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Reset
+                <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Reset</span>
               </button>
             </div>
           </div>
@@ -354,11 +354,11 @@ const TestRequestsList = () => {
 
         {/* Pagination Controls */}
         {testRequests.length > 0 && (
-          <div className="bg-white rounded-xl shadow-sm border border-blue-100 mb-6">
-            <div className="p-4 sm:p-6">
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="bg-white rounded-xl shadow-sm border border-blue-100 mb-4 sm:mb-6">
+            <div className="p-3 sm:p-4 lg:p-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
                 {/* Left side - Results info and items per page */}
-                <div className="flex flex-col sm:flex-row items-center gap-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
                   <div className="text-xs text-slate-600">
                     Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} results
                   </div>
@@ -367,7 +367,7 @@ const TestRequestsList = () => {
                     <select
                       value={itemsPerPage}
                       onChange={(e) => handleItemsPerPageChange(parseInt(e.target.value))}
-                      className="px-3 py-1 border border-slate-300 rounded-md text-xs focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="px-2 sm:px-3 py-1 border border-slate-300 rounded-md text-xs focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                       <option value={5}>5</option>
                       <option value={7}>7</option>
@@ -375,31 +375,32 @@ const TestRequestsList = () => {
                       <option value={15}>15</option>
                       <option value={20}>20</option>
                     </select>
-                    <span className="text-xs text-slate-600">per page</span>
+                    <span className="text-xs text-slate-600 hidden sm:inline">per page</span>
                   </div>
                 </div>
 
                 {/* Right side - Page navigation */}
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-600">
+                  <span className="text-xs text-slate-600 hidden sm:inline">
                     Page {currentPage} of {totalPages}
                   </span>
                   <div className="flex items-center gap-1">
                     <button
                       onClick={handlePreviousPage}
                       disabled={currentPage === 1}
-                      className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                      className={`px-2 sm:px-3 py-1 rounded-md text-xs font-medium transition-colors flex items-center gap-1 ${
                         currentPage === 1
                           ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
                           : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 hover:border-slate-400'
                       }`}
                     >
-                      Previous
+                      <ArrowLeft className="h-3 w-3 sm:hidden" />
+                      <span className="hidden sm:inline">Previous</span>
                     </button>
                     
                     <button
                       onClick={() => handlePageChange(currentPage)}
-                      className="px-3 py-1 rounded-md text-xs font-medium bg-blue-600 text-white border border-blue-600"
+                      className="px-2 sm:px-3 py-1 rounded-md text-xs font-medium bg-blue-600 text-white border border-blue-600"
                     >
                       {currentPage}
                     </button>
@@ -407,13 +408,14 @@ const TestRequestsList = () => {
                     <button
                       onClick={handleNextPage}
                       disabled={currentPage === totalPages}
-                      className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                      className={`px-2 sm:px-3 py-1 rounded-md text-xs font-medium transition-colors flex items-center gap-1 ${
                         currentPage === totalPages
                           ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
                           : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 hover:border-slate-400'
                       }`}
                     >
-                      Next
+                      <span className="hidden sm:inline">Next</span>
+                      <ArrowRight className="h-3 w-3 sm:hidden" />
                     </button>
                   </div>
                 </div>
@@ -424,8 +426,93 @@ const TestRequestsList = () => {
 
         {/* Test Requests List */}
         <div className="bg-white rounded-xl shadow-sm border border-blue-100 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
+          {/* Mobile Card View */}
+          <div className="block md:hidden">
+            {loading ? (
+              <div className="p-6 sm:p-8 text-center">
+                <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-4 border-blue-200 border-t-blue-600 mx-auto mb-3 sm:mb-4"></div>
+                <p className="text-slate-600 font-medium text-xs sm:text-sm">Loading test requests...</p>
+                <p className="text-slate-500 text-xs mt-1">Please wait while we fetch the data</p>
+              </div>
+            ) : testRequests.length === 0 ? (
+              <div className="p-6 sm:p-8 text-center">
+                <div className="bg-slate-100 w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                  <TestTube className="h-10 w-10 sm:h-12 sm:w-12 text-slate-400" />
+                </div>
+                <h3 className="text-sm sm:text-base font-semibold text-slate-700 mb-2">No Test Requests Found</h3>
+                <p className="text-slate-500 mb-4 sm:mb-6 text-xs sm:text-sm">No test requests match your current filters.</p>
+              </div>
+            ) : (
+              <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
+                {testRequests.map((testRequest) => (
+                  <div key={testRequest._id} className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-3 sm:p-4 space-y-3 border border-slate-200 hover:border-blue-300 transition-all duration-200 hover:shadow-md">
+                    {/* Card Header */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
+                          <User className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-medium text-slate-800 text-xs sm:text-sm">{testRequest.patientName || testRequest.patientId?.name || 'N/A'}</h3>
+                          <p className="text-slate-500 text-xs">Dr. {testRequest.doctorName || testRequest.doctorId?.name || 'N/A'}</p>
+                        </div>
+                      </div>
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        testRequest.status === 'Completed' ? 'bg-green-100 text-green-800' :
+                        testRequest.status === 'Superadmin_Rejected' ? 'bg-red-100 text-red-800' :
+                        testRequest.status === 'Superadmin_Approved' ? 'bg-blue-100 text-blue-800' :
+                        'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {testRequest.status?.replace(/_/g, ' ') || 'N/A'}
+                      </span>
+                    </div>
+                    
+                    {/* Test Details */}
+                    <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                      <div className="flex items-center gap-2 bg-white p-2 rounded-lg border border-slate-200">
+                        <TestTube className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500" />
+                        <span className="text-slate-700 text-xs font-medium truncate">{testRequest.testType || 'N/A'}</span>
+                      </div>
+                      <div className="flex items-center gap-2 bg-white p-2 rounded-lg border border-slate-200">
+                        <Building className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
+                        <span className="text-slate-700 text-xs font-medium truncate">{testRequest.centerName || testRequest.centerId?.name || 'N/A'}</span>
+                      </div>
+                    </div>
+                    
+                    {/* Urgency and Date */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {getUrgencyIcon(testRequest.urgency)}
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getUrgencyColor(testRequest.urgency)}`}>
+                          {testRequest.urgency || 'N/A'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-slate-500">
+                        <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
+                        <span className="text-xs">{formatDate(testRequest.createdAt)}</span>
+                      </div>
+                    </div>
+                    
+                    {/* Action Button */}
+                    <div className="pt-2 border-t border-slate-200">
+                      <button
+                        onClick={() => navigate(`/dashboard/centeradmin/test-requests/${testRequest._id}`)}
+                        className="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-2 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-2"
+                      >
+                        <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
+                        View Details
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden md:block">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[900px]">
               <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
@@ -516,14 +603,7 @@ const TestRequestsList = () => {
               </tbody>
             </table>
           </div>
-
-          {/* Empty State */}
-          {testRequests.length === 0 && !loading && (
-            <div className="text-center py-12">
-              <TestTube className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-              <p className="text-slate-500 text-xs">No test requests found</p>
-            </div>
-          )}
+          </div>
         </div>
 
       </div>

@@ -358,9 +358,9 @@ const TestRequestsList = () => {
         {testRequests.length > 0 && (
           <div className="bg-white rounded-xl shadow-sm border border-blue-100 mb-6">
             <div className="p-4 sm:p-6">
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 {/* Left side - Results info and items per page */}
-                <div className="flex flex-col sm:flex-row items-center gap-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
                   <div className="text-xs text-slate-600">
                     Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalItems || testRequests.length)} of {totalItems || testRequests.length} results
                   </div>
@@ -369,7 +369,7 @@ const TestRequestsList = () => {
                     <select
                       value={itemsPerPage}
                       onChange={(e) => handleItemsPerPageChange(parseInt(e.target.value))}
-                      className="px-3 py-1 border border-slate-300 rounded-md text-xs focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="px-2 sm:px-3 py-1 border border-slate-300 rounded-md text-xs focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                       <option value={5}>5</option>
                       <option value={7}>7</option>
@@ -382,26 +382,27 @@ const TestRequestsList = () => {
                 </div>
 
                 {/* Right side - Page navigation */}
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-600">
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <span className="text-xs text-slate-600 hidden sm:inline">
                     Page {currentPage} of {totalPages}
                   </span>
                   <div className="flex items-center gap-1">
                     <button
                       onClick={handlePreviousPage}
                       disabled={currentPage === 1}
-                      className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                      className={`px-2 sm:px-3 py-1 rounded-md text-xs font-medium transition-colors flex items-center gap-1 ${
                         currentPage === 1
                           ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
                           : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 hover:border-slate-400'
                       }`}
                     >
-                      Previous
+                      <ArrowLeft className="h-3 w-3" />
+                      <span className="hidden sm:inline">Previous</span>
                     </button>
                     
                     <button
                       onClick={() => handlePageChange(currentPage)}
-                      className="px-3 py-1 rounded-md text-xs font-medium bg-blue-600 text-white border border-blue-600"
+                      className="px-2 sm:px-3 py-1 rounded-md text-xs font-medium bg-blue-600 text-white border border-blue-600"
                     >
                       {currentPage}
                     </button>
@@ -409,13 +410,14 @@ const TestRequestsList = () => {
                     <button
                       onClick={handleNextPage}
                       disabled={currentPage === totalPages}
-                      className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                      className={`px-2 sm:px-3 py-1 rounded-md text-xs font-medium transition-colors flex items-center gap-1 ${
                         currentPage === totalPages
                           ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
                           : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 hover:border-slate-400'
                       }`}
                     >
-                      Next
+                      <span className="hidden sm:inline">Next</span>
+                      <ArrowRight className="h-3 w-3" />
                     </button>
                   </div>
                 </div>
@@ -426,106 +428,176 @@ const TestRequestsList = () => {
 
         {/* Test Requests List */}
         <div className="bg-white rounded-xl shadow-sm border border-blue-100 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-slate-50 border-b border-slate-200">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Patient & Doctor
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Test Details
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Center
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Urgency
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Date
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-slate-200">
+          {/* Mobile Card View */}
+          <div className="block md:hidden">
+            {testRequests.length === 0 && !loading ? (
+              <div className="text-center py-12">
+                <TestTube className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                <p className="text-slate-500 text-xs sm:text-base">No test requests found</p>
+              </div>
+            ) : (
+              <div className="p-4 space-y-4">
                 {testRequests.map((testRequest) => (
-                  <tr key={testRequest._id} className="hover:bg-slate-50">
-                    <td className="px-4 py-4">
-                      <div>
-                        <div className="text-xs font-medium text-slate-900">
+                  <div key={testRequest._id} className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-4 space-y-3 border border-slate-200 hover:border-blue-300 transition-all duration-200 hover:shadow-md">
+                    {/* Header */}
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-slate-800 text-sm mb-1">
                           {testRequest.patientName || testRequest.patientId?.name || 'N/A'}
-                        </div>
-                        <div className="text-xs text-slate-500">
+                        </h3>
+                        <p className="text-slate-600 text-xs">
                           Dr. {testRequest.doctorName || testRequest.doctorId?.name || 'N/A'}
-                        </div>
+                        </p>
                       </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div>
-                        <div className="text-xs font-medium text-slate-900">
-                          {testRequest.testType || 'N/A'}
-                        </div>
-                        {testRequest.testDescription && (
-                          <div className="text-xs text-slate-500">
-                            {testRequest.testDescription}
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="text-xs text-slate-900">
-                        {testRequest.centerName || testRequest.centerId?.name || 'N/A'}
-                      </div>
-                      <div className="text-xs text-slate-500">
-                        {testRequest.centerCode || testRequest.centerId?.code || 'N/A'}
-                      </div>
-                    </td>
-                    <td className="px-4 py-4">
                       <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(testRequest.status)}`}>
                         {testRequest.status?.replace(/_/g, ' ') || 'N/A'}
                       </span>
-                    </td>
-                    <td className="px-4 py-4">
+                    </div>
+
+                    {/* Test Details */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <span className="text-slate-500 text-xs">Test Type:</span>
+                        <p className="text-slate-700 text-xs font-medium">{testRequest.testType || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 text-xs">Center:</span>
+                        <p className="text-slate-700 text-xs font-medium">{testRequest.centerName || testRequest.centerId?.name || 'N/A'}</p>
+                      </div>
+                    </div>
+
+                    {/* Urgency and Date */}
+                    <div className="flex items-center justify-between">
                       <div className="flex items-center">
                         {getUrgencyIcon(testRequest.urgency)}
                         <span className={`ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getUrgencyColor(testRequest.urgency)}`}>
                           {testRequest.urgency || 'N/A'}
                         </span>
                       </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="text-xs text-slate-900">
+                      <div className="text-xs text-slate-500">
                         {formatDate(testRequest.createdAt)}
                       </div>
-                    </td>
-                    <td className="px-4 py-4">
+                    </div>
+
+                    {/* Action */}
+                    <div className="pt-2 border-t border-slate-200">
                       <button
                         onClick={() => navigate(`/dashboard/superadmin/test-requests/${testRequest._id}`)}
-                        className="text-blue-600 hover:text-blue-700 text-xs font-medium flex items-center"
+                        className="w-full bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 text-blue-700 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 flex items-center justify-center gap-2 border border-blue-200 hover:border-blue-300 hover:shadow-sm"
                       >
-                        <Eye className="h-4 w-4 mr-1" />
-                        View
+                        <Eye className="h-3 w-3" />
+                        View Details
                       </button>
-                    </td>
-                  </tr>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+              </div>
+            )}
           </div>
 
-          {/* Empty State */}
-          {testRequests.length === 0 && !loading && (
-            <div className="text-center py-12">
-              <TestTube className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-              <p className="text-slate-500 text-xs sm:text-base">No test requests found</p>
+          {/* Desktop Table View */}
+          <div className="hidden md:block">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[900px]">
+                <thead className="bg-slate-50 border-b border-slate-200">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                      Patient & Doctor
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                      Test Details
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                      Center
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                      Urgency
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                      Date
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-slate-200">
+                  {testRequests.map((testRequest) => (
+                    <tr key={testRequest._id} className="hover:bg-slate-50">
+                      <td className="px-4 py-4">
+                        <div>
+                          <div className="text-xs font-medium text-slate-900">
+                            {testRequest.patientName || testRequest.patientId?.name || 'N/A'}
+                          </div>
+                          <div className="text-xs text-slate-500">
+                            Dr. {testRequest.doctorName || testRequest.doctorId?.name || 'N/A'}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div>
+                          <div className="text-xs font-medium text-slate-900">
+                            {testRequest.testType || 'N/A'}
+                          </div>
+                          {testRequest.testDescription && (
+                            <div className="text-xs text-slate-500">
+                              {testRequest.testDescription}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="text-xs text-slate-900">
+                          {testRequest.centerName || testRequest.centerId?.name || 'N/A'}
+                        </div>
+                        <div className="text-xs text-slate-500">
+                          {testRequest.centerCode || testRequest.centerId?.code || 'N/A'}
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(testRequest.status)}`}>
+                          {testRequest.status?.replace(/_/g, ' ') || 'N/A'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center">
+                          {getUrgencyIcon(testRequest.urgency)}
+                          <span className={`ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getUrgencyColor(testRequest.urgency)}`}>
+                            {testRequest.urgency || 'N/A'}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="text-xs text-slate-900">
+                          {formatDate(testRequest.createdAt)}
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <button
+                          onClick={() => navigate(`/dashboard/superadmin/test-requests/${testRequest._id}`)}
+                          className="text-blue-600 hover:text-blue-700 text-xs font-medium flex items-center"
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
+                          View
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          )}
+
+            {/* Empty State */}
+            {testRequests.length === 0 && !loading && (
+              <div className="text-center py-12">
+                <TestTube className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                <p className="text-slate-500 text-xs sm:text-base">No test requests found</p>
+              </div>
+            )}
+          </div>
         </div>
 
       </div>

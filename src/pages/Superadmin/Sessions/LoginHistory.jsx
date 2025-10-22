@@ -241,313 +241,419 @@ const LoginHistory = () => {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Login History</h1>
-            <p className="text-gray-600">Track all user login activities across the system</p>
-          </div>
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <CalendarIcon className="h-6 w-6 text-blue-500" />
-              <span className="text-sm font-medium text-gray-700">
-                {totalItems} Login Records
-              </span>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 py-4 sm:py-6">
+        {/* Header */}
+        <div className="bg-white shadow rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Login History</h1>
+              <p className="text-sm sm:text-base text-gray-600">Track all user login activities across the system</p>
             </div>
-            <div className="flex items-center space-x-2">
-              {selectedRecords.length > 0 && (
+            <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
+              <div className="flex items-center space-x-2">
+                <CalendarIcon className="h-5 w-5 sm:h-6 sm:w-6 text-blue-500" />
+                <span className="text-sm font-medium text-gray-700">
+                  {totalItems} Login Records
+                </span>
+              </div>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
+                {selectedRecords.length > 0 && (
+                  <button
+                    onClick={handleBulkDelete}
+                    className="px-3 sm:px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm font-medium"
+                  >
+                    Delete Selected ({selectedRecords.length})
+                  </button>
+                )}
                 <button
-                  onClick={handleBulkDelete}
-                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                  onClick={handleDeleteAll}
+                  className="px-3 sm:px-4 py-2 bg-red-800 text-white rounded-md hover:bg-red-900 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm font-medium"
                 >
-                  Delete Selected ({selectedRecords.length})
+                  Delete All
                 </button>
-              )}
-              <button
-                onClick={handleDeleteAll}
-                className="px-4 py-2 bg-red-800 text-white rounded-md hover:bg-red-900 focus:outline-none focus:ring-2 focus:ring-red-500"
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div className="bg-white shadow rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
+              <input
+                type="text"
+                placeholder="Search by name, username, or email..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Center</label>
+              <select
+                value={selectedCenter}
+                onChange={(e) => setSelectedCenter(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               >
-                Delete All
+                <option value="all">All Centers</option>
+                {centers.map(center => (
+                  <option key={center._id} value={center._id}>
+                    {center.centername || center.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
+              <select
+                value={selectedRole}
+                onChange={(e) => setSelectedRole(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              >
+                <option value="all">All Roles</option>
+                <option value="superadmin">Super Admin</option>
+                <option value="centeradmin">Center Admin</option>
+                <option value="doctor">Doctor</option>
+                <option value="receptionist">Receptionist</option>
+                <option value="labstaff">Lab Staff</option>
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Date Range</label>
+              <select
+                value={dateRange}
+                onChange={(e) => setDateRange(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              >
+                <option value="1">Last 24 hours</option>
+                <option value="7">Last 7 days</option>
+                <option value="30">Last 30 days</option>
+                <option value="90">Last 90 days</option>
+              </select>
+            </div>
+            
+            <div className="flex items-end">
+              <button
+                onClick={() => {
+                  setSearchTerm('');
+                  setSelectedCenter('all');
+                  setSelectedRole('all');
+                  setDateRange('7');
+                }}
+                className="w-full px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 text-sm font-medium"
+              >
+                Clear Filters
               </button>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Filters */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
-            <input
-              type="text"
-              placeholder="Search by name, username, or email..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+        {/* Login History Table */}
+        <div className="bg-white shadow rounded-lg overflow-hidden mb-4 sm:mb-6">
+          <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200">
+            <h3 className="text-base sm:text-lg font-medium text-gray-900">
+              Login History ({totalItems})
+            </h3>
           </div>
           
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Center</label>
-            <select
-              value={selectedCenter}
-              onChange={(e) => setSelectedCenter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="all">All Centers</option>
-              {centers.map(center => (
-                <option key={center._id} value={center._id}>
-                  {center.centername || center.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
-            <select
-              value={selectedRole}
-              onChange={(e) => setSelectedRole(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="all">All Roles</option>
-              <option value="superadmin">Super Admin</option>
-              <option value="centeradmin">Center Admin</option>
-              <option value="doctor">Doctor</option>
-              <option value="receptionist">Receptionist</option>
-              <option value="labstaff">Lab Staff</option>
-            </select>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Date Range</label>
-            <select
-              value={dateRange}
-              onChange={(e) => setDateRange(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="1">Last 24 hours</option>
-              <option value="7">Last 7 days</option>
-              <option value="30">Last 30 days</option>
-              <option value="90">Last 90 days</option>
-            </select>
-          </div>
-          
-          <div className="flex items-end">
-            <button
-              onClick={() => {
-                setSearchTerm('');
-                setSelectedCenter('all');
-                setSelectedRole('all');
-                setDateRange('7');
-              }}
-              className="w-full px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500"
-            >
-              Clear Filters
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Login History Table */}
-      <div className="bg-white shadow rounded-lg overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">
-            Login History ({totalItems})
-          </h3>
-        </div>
-        
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  <input
-                    type="checkbox"
-                    checked={selectAll}
-                    onChange={handleSelectAll}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  User
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Role
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Center
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Device
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Location
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Login Time
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Duration
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+          {/* Mobile Card View */}
+          <div className="block md:hidden">
+            <div className="space-y-4 p-4">
               {paginatedHistory.map((login) => (
-                <tr key={login._id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <input
-                      type="checkbox"
-                      checked={selectedRecords.includes(login._id)}
-                      onChange={() => handleSelectRecord(login._id)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0 h-10 w-10">
-                        <div className="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center">
-                          <span className="text-sm font-medium text-white">
+                <div key={login._id} className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-4 space-y-3 border border-slate-200 hover:border-blue-300 transition-all duration-200 hover:shadow-md">
+                  {/* Card Header */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedRecords.includes(login._id)}
+                        onChange={() => handleSelectRecord(login._id)}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <div className="flex-shrink-0 h-8 w-8">
+                        <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center">
+                          <span className="text-xs font-medium text-white">
                             {login.userId?.name?.charAt(0) || 'U'}
                           </span>
                         </div>
                       </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">
+                      <div>
+                        <div className="text-sm font-bold text-gray-900">
                           {login.userId?.name || 'Unknown User'}
                         </div>
-                        <div className="text-sm text-gray-500">
+                        <div className="text-xs text-gray-500">
                           {login.userId?.username || login.userId?.email || 'No contact info'}
                         </div>
                       </div>
                     </div>
-                  </td>
-                  
-                  <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRoleBadgeColor(login.userRole)}`}>
                       {login.userRole}
                     </span>
-                  </td>
-                  
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    <div>
-                      <div className="font-medium">{login.centerId?.name || 'No Center'}</div>
-                      {login.centerId?.code && (
-                        <div className="text-gray-500 text-xs">Code: {login.centerId.code}</div>
-                      )}
+                  </div>
+
+                  {/* Center & Device Info */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex items-center space-x-2">
+                      <BuildingOfficeIcon className="h-4 w-4 text-gray-400" />
+                      <div>
+                        <div className="text-xs font-semibold text-gray-900">{login.centerId?.name || 'No Center'}</div>
+                        <div className="text-xs text-gray-500">{login.centerId?.code || ''}</div>
+                      </div>
                     </div>
-                  </td>
-                  
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
+                    <div className="flex items-center space-x-2">
                       {getDeviceIcon(login.deviceInfo?.device)}
-                      <div className="ml-2">
-                        <div className="text-sm text-gray-900">{login.deviceInfo?.device || 'Unknown'}</div>
-                        <div className="text-sm text-gray-500">{login.deviceInfo?.browser || 'Unknown Browser'}</div>
+                      <div>
+                        <div className="text-xs font-semibold text-gray-900">{login.deviceInfo?.device || 'Unknown'}</div>
+                        <div className="text-xs text-gray-500">{login.deviceInfo?.browser || 'Unknown Browser'}</div>
                       </div>
                     </div>
-                  </td>
-                  
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <GlobeAltIcon className="h-4 w-4 text-gray-400 mr-1" />
+                  </div>
+
+                  {/* Location & Time Info */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex items-center space-x-2">
+                      <GlobeAltIcon className="h-4 w-4 text-gray-400" />
                       <div>
-                        <div className="text-sm text-gray-900">
+                        <div className="text-xs font-semibold text-gray-900">
                           {login.locationInfo?.city || 'Unknown City'}
-                          {login.locationInfo?.region && login.locationInfo.region !== 'Unknown' && 
-                           login.locationInfo.region !== 'Local' && 
-                           `, ${login.locationInfo.region}`}
                         </div>
-                        <div className="text-sm text-gray-500">
+                        <div className="text-xs text-gray-500">
                           {login.locationInfo?.country || 'Unknown Country'}
-                          {login.locationInfo?.ip && (
-                            <span className="text-xs text-gray-400 ml-1">
-                              ({login.locationInfo.ip.includes('Public:') ? 
-                                login.locationInfo.ip.split('Public: ')[1] : 
-                                login.locationInfo.ip})
-                            </span>
-                          )}
                         </div>
                       </div>
                     </div>
-                  </td>
-                  
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <ClockIcon className="h-4 w-4 text-gray-400 mr-1" />
+                    <div className="flex items-center space-x-2">
+                      <ClockIcon className="h-4 w-4 text-gray-400" />
                       <div>
-                        <div className="text-sm text-gray-900">{formatTime(login.loginTime)}</div>
-                        <div className="text-sm text-gray-500">{getTimeAgo(login.loginTime)}</div>
+                        <div className="text-xs font-semibold text-gray-900">{getTimeAgo(login.loginTime)}</div>
+                        <div className="text-xs text-gray-500">Duration: {formatDuration(login.sessionDuration)}</div>
                       </div>
                     </div>
-                  </td>
-                  
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {formatDuration(login.sessionDuration)}
-                  </td>
-                  
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
+                  </div>
+
+                  {/* Status & Actions */}
+                  <div className="flex items-center justify-between pt-2">
+                    <div className="flex items-center space-x-2">
                       {login.loginStatus === 'success' ? (
-                        <CheckCircleIcon className="h-5 w-5 text-green-500" />
+                        <CheckCircleIcon className="h-4 w-4 text-green-500" />
                       ) : (
-                        <XCircleIcon className="h-5 w-5 text-red-500" />
+                        <XCircleIcon className="h-4 w-4 text-red-500" />
                       )}
-                      <span className={`ml-2 text-sm font-medium ${
+                      <span className={`text-xs font-medium ${
                         login.loginStatus === 'success' ? 'text-green-800' : 'text-red-800'
                       }`}>
                         {login.loginStatus}
                       </span>
                     </div>
-                  </td>
-                  
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <button
                       onClick={() => handleDeleteRecord(login._id)}
                       disabled={deleting}
-                      className="text-red-600 hover:text-red-900 disabled:opacity-50 disabled:cursor-not-allowed"
-                      title="Delete this login history record"
+                      className="px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-medium"
                     >
-                      <TrashIcon className="h-4 w-4" />
+                      <TrashIcon className="h-3 w-3 inline mr-1" />
+                      Delete
                     </button>
-                  </td>
-                </tr>
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
-        </div>
-        
-        {paginatedHistory.length === 0 && (
-          <div className="text-center py-12">
-            <UserIcon className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No login history found</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              Try adjusting your search criteria or date range.
-            </p>
+            </div>
           </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <input
+                      type="checkbox"
+                      checked={selectAll}
+                      onChange={handleSelectAll}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    User
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Role
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Center
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Device
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Location
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Login Time
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Duration
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {paginatedHistory.map((login) => (
+                  <tr key={login._id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <input
+                        type="checkbox"
+                        checked={selectedRecords.includes(login._id)}
+                        onChange={() => handleSelectRecord(login._id)}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 h-10 w-10">
+                          <div className="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center">
+                            <span className="text-sm font-medium text-white">
+                              {login.userId?.name?.charAt(0) || 'U'}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900">
+                            {login.userId?.name || 'Unknown User'}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {login.userId?.username || login.userId?.email || 'No contact info'}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRoleBadgeColor(login.userRole)}`}>
+                        {login.userRole}
+                      </span>
+                    </td>
+                    
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <div>
+                        <div className="font-medium">{login.centerId?.name || 'No Center'}</div>
+                        {login.centerId?.code && (
+                          <div className="text-gray-500 text-xs">Code: {login.centerId.code}</div>
+                        )}
+                      </div>
+                    </td>
+                    
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        {getDeviceIcon(login.deviceInfo?.device)}
+                        <div className="ml-2">
+                          <div className="text-sm text-gray-900">{login.deviceInfo?.device || 'Unknown'}</div>
+                          <div className="text-sm text-gray-500">{login.deviceInfo?.browser || 'Unknown Browser'}</div>
+                        </div>
+                      </div>
+                    </td>
+                    
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <GlobeAltIcon className="h-4 w-4 text-gray-400 mr-1" />
+                        <div>
+                          <div className="text-sm text-gray-900">
+                            {login.locationInfo?.city || 'Unknown City'}
+                            {login.locationInfo?.region && login.locationInfo.region !== 'Unknown' && 
+                             login.locationInfo.region !== 'Local' && 
+                             `, ${login.locationInfo.region}`}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {login.locationInfo?.country || 'Unknown Country'}
+                            {login.locationInfo?.ip && (
+                              <span className="text-xs text-gray-400 ml-1">
+                                ({login.locationInfo.ip.includes('Public:') ? 
+                                  login.locationInfo.ip.split('Public: ')[1] : 
+                                  login.locationInfo.ip})
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <ClockIcon className="h-4 w-4 text-gray-400 mr-1" />
+                        <div>
+                          <div className="text-sm text-gray-900">{formatTime(login.loginTime)}</div>
+                          <div className="text-sm text-gray-500">{getTimeAgo(login.loginTime)}</div>
+                        </div>
+                      </div>
+                    </td>
+                    
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {formatDuration(login.sessionDuration)}
+                    </td>
+                    
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        {login.loginStatus === 'success' ? (
+                          <CheckCircleIcon className="h-5 w-5 text-green-500" />
+                        ) : (
+                          <XCircleIcon className="h-5 w-5 text-red-500" />
+                        )}
+                        <span className={`ml-2 text-sm font-medium ${
+                          login.loginStatus === 'success' ? 'text-green-800' : 'text-red-800'
+                        }`}>
+                          {login.loginStatus}
+                        </span>
+                      </div>
+                    </td>
+                    
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <button
+                        onClick={() => handleDeleteRecord(login._id)}
+                        disabled={deleting}
+                        className="text-red-600 hover:text-red-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Delete this login history record"
+                      >
+                        <TrashIcon className="h-4 w-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          
+          {paginatedHistory.length === 0 && (
+            <div className="text-center py-12">
+              <UserIcon className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No login history found</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                Try adjusting your search criteria or date range.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Pagination */}
+        {totalItems > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            itemsPerPage={itemsPerPage}
+            onPageChange={handlePageChange}
+            onItemsPerPageChange={handleItemsPerPageChange}
+          />
         )}
       </div>
-
-      {/* Pagination */}
-      {totalItems > 0 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          totalItems={totalItems}
-          itemsPerPage={itemsPerPage}
-          onPageChange={handlePageChange}
-          onItemsPerPageChange={handleItemsPerPageChange}
-        />
-      )}
     </div>
   );
 };

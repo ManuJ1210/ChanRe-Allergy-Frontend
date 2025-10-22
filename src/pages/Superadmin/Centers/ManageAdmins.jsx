@@ -24,8 +24,8 @@ const FilterControls = memo(({ filters, updateFilter }) => {
   }, [updateFilter]);
   
   return (
-    <div className="flex flex-wrap gap-4 mb-4">
-      <div className="flex-1 min-w-64">
+    <div className="flex flex-col sm:flex-row gap-4 mb-4">
+      <div className="flex-1 min-w-0">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input
@@ -46,12 +46,12 @@ const FilterControls = memo(({ filters, updateFilter }) => {
         </div>
       </div>
       
-      <div className="flex items-center gap-2">
-        <Filter className="h-4 w-4 text-slate-400" />
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <Filter className="h-4 w-4 text-slate-400 hidden sm:block" />
         <select
           value={filters.sortBy}
           onChange={handleSortByChange}
-          className="text-xs border border-slate-300 rounded px-2 py-2"
+          className="text-xs border border-slate-300 rounded px-2 py-2 min-w-0"
         >
           <option value="adminName">Name</option>
           <option value="centerName">Center Name</option>
@@ -63,7 +63,7 @@ const FilterControls = memo(({ filters, updateFilter }) => {
         
         <button
           onClick={handleSortOrderToggle}
-          className="p-2 border border-slate-300 rounded hover:bg-slate-50"
+          className="p-2 border border-slate-300 rounded hover:bg-slate-50 flex-shrink-0"
         >
           {filters.sortOrder === 'asc' ? 
             <SortAsc className="h-4 w-4" /> : 
@@ -199,104 +199,106 @@ export default function ManageAdmins() {
     if (filteredItems.length === 0) return null;
 
     return (
-      <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-200">
-        <div className="flex items-center gap-4">
-          <span className="text-xs text-slate-600">
-            Showing {startItem}-{endItem} of {filteredItems.length} items
-          </span>
-          <select
-            value={itemsPerPage}
-            onChange={(e) => changeItemsPerPage(parseInt(e.target.value))}
-            className="text-xs border border-slate-300 rounded px-2 py-1"
-          >
-            <option value={5}>5 per page</option>
-            <option value={10}>10 per page</option>
-            <option value={20}>20 per page</option>
-            <option value={50}>50 per page</option>
-          </select>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => updatePagination(currentPage - 1)}
-            disabled={currentPage === 1}
-            className="p-2 rounded border border-slate-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 flex items-center gap-1"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            <span className="text-xs">Previous</span>
-          </button>
-          
-          <div className="flex items-center gap-1">
-            {/* Show first page if not in current range */}
-            {totalPages > 5 && currentPage > 3 && (
-              <>
-                <button
-                  onClick={() => updatePagination(1)}
-                  className="px-2 py-1 text-xs rounded border border-slate-300 hover:bg-slate-50"
-                >
-                  1
-                </button>
-                {currentPage > 4 && <span className="text-xs text-slate-400">...</span>}
-              </>
-            )}
-            
-            {/* Show page numbers */}
-            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-              let pageNum;
-              if (totalPages <= 5) {
-                pageNum = i + 1;
-              } else if (currentPage <= 3) {
-                pageNum = i + 1;
-              } else if (currentPage >= totalPages - 2) {
-                pageNum = totalPages - 4 + i;
-              } else {
-                pageNum = currentPage - 2 + i;
-              }
-              
-              return (
-                <button
-                  key={pageNum}
-                  onClick={() => updatePagination(pageNum)}
-                  className={`px-3 py-1 text-xs rounded font-medium ${
-                    currentPage === pageNum
-                      ? 'bg-blue-500 text-white'
-                      : 'border border-slate-300 hover:bg-slate-50'
-                  }`}
-                >
-                  {pageNum}
-                </button>
-              );
-            })}
-            
-            {/* Show last page if not in current range */}
-            {totalPages > 5 && currentPage < totalPages - 2 && (
-              <>
-                {currentPage < totalPages - 3 && <span className="text-xs text-slate-400">...</span>}
-                <button
-                  onClick={() => updatePagination(totalPages)}
-                  className="px-2 py-1 text-xs rounded border border-slate-300 hover:bg-slate-50"
-                >
-                  {totalPages}
-                </button>
-              </>
-            )}
+      <div className="mt-4 pt-4 border-t border-slate-200">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
+            <span className="text-xs text-slate-600">
+              Showing {startItem}-{endItem} of {filteredItems.length} items
+            </span>
+            <select
+              value={itemsPerPage}
+              onChange={(e) => changeItemsPerPage(parseInt(e.target.value))}
+              className="text-xs border border-slate-300 rounded px-2 py-1"
+            >
+              <option value={5}>5 per page</option>
+              <option value={10}>10 per page</option>
+              <option value={20}>20 per page</option>
+              <option value={50}>50 per page</option>
+            </select>
           </div>
           
-          <button
-            onClick={() => updatePagination(currentPage + 1)}
-            disabled={currentPage === totalPages}
-            className="p-2 rounded border border-slate-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 flex items-center gap-1"
-          >
-            <span className="text-xs">Next</span>
-            <ChevronRight className="h-4 w-4" />
-          </button>
+          <div className="flex items-center gap-1 sm:gap-2">
+            <button
+              onClick={() => updatePagination(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="p-2 rounded border border-slate-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 flex items-center gap-1"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              <span className="text-xs hidden sm:inline">Previous</span>
+            </button>
+            
+            <div className="flex items-center gap-1">
+              {/* Show first page if not in current range */}
+              {totalPages > 5 && currentPage > 3 && (
+                <>
+                  <button
+                    onClick={() => updatePagination(1)}
+                    className="px-2 py-1 text-xs rounded border border-slate-300 hover:bg-slate-50"
+                  >
+                    1
+                  </button>
+                  {currentPage > 4 && <span className="text-xs text-slate-400 hidden sm:inline">...</span>}
+                </>
+              )}
+              
+              {/* Show page numbers */}
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+                
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => updatePagination(pageNum)}
+                    className={`px-2 sm:px-3 py-1 text-xs rounded font-medium ${
+                      currentPage === pageNum
+                        ? 'bg-blue-500 text-white'
+                        : 'border border-slate-300 hover:bg-slate-50'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+              
+              {/* Show last page if not in current range */}
+              {totalPages > 5 && currentPage < totalPages - 2 && (
+                <>
+                  {currentPage < totalPages - 3 && <span className="text-xs text-slate-400 hidden sm:inline">...</span>}
+                  <button
+                    onClick={() => updatePagination(totalPages)}
+                    className="px-2 py-1 text-xs rounded border border-slate-300 hover:bg-slate-50"
+                  >
+                    {totalPages}
+                  </button>
+                </>
+              )}
+            </div>
+            
+            <button
+              onClick={() => updatePagination(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="p-2 rounded border border-slate-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 flex items-center gap-1"
+            >
+              <span className="text-xs hidden sm:inline">Next</span>
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       </div>
     );
   };
 
   return (
-    <div className="min-h-screen  p-3 sm:p-4 md:p-6">
+    <div className="min-h-screen bg-slate-50 p-2 sm:p-4 lg:p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-6 sm:mb-8">
@@ -344,7 +346,7 @@ export default function ManageAdmins() {
         </div>
 
         {/* Desktop Table View */}
-        <div className="hidden lg:block bg-white rounded-xl shadow-sm border border-blue-100 overflow-hidden">
+        <div className="hidden md:block bg-white rounded-xl shadow-sm border border-blue-100 overflow-hidden">
           <div className="p-6">
             <FilterControls filters={filters} updateFilter={updateFilter} />
             
@@ -356,7 +358,7 @@ export default function ManageAdmins() {
                 <>
                   <div className="max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
                     <div className="overflow-x-auto">
-                      <table className="w-full text-xs">
+                      <table className="w-full text-xs min-w-[800px]">
                         <thead className="bg-slate-50 sticky top-0">
                           <tr className="border-b border-slate-200">
                             <th className="text-left py-3 px-4 font-semibold text-slate-700">Admin Name</th>
@@ -463,7 +465,7 @@ export default function ManageAdmins() {
         </div>
 
         {/* Mobile Card View */}
-        <div className="lg:hidden">
+        <div className="md:hidden">
           <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-4 mb-4">
             <FilterControls filters={filters} updateFilter={updateFilter} />
           </div>
@@ -512,11 +514,11 @@ export default function ManageAdmins() {
                           {/* Admin Info */}
                           <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-3">
-                              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                                <UserCheck className="h-5 w-5 text-blue-600" />
+                              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                <UserCheck className="h-4 w-4 text-blue-600" />
                               </div>
                               <div>
-                                <h3 className="font-medium text-slate-800 text-xs">{admin.adminName || 'N/A'}</h3>
+                                <h3 className="font-medium text-slate-800 text-sm">{admin.adminName || 'N/A'}</h3>
                                 <p className="text-slate-500 text-xs">{admin.centerName || 'N/A'}</p>
                               </div>
                             </div>
@@ -528,25 +530,25 @@ export default function ManageAdmins() {
                           </div>
 
                           {/* Contact Details */}
-                          <div className="grid grid-cols-1 gap-2 text-xs">
-                            <div className="flex items-center space-x-2">
-                              <span className="text-slate-500 w-16">Email:</span>
-                              <span className="text-slate-700">{admin.email || 'N/A'}</span>
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div>
+                              <span className="text-slate-500">Email:</span>
+                              <span className="ml-1 text-slate-700 block truncate">{admin.email || 'N/A'}</span>
                             </div>
-                            <div className="flex items-center space-x-2">
-                              <span className="text-slate-500 w-16">Phone:</span>
-                              <span className="text-slate-700">{admin.phone || 'N/A'}</span>
+                            <div>
+                              <span className="text-slate-500">Phone:</span>
+                              <span className="ml-1 text-slate-700">{admin.phone || 'N/A'}</span>
                             </div>
-                            <div className="flex items-center space-x-2">
-                              <span className="text-slate-500 w-16">Joined:</span>
-                              <span className="text-slate-700">
+                            <div className="col-span-2">
+                              <span className="text-slate-500">Joined:</span>
+                              <span className="ml-1 text-slate-700">
                                 {admin.createdAt ? new Date(admin.createdAt).toLocaleDateString() : 'N/A'}
                               </span>
                             </div>
                           </div>
 
                           {/* Actions */}
-                          <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-slate-100">
+                          <div className="flex gap-2 pt-2 border-t border-slate-100">
                             <button
                               onClick={() => navigate(`/dashboard/Superadmin/Centers/EditCenterAdmin/${admin._id}`)}
                               className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-medium transition-colors"

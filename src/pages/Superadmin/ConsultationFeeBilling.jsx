@@ -463,20 +463,20 @@ const SuperadminConsultationFeeBilling = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 sm:p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex justify-between items-center">
+        <div className="mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-slate-800 mb-2">
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-800 mb-2">
                 Complete Transaction History - Superadmin
               </h1>
-              <p className="text-slate-600 text-sm">
+              <p className="text-slate-600 text-xs sm:text-sm">
                 View all billing transactions from consultation billing and patient reassignments across all centers
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
               <button
                 onClick={() => setShowExportModal(true)}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                className="px-3 sm:px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2 text-sm"
                 disabled={filteredTransactions.length === 0}
               >
                 <FileDown className="h-4 w-4" />
@@ -484,7 +484,7 @@ const SuperadminConsultationFeeBilling = () => {
               </button>
               <button
                 onClick={fetchAllTransactions}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                className="px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 text-sm"
               >
                 <RefreshCw className="h-4 w-4" />
                 Refresh Data
@@ -529,7 +529,7 @@ const SuperadminConsultationFeeBilling = () => {
         )}
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-6 sm:mb-8">
           <div className="bg-white rounded-xl p-4 shadow-sm border border-blue-100">
             <div className="flex items-center justify-between">
               <div>
@@ -608,7 +608,7 @@ const SuperadminConsultationFeeBilling = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 <div className="flex items-center gap-2">
                   <Filter className="h-4 w-4 text-slate-500 flex-shrink-0" />
                   <select
@@ -695,8 +695,122 @@ const SuperadminConsultationFeeBilling = () => {
               )}
             </div>
           ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[800px]">
+            <>
+              {/* Mobile Card View */}
+              <div className="block md:hidden">
+                <div className="p-4 space-y-4">
+                  {currentTransactions.map((transaction) => {
+                    const statusInfo = getTransactionStatus(transaction);
+                    const typeInfo = getTransactionType(transaction);
+
+                    return (
+                      <div key={transaction.id} className={`bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-4 space-y-3 border border-slate-200 hover:border-blue-300 transition-all duration-200 hover:shadow-md ${transaction.isReassigned ? 'border-l-4 border-l-orange-400' : ''}`}>
+                        {/* Header */}
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center space-x-3">
+                            <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
+                              transaction.isReassigned ? 'bg-orange-100' : 'bg-blue-100'
+                            }`}>
+                              <User className={`h-5 w-5 ${transaction.isReassigned ? 'text-orange-600' : 'text-blue-600'}`} />
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <h3 className="font-semibold text-slate-800 text-sm">{transaction.patientName}</h3>
+                                {transaction.isReassigned && (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                                    Reassignment #{transaction.reassignmentCount}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-slate-600 text-xs">{transaction.patientUhId || 'N/A'}</p>
+                              <p className="text-slate-500 text-xs">
+                                {transaction.patientAge && `${transaction.patientAge}Y`} {transaction.patientGender}
+                              </p>
+                            </div>
+                          </div>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusInfo.color}`}>
+                            {statusInfo.icon}
+                            <span className="ml-1">{statusInfo.text}</span>
+                          </span>
+                        </div>
+
+                        {/* Center & Type */}
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <span className="text-slate-500 text-xs">Center:</span>
+                            <p className="text-slate-700 text-xs font-medium">{transaction.centerName || 'N/A'}</p>
+                            <p className="text-slate-500 text-xs">{transaction.centerCode || 'N/A'}</p>
+                          </div>
+                          <div>
+                            <span className="text-slate-500 text-xs">Type:</span>
+                            <div className="flex items-center gap-1">
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${typeInfo.color}`}>
+                                {typeInfo.icon}
+                                <span className="ml-1">{typeInfo.text}</span>
+                              </span>
+                            </div>
+                            <p className="text-slate-500 text-xs mt-1">
+                              {transaction.assignedDoctor?.name || 'Not Assigned'}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Amount & Payment */}
+                        <div className="bg-white rounded-lg p-3 space-y-2">
+                          <div className="flex justify-between items-center">
+                            <span className="text-slate-500 text-xs">Amount:</span>
+                            <span className="text-slate-800 font-bold text-sm">₹{transaction.amount?.toLocaleString('en-IN') || '0'}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-slate-500 text-xs">Payment Method:</span>
+                            <span className="text-slate-700 text-xs font-medium capitalize">{transaction.paymentMethod || 'N/A'}</span>
+                          </div>
+                          {transaction.invoiceNumber && (
+                            <div className="flex justify-between items-center">
+                              <span className="text-slate-500 text-xs">Invoice:</span>
+                              <span className="text-slate-500 text-xs font-mono">INV: {transaction.invoiceNumber}</span>
+                            </div>
+                          )}
+                          {transaction.consultationType && (
+                            <div className="flex justify-between items-center">
+                              <span className="text-slate-500 text-xs">Consultation:</span>
+                              <span className="text-slate-500 text-xs">{transaction.consultationType} Consultation</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Date & Actions */}
+                        <div className="flex items-center justify-between pt-2 border-t border-slate-200">
+                          <div className="text-xs text-slate-500">
+                            {new Date(transaction.createdAt).toLocaleDateString()}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => navigate(`/dashboard/superadmin/followups/PatientProfile/${transaction.patientId}`)}
+                              className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors duration-200"
+                              title="View Patient Profile"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleGenerateInvoice(transaction)}
+                              className="p-2 text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded-lg transition-colors duration-200"
+                              title="Generate Invoice"
+                            >
+                              <FileText className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Desktop Table View */}
+              <div className="hidden md:block">
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[800px]">
               <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
                   <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Patient Details</th>
@@ -806,26 +920,28 @@ const SuperadminConsultationFeeBilling = () => {
               </tbody>
             </table>
           </div>
+          </div>
+            </>
           )}
 
           {/* Pagination */}
-          <div className="bg-white px-4 py-4 flex flex-col sm:flex-row items-center justify-between border-t border-slate-200 sm:px-6 gap-4">
-            <div className="flex items-center gap-4">
-              <div className="text-sm text-slate-700">
+          <div className="bg-white px-4 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between border-t border-slate-200 sm:px-6 gap-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
+              <div className="text-xs sm:text-sm text-slate-700">
                 Showing <span className="font-medium">{startIndex + 1}</span> to{' '}
                 <span className="font-medium">{Math.min(endIndex, filteredTransactions.length)}</span> of{' '}
                 <span className="font-medium">{filteredTransactions.length}</span> results
               </div>
               
               <div className="flex items-center gap-2">
-                <label className="text-sm text-slate-600">Show:</label>
+                <label className="text-xs sm:text-sm text-slate-600">Show:</label>
                 <select
                   value={transactionsPerPage}
                   onChange={(e) => {
                     setTransactionsPerPage(Number(e.target.value));
                     setCurrentPage(1);
                   }}
-                  className="px-2 py-1 border border-slate-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="px-2 py-1 border border-slate-300 rounded text-xs sm:text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value={5}>5</option>
                   <option value={10}>10</option>
@@ -833,31 +949,39 @@ const SuperadminConsultationFeeBilling = () => {
                   <option value={50}>50</option>
                   <option value={100}>100</option>
                 </select>
-                <span className="text-sm text-slate-600">per page</span>
+                <span className="text-xs sm:text-sm text-slate-600">per page</span>
               </div>
             </div>
 
             {totalPages > 1 && (
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="px-3 py-1 text-sm border border-slate-300 rounded hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Previous
-                </button>
-                
-                <span className="px-3 py-1 text-sm bg-blue-50 border border-blue-200 rounded font-medium text-blue-700">
-                  {currentPage} of {totalPages}
-                </span>
-                
-                <button
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="px-3 py-1 text-sm border border-slate-300 rounded hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Next
-                </button>
+                <div className="text-xs sm:text-sm text-slate-600 sm:hidden">
+                  Page {currentPage} of {totalPages}
+                </div>
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <div className="text-xs sm:text-sm text-slate-600 hidden sm:block">
+                    Page {currentPage} of {totalPages}
+                  </div>
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="px-2 sm:px-3 py-1 text-xs sm:text-sm border border-slate-300 rounded hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </button>
+                  
+                  <span className="px-2 sm:px-3 py-1 text-xs sm:text-sm bg-blue-50 border border-blue-200 rounded font-medium text-blue-700">
+                    {currentPage} of {totalPages}
+                  </span>
+                  
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="px-2 sm:px-3 py-1 text-xs sm:text-sm border border-slate-300 rounded hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </div>
               </div>
             )}
           </div>

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { 
   getCenterAppointments, 
-  updateAppointmentStatus 
+  updateAppointmentStatus,
+  updateAppointmentDetails 
 } from '../../services/api';
 
 const AppointmentApprovals = () => {
@@ -10,14 +11,34 @@ const AppointmentApprovals = () => {
   const [loading, setLoading] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [updateLoading, setUpdateLoading] = useState(false);
+  const [editLoading, setEditLoading] = useState(false);
   const [filter, setFilter] = useState('pending'); // Only show pending by default
+  
+  // Edit form state
+  const [editFormData, setEditFormData] = useState({
+    confirmedDate: '',
+    confirmedTime: '',
+    notes: ''
+  });
+
+  // Time slots for appointment scheduling
+  const timeSlots = [
+    '09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM',
+    '12:00 PM', '12:30 PM', '02:00 PM', '02:30 PM', '03:00 PM', '03:30 PM',
+    '04:00 PM', '04:30 PM', '05:00 PM', '05:30 PM', '06:00 PM', '06:30 PM'
+  ];
   
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [sortField, setSortField] = useState('preferredDate');
   const [sortDirection, setSortDirection] = useState('asc');
+  
+  // Search states
+  const [primarySearch, setPrimarySearch] = useState('');
+  const [secondarySearch, setSecondarySearch] = useState('');
 
   // Get center ID from user data
   const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -29,14 +50,38 @@ const AppointmentApprovals = () => {
     }
   }, [centerId]);
 
+  // Search function
+  const searchAppointments = (appointments, searchTerm) => {
+    if (!searchTerm.trim()) return appointments;
+    
+    const searchLower = searchTerm.toLowerCase();
+    return appointments.filter(appointment => {
+      return (
+        appointment.patientName?.toLowerCase().includes(searchLower) ||
+        appointment.patientEmail?.toLowerCase().includes(searchLower) ||
+        appointment.patientPhone?.includes(searchTerm) ||
+        appointment.confirmationCode?.includes(searchTerm) ||
+        appointment.appointmentType?.toLowerCase().includes(searchLower) ||
+        appointment.reasonForVisit?.toLowerCase().includes(searchLower) ||
+        appointment.centerName?.toLowerCase().includes(searchLower)
+      );
+    });
+  };
+
   // Filter appointments based on current filter
   const filteredAppointments = allAppointments.filter(appointment => {
     if (filter === 'all') return true;
     return appointment.status === filter;
   });
 
+  // Apply primary search
+  const primarySearchResults = searchAppointments(filteredAppointments, primarySearch);
+  
+  // Apply secondary search within primary results
+  const finalAppointments = searchAppointments(primarySearchResults, secondarySearch);
+
   // Sort appointments
-  const sortedAppointments = [...filteredAppointments].sort((a, b) => {
+  const sortedAppointments = [...finalAppointments].sort((a, b) => {
     let aValue = a[sortField];
     let bValue = b[sortField];
     
@@ -132,6 +177,64 @@ const AppointmentApprovals = () => {
     setSelectedAppointment(null);
   };
 
+  const openEditModal = (appointment) => {
+    console.log('Opening edit modal for appointment:', appointment);
+    setSelectedAppointment(appointment);
+    setEditFormData({
+      confirmedDate: appointment.confirmedDate ? new Date(appointment.confirmedDate).toISOString().split('T')[0] : '',
+      confirmedTime: appointment.confirmedTime || appointment.preferredTime,
+      notes: appointment.notes || ''
+    });
+    setShowEditModal(true);
+    console.log('Edit modal should now be visible');
+  };
+
+  const closeEditModal = () => {
+    setShowEditModal(false);
+    setSelectedAppointment(null);
+    setEditFormData({
+      confirmedDate: '',
+      confirmedTime: '',
+      notes: ''
+    });
+  };
+
+  const handleEditInputChange = (e) => {
+    const { name, value } = e.target;
+    setEditFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleUpdateAppointment = async () => {
+    if (!editFormData.confirmedDate || !editFormData.confirmedTime) {
+      toast.error('Please select both date and time');
+      return;
+    }
+
+    try {
+      setEditLoading(true);
+      const response = await updateAppointmentDetails(selectedAppointment._id, {
+        confirmedDate: new Date(editFormData.confirmedDate).toISOString(),
+        confirmedTime: editFormData.confirmedTime,
+        notes: editFormData.notes,
+        status: 'confirmed'
+      });
+      
+      if (response.success) {
+        toast.success('Appointment updated successfully!');
+        closeEditModal();
+        fetchAppointments();
+      }
+    } catch (error) {
+      toast.error('Failed to update appointment');
+      console.error('Error updating appointment:', error);
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       weekday: 'long',
@@ -225,6 +328,16 @@ const AppointmentApprovals = () => {
             ✅ Approved ({allAppointments.filter(a => a.status === 'confirmed').length})
           </button>
           <button
+            onClick={() => setFilter('cancelled')}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              filter === 'cancelled'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            ❌ Cancelled ({allAppointments.filter(a => a.status === 'cancelled').length})
+          </button>
+          <button
             onClick={() => setFilter('all')}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
               filter === 'all'
@@ -235,6 +348,89 @@ const AppointmentApprovals = () => {
             📋 All ({allAppointments.length})
           </button>
         </div>
+      </div>
+
+      {/* Search Bars */}
+      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Primary Search */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              🔍 Primary Search
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search by patient name, email, phone, confirmation code..."
+                value={primarySearch}
+                onChange={(e) => setPrimarySearch(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+            </div>
+            {primarySearch && (
+              <p className="text-xs text-gray-500 mt-1">
+                Found {primarySearchResults.length} results
+              </p>
+            )}
+          </div>
+
+          {/* Secondary Search */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              🔍 Refine Search
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search within results..."
+                value={secondarySearch}
+                onChange={(e) => setSecondarySearch(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={!primarySearch}
+              />
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+            </div>
+            {secondarySearch && (
+              <p className="text-xs text-gray-500 mt-1">
+                Showing {finalAppointments.length} refined results
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Clear Search Buttons */}
+        {(primarySearch || secondarySearch) && (
+          <div className="mt-4 flex space-x-2">
+            {primarySearch && (
+              <button
+                onClick={() => {
+                  setPrimarySearch('');
+                  setSecondarySearch('');
+                }}
+                className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors"
+              >
+                Clear All Searches
+              </button>
+            )}
+            {secondarySearch && (
+              <button
+                onClick={() => setSecondarySearch('')}
+                className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
+              >
+                Clear Refine Search
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Appointments Table */}
@@ -401,6 +597,19 @@ const AppointmentApprovals = () => {
                               </>
                             )}
                             <button
+                              onClick={() => {
+                                console.log('Edit button clicked for appointment:', appointment);
+                                openEditModal(appointment);
+                              }}
+                              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-all duration-200 shadow-md hover:shadow-lg border-2 border-blue-500"
+                              title="Edit Appointment"
+                            >
+                              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                              Edit Appointment
+                            </button>
+                            <button
                               onClick={() => openModal(appointment)}
                               className="inline-flex items-center px-3 py-2 bg-[#2490eb] text-white text-xs font-semibold rounded-lg hover:bg-[#14457b] transition-all duration-200 shadow-sm hover:shadow-md"
                               title="View Details"
@@ -514,22 +723,63 @@ const AppointmentApprovals = () => {
 
       {/* Detailed Modal */}
       {showModal && selectedAppointment && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-10 mx-auto p-5 border w-11/12 max-w-4xl shadow-lg rounded-md bg-white">
-            <div className="mt-3">
-              <div className="flex justify-between items-start mb-4">
-                <h3 className="text-xl font-semibold text-gray-900">
-                  Appointment Details - {selectedAppointment.patientName}
-                </h3>
+        <div className="fixed inset-0 bg-black bg-opacity-60 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+          <div className="relative w-full max-w-6xl max-h-[90vh] overflow-y-auto bg-white rounded-2xl shadow-2xl border border-slate-200">
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 rounded-t-2xl">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="flex-1">
+                  <h3 className="text-xl sm:text-2xl font-bold text-slate-800 mb-2">
+                    Appointment Details - {selectedAppointment.patientName}
+                  </h3>
+                  {/* Status Highlight */}
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                    {selectedAppointment.status === 'pending' && (
+                      <div className="flex items-center px-4 py-2 bg-gradient-to-r from-yellow-100 to-amber-100 border-2 border-yellow-300 rounded-lg shadow-md">
+                        <div className="animate-pulse mr-2">
+                          <svg className="w-5 h-5 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                        <span className="text-yellow-800 font-bold text-base sm:text-lg">⏳ PENDING APPROVAL</span>
+                      </div>
+                    )}
+                    {selectedAppointment.status === 'confirmed' && (
+                      <div className="flex items-center px-4 py-2 bg-gradient-to-r from-green-100 to-emerald-100 border-2 border-green-300 rounded-lg shadow-md">
+                        <svg className="w-5 h-5 text-green-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        <span className="text-green-800 font-bold text-base sm:text-lg">✅ APPROVED</span>
+                      </div>
+                    )}
+                    {selectedAppointment.status === 'cancelled' && (
+                      <div className="flex items-center px-4 py-2 bg-gradient-to-r from-red-100 to-rose-100 border-2 border-red-300 rounded-lg shadow-md">
+                        <svg className="w-5 h-5 text-red-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                        </svg>
+                        <span className="text-red-800 font-bold text-base sm:text-lg">❌ CANCELLED</span>
+                      </div>
+                    )}
+                    <div className="text-slate-600 text-sm">
+                      Confirmation Code: <span className="font-bold text-[#2490eb]">{selectedAppointment.confirmationCode}</span>
+                    </div>
+                  </div>
+                </div>
                 <button
                   onClick={closeModal}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-slate-400 hover:text-slate-600 transition-colors p-2 rounded-lg hover:bg-slate-100 self-start sm:self-center"
                 >
-                  <span className="text-2xl">&times;</span>
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
               </div>
+            </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Modal Content */}
+            <div className="p-6">
+
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-8">
                 {/* Patient Information */}
                 <div className="space-y-4">
                   <div className="bg-gray-50 p-4 rounded-lg">
@@ -544,47 +794,242 @@ const AppointmentApprovals = () => {
                     </div>
                   </div>
 
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <h4 className="font-semibold text-gray-800 mb-2">Appointment Details</h4>
-                    <div className="space-y-1 text-sm">
-                      <p><strong>Date:</strong> {formatDate(selectedAppointment.preferredDate)}</p>
-                      <p><strong>Time:</strong> {selectedAppointment.preferredTime}</p>
-                      <p><strong>Type:</strong> {selectedAppointment.appointmentType}</p>
-                      <p><strong>Contact Method:</strong> {selectedAppointment.contactMethod}</p>
-                      <p><strong>Confirmation Code:</strong> {selectedAppointment.confirmationCode}</p>
-                      <p><strong>Recorded On:</strong> {formatDateTime(selectedAppointment.bookedAt || selectedAppointment.createdAt)}</p>
-                      {selectedAppointment.status === 'confirmed' && selectedAppointment.confirmedAt && (
-                        <p><strong>Confirmed On:</strong> {formatDateTime(selectedAppointment.confirmedAt)}</p>
+                  <div className="bg-gradient-to-br from-slate-50 to-blue-50 p-6 rounded-xl border border-slate-200">
+                    <h4 className="font-bold text-slate-800 mb-4 text-lg">Appointment Details</h4>
+                    
+                    {/* Status Banner - Enhanced */}
+                    <div className="mb-6">
+                      {selectedAppointment.status === 'pending' && (
+                        <div className="p-4 bg-gradient-to-r from-yellow-50 to-amber-50 border-2 border-yellow-300 rounded-xl shadow-lg">
+                          <div className="flex items-center">
+                            <div className="w-12 h-12 bg-gradient-to-r from-yellow-100 to-amber-100 rounded-xl flex items-center justify-center mr-4 animate-pulse">
+                              <svg className="w-6 h-6 text-yellow-600 animate-spin" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                            <div>
+                              <h5 className="text-yellow-800 font-bold text-lg mb-1">⏳ Appointment Pending Approval</h5>
+                              <p className="text-yellow-700 text-sm">This appointment is currently under review by our medical staff. A receptionist will contact the patient within 24 hours to confirm the appointment details.</p>
+                            </div>
+                          </div>
+                        </div>
                       )}
+                      {selectedAppointment.status === 'confirmed' && (
+                        <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-xl shadow-lg">
+                          <div className="flex items-center">
+                            <div className="w-12 h-12 bg-gradient-to-r from-green-100 to-emerald-100 rounded-xl flex items-center justify-center mr-4">
+                              <svg className="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                            <div>
+                              <h5 className="text-green-800 font-bold text-lg mb-1">✅ Appointment Confirmed</h5>
+                              <p className="text-green-700 text-sm">This appointment has been confirmed. The patient has been notified and should arrive 15 minutes early.</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      {selectedAppointment.status === 'cancelled' && (
+                        <div className="p-4 bg-gradient-to-r from-red-50 to-rose-50 border-2 border-red-300 rounded-xl shadow-lg">
+                          <div className="flex items-center">
+                            <div className="w-12 h-12 bg-gradient-to-r from-red-100 to-rose-100 rounded-xl flex items-center justify-center mr-4">
+                              <svg className="w-6 h-6 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                            <div>
+                              <h5 className="text-red-800 font-bold text-lg mb-1">❌ Appointment Cancelled</h5>
+                              <p className="text-red-700 text-sm">This appointment has been cancelled. The patient has been notified and can contact the center to reschedule.</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Schedule Information */}
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-lg">
+                          <div className="flex items-center mb-4">
+                            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                              <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                            </div>
+                            <h5 className="text-lg font-bold text-slate-800">Preferred Schedule</h5>
+                          </div>
+                          <div className="space-y-4">
+                            <div className="py-3 px-4 bg-slate-50 rounded-lg">
+                              <div className="flex justify-between items-start mb-1">
+                                <span className="text-sm font-medium text-slate-600">Date</span>
+                              </div>
+                              <div className="text-sm font-bold text-slate-800 break-words">{formatDate(selectedAppointment.preferredDate)}</div>
+                            </div>
+                            <div className="py-3 px-4 bg-slate-50 rounded-lg">
+                              <div className="flex justify-between items-start mb-1">
+                                <span className="text-sm font-medium text-slate-600">Time</span>
+                              </div>
+                              <div className="text-sm font-bold text-slate-800">{selectedAppointment.preferredTime}</div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-lg">
+                          {selectedAppointment.confirmedDate ? (
+                            <>
+                              <div className="flex items-center mb-4">
+                                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                                  <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                </div>
+                                <h5 className="text-lg font-bold text-green-800">Confirmed Schedule</h5>
+                              </div>
+                              <div className="space-y-4">
+                                <div className="py-3 px-4 bg-green-50 rounded-lg">
+                                  <div className="flex justify-between items-start mb-1">
+                                    <span className="text-sm font-medium text-green-600">Date</span>
+                                  </div>
+                                  <div className="text-sm font-bold text-green-800 break-words">{formatDate(selectedAppointment.confirmedDate)}</div>
+                                </div>
+                                <div className="py-3 px-4 bg-green-50 rounded-lg">
+                                  <div className="flex justify-between items-start mb-1">
+                                    <span className="text-sm font-medium text-green-600">Time</span>
+                                  </div>
+                                  <div className="text-sm font-bold text-green-800">{selectedAppointment.confirmedTime}</div>
+                                </div>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <div className="flex items-center mb-4">
+                                <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center mr-3">
+                                  <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                </div>
+                                <h5 className="text-lg font-bold text-yellow-800">Confirmation Status</h5>
+                              </div>
+                              <div className="py-3 px-4 bg-yellow-50 rounded-lg">
+                                <p className="text-yellow-700 text-sm font-medium">⏳ Awaiting confirmation</p>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Additional Details */}
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-lg">
+                          <div className="flex items-center mb-4">
+                            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
+                              <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            </div>
+                            <h5 className="text-lg font-bold text-slate-800">Appointment Details</h5>
+                          </div>
+                          <div className="space-y-4">
+                            <div className="py-3 px-4 bg-slate-50 rounded-lg">
+                              <div className="flex justify-between items-start mb-1">
+                                <span className="text-sm font-medium text-slate-600">Type</span>
+                              </div>
+                              <div className="text-sm font-bold text-slate-800 capitalize">{selectedAppointment.appointmentType}</div>
+                            </div>
+                            <div className="py-3 px-4 bg-slate-50 rounded-lg">
+                              <div className="flex justify-between items-start mb-1">
+                                <span className="text-sm font-medium text-slate-600">Contact Method</span>
+                              </div>
+                              <div className="text-sm font-bold text-slate-800 capitalize">{selectedAppointment.contactMethod}</div>
+                            </div>
+                            <div className="py-3 px-4 bg-slate-50 rounded-lg">
+                              <div className="flex justify-between items-start mb-1">
+                                <span className="text-sm font-medium text-slate-600">Confirmation Code</span>
+                              </div>
+                              <div className="text-sm font-bold text-[#2490eb] font-mono">{selectedAppointment.confirmationCode}</div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-lg">
+                          <div className="flex items-center mb-4">
+                            <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center mr-3">
+                              <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            </div>
+                            <h5 className="text-lg font-bold text-slate-800">Timeline</h5>
+                          </div>
+                          <div className="space-y-4">
+                            <div className="py-3 px-4 bg-slate-50 rounded-lg">
+                              <div className="flex justify-between items-start mb-1">
+                                <span className="text-sm font-medium text-slate-600">Recorded On</span>
+                              </div>
+                              <div className="text-sm font-bold text-slate-800 break-words">{formatDateTime(selectedAppointment.bookedAt || selectedAppointment.createdAt)}</div>
+                            </div>
+                            {selectedAppointment.status === 'confirmed' && selectedAppointment.confirmedAt && (
+                              <div className="py-3 px-4 bg-green-50 rounded-lg">
+                                <div className="flex justify-between items-start mb-1">
+                                  <span className="text-sm font-medium text-green-600">Confirmed On</span>
+                                </div>
+                                <div className="text-sm font-bold text-green-800 break-words">{formatDateTime(selectedAppointment.confirmedAt)}</div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
 
                 {/* Medical Information */}
-                <div className="space-y-4">
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <h4 className="font-semibold text-gray-800 mb-2">Medical Information</h4>
-                    <div className="space-y-3 text-sm">
-                      <div>
-                        <strong>Reason for Visit:</strong>
-                        <p className="mt-1 text-gray-600">{selectedAppointment.reasonForVisit}</p>
+                <div className="space-y-6">
+                  <div className="bg-gradient-to-br from-slate-50 to-blue-50 p-6 rounded-xl border border-slate-200">
+                    <h4 className="font-bold text-slate-800 mb-4 text-lg">Medical Information</h4>
+                    <div className="space-y-4">
+                      <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
+                        <h5 className="font-semibold text-slate-700 mb-3 flex items-center">
+                          <svg className="w-4 h-4 mr-2 text-[#2490eb]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          Reason for Visit
+                        </h5>
+                        <p className="text-slate-600 bg-slate-50 p-3 rounded-lg border border-slate-200 text-sm leading-relaxed">{selectedAppointment.reasonForVisit}</p>
                       </div>
+                      
                       {selectedAppointment.symptoms && (
-                        <div>
-                          <strong>Symptoms:</strong>
-                          <p className="mt-1 text-gray-600">{selectedAppointment.symptoms}</p>
+                        <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
+                          <h5 className="font-semibold text-slate-700 mb-3 flex items-center">
+                            <svg className="w-4 h-4 mr-2 text-[#2490eb]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                            </svg>
+                            Symptoms
+                          </h5>
+                          <p className="text-slate-600 bg-slate-50 p-3 rounded-lg border border-slate-200 text-sm leading-relaxed">{selectedAppointment.symptoms}</p>
                         </div>
                       )}
+                      
                       {selectedAppointment.previousHistory && (
-                        <div>
-                          <strong>Previous History:</strong>
-                          <p className="mt-1 text-gray-600">{selectedAppointment.previousHistory}</p>
+                        <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
+                          <h5 className="font-semibold text-slate-700 mb-3 flex items-center">
+                            <svg className="w-4 h-4 mr-2 text-[#2490eb]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                            </svg>
+                            Medical History
+                          </h5>
+                          <p className="text-slate-600 bg-slate-50 p-3 rounded-lg border border-slate-200 text-sm leading-relaxed">{selectedAppointment.previousHistory}</p>
                         </div>
                       )}
+                      
                       {selectedAppointment.notes && (
-                        <div>
-                          <strong>Additional Notes:</strong>
-                          <p className="mt-1 text-gray-600">{selectedAppointment.notes}</p>
+                        <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
+                          <h5 className="font-semibold text-slate-700 mb-3 flex items-center">
+                            <svg className="w-4 h-4 mr-2 text-[#2490eb]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            Additional Notes
+                          </h5>
+                          <p className="text-slate-600 bg-slate-50 p-3 rounded-lg border border-slate-200 text-sm leading-relaxed">{selectedAppointment.notes}</p>
                         </div>
                       )}
                     </div>
@@ -626,6 +1071,152 @@ const AppointmentApprovals = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                   Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Appointment Modal */}
+      {showEditModal && selectedAppointment && (
+        <div className="fixed inset-0 bg-slate-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-10 mx-auto p-5 border w-11/12 max-w-2xl shadow-2xl rounded-xl bg-white border-slate-200">
+            <div className="mt-3">
+              <div className="flex justify-between items-start mb-6">
+                <h3 className="text-2xl font-bold text-slate-800">
+                  Edit Appointment - {selectedAppointment.patientName}
+                </h3>
+                <button
+                  onClick={closeEditModal}
+                  className="text-slate-400 hover:text-slate-600 transition-colors p-2 rounded-lg hover:bg-slate-100"
+                >
+                  <span className="text-3xl">&times;</span>
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                {/* Current Appointment Info */}
+                <div className="bg-gradient-to-br from-slate-50 to-blue-50 p-6 rounded-xl border border-slate-200">
+                  <h4 className="font-bold text-slate-800 mb-4 text-lg">Current Appointment Details</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <strong className="text-slate-700">Patient:</strong> 
+                      <span className="ml-2 text-slate-600">{selectedAppointment.patientName}</span>
+                    </div>
+                    <div>
+                      <strong className="text-slate-700">Phone:</strong> 
+                      <span className="ml-2 text-slate-600">{selectedAppointment.patientPhone}</span>
+                    </div>
+                    <div>
+                      <strong className="text-slate-700">Preferred Date:</strong> 
+                      <span className="ml-2 text-slate-600">{formatDate(selectedAppointment.preferredDate)}</span>
+                    </div>
+                    <div>
+                      <strong className="text-slate-700">Preferred Time:</strong> 
+                      <span className="ml-2 text-slate-600">{selectedAppointment.preferredTime}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Edit Form */}
+                <div className="bg-gradient-to-br from-slate-50 to-blue-50 p-6 rounded-xl border border-slate-200">
+                  <h4 className="font-bold text-slate-800 mb-4 text-lg">Schedule Final Appointment</h4>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          Confirmed Date *
+                        </label>
+                        <input
+                          type="date"
+                          name="confirmedDate"
+                          value={editFormData.confirmedDate}
+                          onChange={handleEditInputChange}
+                          min={new Date().toISOString().split('T')[0]}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2490eb] focus:border-[#2490eb] bg-white"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          Confirmed Time *
+                        </label>
+                        <select
+                          name="confirmedTime"
+                          value={editFormData.confirmedTime}
+                          onChange={handleEditInputChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2490eb] focus:border-[#2490eb] bg-white"
+                          required
+                        >
+                          <option value="">Select Time</option>
+                          {timeSlots.map(time => (
+                            <option key={time} value={time}>{time}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Notes (Optional)
+                      </label>
+                      <textarea
+                        name="notes"
+                        value={editFormData.notes}
+                        onChange={handleEditInputChange}
+                        rows="3"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2490eb] focus:border-transparent"
+                        placeholder="Add any notes about the appointment scheduling..."
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Important Notice */}
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0">
+                      <svg className="w-5 h-5 text-amber-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="ml-3">
+                      <h3 className="text-sm font-semibold text-amber-800 mb-1">Important Notice</h3>
+                      <p className="text-sm text-amber-700">
+                        This will confirm the final appointment date and time based on doctor availability. 
+                        The patient will be notified of the confirmed schedule.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="mt-8 flex justify-end space-x-4">
+                <button
+                  onClick={closeEditModal}
+                  className="inline-flex items-center px-6 py-3 border-2 border-slate-300 text-slate-700 rounded-xl hover:bg-slate-50 hover:border-slate-400 font-semibold transition-all duration-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleUpdateAppointment}
+                  disabled={editLoading}
+                  className="inline-flex items-center px-6 py-3 bg-[#2490eb] text-white rounded-xl hover:bg-[#14457b] disabled:opacity-50 disabled:cursor-not-allowed font-semibold transition-all duration-200 shadow-lg hover:shadow-xl"
+                >
+                  {editLoading ? (
+                    <>
+                      <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Updating...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Confirm Appointment
+                    </>
+                  )}
                 </button>
               </div>
             </div>

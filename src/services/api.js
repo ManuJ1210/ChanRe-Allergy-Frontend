@@ -79,6 +79,17 @@ export const markPatientAsViewed = async (patientId) => {
   }
 };
 
+// Get patient appointment data
+export const getPatientAppointment = async (patientId) => {
+  try {
+    const response = await API.get(`/patients/${patientId}/appointment`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching patient appointment:', error);
+    throw error;
+  }
+};
+
 // Accountant API functions
 export const getAccountantDashboard = async () => {
   try {
@@ -220,6 +231,28 @@ export const updateAppointmentStatus = async (appointmentId, status, notes) => {
     return response.data;
   } catch (error) {
     console.error('Error updating appointment status:', error);
+    throw error;
+  }
+};
+
+export const updateAppointmentDetails = async (appointmentId, appointmentData) => {
+  try {
+    const response = await API.put(`/patient-appointments/${appointmentId}/details`, appointmentData);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating appointment details:', error);
+    throw error;
+  }
+};
+
+export const searchAppointmentsByPatientName = async (name, centerId) => {
+  try {
+    const response = await API.get('/patient-appointments/search', {
+      params: { name, centerId }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error searching appointments:', error);
     throw error;
   }
 };

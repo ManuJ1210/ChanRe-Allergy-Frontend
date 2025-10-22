@@ -153,14 +153,30 @@ const CheckAppointment = () => {
               <div className="bg-[#e0f2fe] rounded-lg p-6 mb-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-[#2490eb] rounded-full flex items-center justify-center">
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                      appointment.status === 'pending' ? 'bg-gradient-to-r from-yellow-400 to-amber-500 animate-pulse' :
+                      appointment.status === 'confirmed' ? 'bg-gradient-to-r from-green-400 to-emerald-500' :
+                      appointment.status === 'cancelled' ? 'bg-gradient-to-r from-red-400 to-rose-500' :
+                      appointment.status === 'completed' ? 'bg-gradient-to-r from-blue-400 to-indigo-500' :
+                      'bg-[#2490eb]'
+                    }`}>
                       <span className="text-2xl text-white">{getStatusIcon(appointment.status)}</span>
                     </div>
                     <div>
                       <h2 className="text-2xl font-bold text-[#18100f]" style={{ fontFamily: 'Quicksand, sans-serif' }}>
                         Appointment Details
                       </h2>
-                      <p className="text-[#2490eb] font-semibold capitalize">{appointment.status} Status</p>
+                      <div className="flex items-center space-x-2">
+                        <span className={`px-3 py-1 rounded-full text-sm font-bold ${
+                          appointment.status === 'pending' ? 'bg-gradient-to-r from-yellow-100 to-amber-100 text-yellow-800 border-2 border-yellow-300 animate-pulse' :
+                          appointment.status === 'confirmed' ? 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border-2 border-green-300' :
+                          appointment.status === 'cancelled' ? 'bg-gradient-to-r from-red-100 to-rose-100 text-red-800 border-2 border-red-300' :
+                          appointment.status === 'completed' ? 'bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 border-2 border-blue-300' :
+                          'bg-[#2490eb] text-white'
+                        }`}>
+                          {getStatusIcon(appointment.status)} {appointment.status.toUpperCase()}
+                        </span>
+                      </div>
                     </div>
                   </div>
                   <div className="text-right">
@@ -235,11 +251,31 @@ const CheckAppointment = () => {
                     </div>
                     <div className="flex justify-between items-center py-2 border-b border-gray-200">
                       <span className="text-sm font-medium text-gray-600">Date</span>
-                      <span className="text-sm font-semibold text-[#18100f]">{formatDate(appointment.preferredDate)}</span>
+                      <div className="text-right">
+                        <span className="text-sm font-semibold text-[#18100f]">
+                          {appointment.confirmedDate ? formatDate(appointment.confirmedDate) : formatDate(appointment.preferredDate)}
+                        </span>
+                        {appointment.confirmedDate && (
+                          <div className="text-xs text-green-600 font-medium">✓ Confirmed</div>
+                        )}
+                        {!appointment.confirmedDate && (
+                          <div className="text-xs text-yellow-600 font-medium">⏳ Preferred</div>
+                        )}
+                      </div>
                     </div>
                     <div className="flex justify-between items-center py-2 border-b border-gray-200">
                       <span className="text-sm font-medium text-gray-600">Time</span>
-                      <span className="text-sm font-semibold text-[#18100f]">{appointment.preferredTime}</span>
+                      <div className="text-right">
+                        <span className="text-sm font-semibold text-[#18100f]">
+                          {appointment.confirmedTime || appointment.preferredTime}
+                        </span>
+                        {appointment.confirmedTime && (
+                          <div className="text-xs text-green-600 font-medium">✓ Confirmed</div>
+                        )}
+                        {!appointment.confirmedTime && (
+                          <div className="text-xs text-yellow-600 font-medium">⏳ Preferred</div>
+                        )}
+                      </div>
                     </div>
                     <div className="flex justify-between items-center py-2">
                       <span className="text-sm font-medium text-gray-600">Type</span>
@@ -307,65 +343,118 @@ const CheckAppointment = () => {
                     </div>
                   )}
                 </div>
-                <div className="mt-4 p-3 bg-[#2490eb] bg-opacity-10 rounded-lg">
-                  <p className="text-sm text-[#2490eb]">
-                    <strong>Note:</strong> Please contact the center directly if you have any questions or need to reschedule your appointment.
-                  </p>
+                <div className="mt-6 p-4 bg-gradient-to-r from-[#2490eb] to-[#14457b] rounded-lg shadow-lg">
+                  <div className="flex items-start space-x-3">
+                    <div className="flex-shrink-0">
+                      <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="text-white font-bold text-base mb-1">Important Notice</h4>
+                      <p className="text-white text-sm leading-relaxed">
+                        Please contact the center directly if you have any questions or need to reschedule your appointment.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
 
               {/* Status Display */}
               <div className="mt-6">
                 {appointment.status === 'pending' && (
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-                    <div className="flex items-center mb-3">
-                      <div className="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center mr-3">
-                        <span className="text-xl">⏳</span>
+                  <div className="bg-gradient-to-r from-yellow-50 to-amber-50 border-2 border-yellow-300 rounded-xl p-6 shadow-lg">
+                    <div className="flex items-center mb-4">
+                      <div className="w-12 h-12 bg-gradient-to-r from-yellow-100 to-amber-100 rounded-xl flex items-center justify-center mr-4 animate-pulse">
+                        <svg className="w-6 h-6 text-yellow-600 animate-spin" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                        </svg>
                       </div>
-                      <h3 className="text-lg font-semibold text-yellow-800">Appointment Pending Approval</h3>
+                      <div>
+                        <h3 className="text-xl font-bold text-yellow-800 mb-1">⏳ Appointment Pending Approval</h3>
+                        <p className="text-yellow-600 text-sm font-medium">Status: Under Review</p>
+                      </div>
                     </div>
-                    <p className="text-yellow-700">
-                      Your appointment request is currently under review by our medical staff. A receptionist will contact you within 24 hours to confirm your appointment details.
-                    </p>
+                    <div className="bg-white bg-opacity-50 rounded-lg p-4 border border-yellow-200">
+                      <p className="text-yellow-700 font-medium">
+                        Your appointment request is currently under review by our medical staff. A receptionist will contact you within 24 hours to confirm your appointment details.
+                      </p>
+                      <div className="mt-3 p-3 bg-yellow-100 rounded-lg border border-yellow-300">
+                        <p className="text-yellow-800 font-semibold text-sm">
+                          📅 Your Preferred Time: {formatDate(appointment.preferredDate)} at {appointment.preferredTime}
+                        </p>
+                        <p className="text-yellow-700 text-xs mt-1">
+                          Note: The final appointment time may be adjusted based on doctor availability.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 )}
                 {appointment.status === 'confirmed' && (
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-                    <div className="flex items-center mb-3">
-                      <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mr-3">
-                        <span className="text-xl">✅</span>
+                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-xl p-6 shadow-lg">
+                    <div className="flex items-center mb-4">
+                      <div className="w-12 h-12 bg-gradient-to-r from-green-100 to-emerald-100 rounded-xl flex items-center justify-center mr-4">
+                        <svg className="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
                       </div>
-                      <h3 className="text-lg font-semibold text-green-800">Appointment Confirmed</h3>
+                      <div>
+                        <h3 className="text-xl font-bold text-green-800 mb-1">✅ Appointment Confirmed</h3>
+                        <p className="text-green-600 text-sm font-medium">Status: Approved</p>
+                      </div>
                     </div>
-                    <p className="text-green-700">
-                      Your appointment has been approved! Please arrive 15 minutes before your scheduled time. Bring a valid ID and any relevant medical documents.
-                    </p>
+                    <div className="bg-white bg-opacity-50 rounded-lg p-4 border border-green-200">
+                      <p className="text-green-700 font-medium">
+                        Your appointment has been approved! Please arrive 15 minutes before your scheduled time. Bring a valid ID and any relevant medical documents.
+                      </p>
+                      {appointment.confirmedDate && appointment.confirmedTime && (
+                        <div className="mt-3 p-3 bg-green-100 rounded-lg border border-green-300">
+                          <p className="text-green-800 font-semibold text-sm">
+                            📅 Final Schedule: {formatDate(appointment.confirmedDate)} at {appointment.confirmedTime}
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
                 {appointment.status === 'cancelled' && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-                    <div className="flex items-center mb-3">
-                      <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center mr-3">
-                        <span className="text-xl">❌</span>
+                  <div className="bg-gradient-to-r from-red-50 to-rose-50 border-2 border-red-300 rounded-xl p-6 shadow-lg">
+                    <div className="flex items-center mb-4">
+                      <div className="w-12 h-12 bg-gradient-to-r from-red-100 to-rose-100 rounded-xl flex items-center justify-center mr-4">
+                        <svg className="w-6 h-6 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                        </svg>
                       </div>
-                      <h3 className="text-lg font-semibold text-red-800">Appointment Cancelled</h3>
+                      <div>
+                        <h3 className="text-xl font-bold text-red-800 mb-1">❌ Appointment Cancelled</h3>
+                        <p className="text-red-600 text-sm font-medium">Status: Cancelled</p>
+                      </div>
                     </div>
-                    <p className="text-red-700">
-                      This appointment has been cancelled. Please contact our center to schedule a new appointment at your convenience.
-                    </p>
+                    <div className="bg-white bg-opacity-50 rounded-lg p-4 border border-red-200">
+                      <p className="text-red-700 font-medium">
+                        This appointment has been cancelled. Please contact our center to schedule a new appointment at your convenience.
+                      </p>
+                    </div>
                   </div>
                 )}
                 {appointment.status === 'completed' && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-                    <div className="flex items-center mb-3">
-                      <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                        <span className="text-xl">🏥</span>
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-xl p-6 shadow-lg">
+                    <div className="flex items-center mb-4">
+                      <div className="w-12 h-12 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-xl flex items-center justify-center mr-4">
+                        <svg className="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" clipRule="evenodd" />
+                        </svg>
                       </div>
-                      <h3 className="text-lg font-semibold text-blue-800">Appointment Completed</h3>
+                      <div>
+                        <h3 className="text-xl font-bold text-blue-800 mb-1">🏥 Appointment Completed</h3>
+                        <p className="text-blue-600 text-sm font-medium">Status: Completed</p>
+                      </div>
                     </div>
-                    <p className="text-blue-700">
-                      Thank you for choosing our medical center. We hope you had a positive experience and wish you good health.
-                    </p>
+                    <div className="bg-white bg-opacity-50 rounded-lg p-4 border border-blue-200">
+                      <p className="text-blue-700 font-medium">
+                        Thank you for choosing our medical center. We hope you had a positive experience and wish you good health.
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>
