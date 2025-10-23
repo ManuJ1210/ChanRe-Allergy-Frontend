@@ -150,7 +150,7 @@ export const validateDoctorForm = (formData) => {
   const errors = {};
   
   errors.name = validateName(formData.name);
-  errors.phone = validatePhone(formData.phone);
+  errors.mobile = validatePhone(formData.mobile);
   errors.email = validateEmail(formData.email);
   errors.username = validateUsername(formData.username);
   errors.password = validatePassword(formData.password);
