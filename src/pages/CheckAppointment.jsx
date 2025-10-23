@@ -3,7 +3,7 @@ import { toast } from 'react-toastify';
 import { getAppointmentByCode, cancelAppointment } from '../services/api';
 import HomeHeader from '../components/HomeHeader';
 import { Dice1 } from 'lucide-react';
-
+import TopHeader from '../components/TopHeader';  
 const CheckAppointment = () => {
   const [confirmationCode, setConfirmationCode] = useState('');
   const [appointment, setAppointment] = useState(null);
@@ -80,10 +80,11 @@ const CheckAppointment = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-slate-800">
+      <TopHeader />
       <HomeHeader />
       
       {/* Hero Section - Matching BookAppointment Theme */}
-      <section className="relative pt-32 bg-gray-50 pb-12">
+      <section className="relative pt-22 mt-10 ">
         <div className="w-4/5 mx-auto px-4">
           <div className="text-center mb-8">
             {/* Clinic Badge */}

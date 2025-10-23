@@ -4,7 +4,7 @@ import { MdExpandMore } from "react-icons/md";
 import emailjs from '@emailjs/browser';
 import { toast } from 'react-toastify';
 import HomeHeader from "../components/HomeHeader";
-
+import TopHeader from '../components/TopHeader';
 export default function Home() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [currentTeamSlide, setCurrentTeamSlide] = useState(0);
@@ -63,7 +63,10 @@ export default function Home() {
   ];
 
   const moveTeamSlider = (direction) => {
-    const totalSlides = Math.ceil(teamData.length / 4);
+    // For mobile: show 1 doctor per slide, for desktop: show 3 doctors per slide
+    const doctorsPerSlide = window.innerWidth < 768 ? 1 : 3;
+    const totalSlides = Math.ceil(teamData.length / doctorsPerSlide);
+    
     if (direction === -1) {
       setCurrentTeamSlide(prev => prev > 0 ? prev - 1 : totalSlides - 1);
     } else {
@@ -85,9 +88,10 @@ export default function Home() {
   }, [testimonialsData.length]);
 
   const getVisibleDoctors = () => {
-    const slideCount = 3; // Show 3 doctors per slide
-    const startIndex = currentTeamSlide * slideCount;
-    return teamData.slice(startIndex, startIndex + slideCount);
+    // For mobile: show 1 doctor, for desktop: show 3 doctors
+    const doctorsPerSlide = window.innerWidth < 768 ? 1 : 3;
+    const startIndex = currentTeamSlide * doctorsPerSlide;
+    return teamData.slice(startIndex, startIndex + doctorsPerSlide);
   };
 
   const handleInputChange = (e) => {
@@ -164,75 +168,28 @@ export default function Home() {
 
   return (
     <div className="font-sans bg-white text-gray-800">
-      {/* Top Header Section */}
-      <div className="bg-[#2490eb]  text-white py-2 fixed top-0 left-0 right-0 z-[60]" style={{ paddingTop: '8px', paddingBottom: '8px' }}>
-        <div className="w-4/5 mx-auto px-4">
-          <div className="flex justify-between items-center">
-            {/* Contact Info Section */}
-            <div className="flex space-x-6 text-sm">
-              <a href="tel:08042516699" className="hover:text-blue-200 transition-colors flex items-center">
-                <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
-                </svg>
-                <span> 08 0425 16699</span>
-              </a>
-              <a href="tel:9632533122" className="hover:text-blue-200 transition-colors flex items-center">
-                <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
-                </svg>
-                <span> 96325 33122</span>
-              </a>
-              <a href="mailto:info@chanreallergyclinic.com" className="hover:text-blue-200 transition-colors flex items-center">
-                <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
-                  <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
-                </svg>
-                <span>info@chanreallergyclinic.com</span>
-              </a>
-            </div>
-
-            {/* Social Media Links */}
-            <div className="flex space-x-4">
-              <a href="https://www.facebook.com/ChanRericr/" className="hover:text-blue-200 transition-colors">
-                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                </svg>
-              </a>
-              <a href="https://x.com/ChanRecricr2002" className="hover:text-blue-200 transition-colors">
-                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                  <path d="M22.46 6c-.77.35-1.6.58-2.46.69.88-.53 1.56-1.37 1.88-2.38-.83.5-1.75.85-2.72 1.05C18.37 4.5 17.26 4 16 4c-2.35 0-4.27 1.92-4.27 4.29 0 .34.04.67.11.98C8.28 9.09 5.11 7.38 3 4.79c-.37.63-.58 1.37-.58 2.15 0 1.49.75 2.81 1.91 3.56-.71 0-1.37-.2-1.95-.5v.03c0 2.08 1.48 3.82 3.44 4.21a4.22 4.22 0 0 1-1.93.07 4.28 4.28 0 0 0 4 2.98 8.521 8.521 0 0 1-5.33 1.84c-.34 0-.68-.02-1.02-.06C3.44 20.29 5.7 21 8.12 21 16 21 20.33 14.46 20.33 8.79c0-.19 0-.37-.01-.56.84-.6 1.56-1.36 2.14-2.23z" />
-                </svg>
-              </a>
-              <a href="https://www.linkedin.com/in/chanre-rheumatology-and-immunology-center-and-research-928728111/" className="hover:text-blue-200 transition-colors">
-                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                  <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
-                </svg>
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
+      <TopHeader />
 
       <HomeHeader />
 
       {/* Hero Slider */}
-      <section id="home" className="relative pt-32">
+      <section id="home" className="relative pt-20 sm:pt-32">
         <div className="w-full">
           <div className="relative">
             <img
               src="banner.jpg"
               alt="Indian Doctor with Patient"
-              className="w-full h-[600px] md:h-[700px] object-cover"
+              className="w-full h-[400px] sm:h-[500px] md:h-[600px] lg:h-[700px] object-cover"
             />
 
             {/* Full Width Overlay with Content on Left */}
             <div className="absolute left-0 top-0 w-full h-full bg-white/80 flex items-start">
-              <div className="px-38 py-52">
-                <div className="space-y-6">
+              <div className="px-4 sm:px-8 md:px-16 lg:px-38 py-8 sm:py-16 md:py-32 lg:py-52">
+                <div className="space-y-4 sm:space-y-6">
                   {/* Clinic Badge */}
                   <div className="inline-block">
                     <div
-                      className="bg-[#e0f2fe] text-[#2490eb] px-4 py-2 rounded-lg text-sm font-semibold uppercase tracking-wider"
+                      className="bg-[#e0f2fe] text-[#2490eb] px-3 sm:px-4 py-1 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold uppercase tracking-wider"
                       style={{ fontFamily: 'Quicksand, sans-serif' }}
                     >
                       CHANRE ALLERGY CLINIC
@@ -241,7 +198,7 @@ export default function Home() {
 
                   {/* Main Heading */}
                   <h1
-                    className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight text-[#18100f]"
+                    className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight text-[#18100f]"
                     style={{ fontFamily: 'Quicksand, sans-serif', textTransform: 'capitalize' }}
                   >
                     Unlocking Relief,<br />
@@ -250,25 +207,25 @@ export default function Home() {
 
                   {/* Description */}
                   <p
-                    className="text-[#666666] text-lg leading-relaxed max-w-md"
+                    className="text-[#666666] text-sm sm:text-base md:text-lg leading-relaxed max-w-md"
                     style={{ fontFamily: 'Quicksand, sans-serif' }}
                   >
                     It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout.
                   </p>
 
                   {/* CTA Buttons */}
-                  <div className="pt-4 flex flex-col sm:flex-row gap-4">
+                  <div className="pt-2 sm:pt-4 flex flex-col sm:flex-row gap-3 sm:gap-4">
                     <a
                       href="/about"
-                      className="inline-block bg-[#2490eb] hover:bg-[#14457b] text-white font-semibold uppercase px-8 py-4 rounded-md transition-all duration-300"
-                      style={{ fontFamily: 'Quicksand, sans-serif', fontSize: '14px', fontWeight: '600' }}
+                      className="inline-block bg-[#2490eb] hover:bg-[#14457b] text-white font-semibold uppercase px-4 sm:px-6 md:px-8 py-2 sm:py-3 md:py-4 rounded-md transition-all duration-300 text-xs sm:text-sm"
+                      style={{ fontFamily: 'Quicksand, sans-serif', fontWeight: '600' }}
                     >
                       READ MORE
                     </a>
                     <a
                       href="/book-appointment"
-                      className="inline-block bg-white hover:bg-gray-100 text-[#2490eb] font-semibold uppercase px-8 py-4 rounded-md border-2 border-[#2490eb] transition-all duration-300"
-                      style={{ fontFamily: 'Quicksand, sans-serif', fontSize: '14px', fontWeight: '600' }}
+                      className="inline-block bg-white hover:bg-gray-100 text-[#2490eb] font-semibold uppercase px-4 sm:px-6 md:px-8 py-2 sm:py-3 md:py-4 rounded-md border-2 border-[#2490eb] transition-all duration-300 text-xs sm:text-sm"
+                      style={{ fontFamily: 'Quicksand, sans-serif', fontWeight: '600' }}
                     >
                       BOOK APPOINTMENT
                     </a>
@@ -277,8 +234,8 @@ export default function Home() {
               </div>
 
               {/* Right Doctor Image - positioned within full overlay */}
-              <div className="absolute right-0 top-20 w-2/5 h-full flex items-center justify-center hidden md:flex">
-                <div className="relative w-80 h-96 rounded-lg overflow-hidden shadow-2xl">
+              <div className="absolute right-0 top-10 sm:top-20 w-1/3 sm:w-2/5 h-full flex items-center justify-center hidden lg:flex">
+                <div className="relative w-60 sm:w-80 h-72 sm:h-96 rounded-lg overflow-hidden shadow-2xl">
                   <img
                     src="banner.jpg"
                     alt="Indian Doctor with Patient"
@@ -292,50 +249,49 @@ export default function Home() {
       </section>
 
       {/* Feature Blocks */}
-      <section className="bg-white py-16">
-        <div className="w-4/5 mx-auto px-4">
-          <div className="grid md:grid-cols-3 gap-8">
+      <section className="bg-white py-12 sm:py-16">
+        <div className="w-4/5 mx-auto px-2 sm:px-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
             {/* Emergency Cases */}
-            <div className="bg-[#2490eb] text-white p-8 rounded-lg shadow-lg">
-              <div className="flex items-center justify-center w-16 h-16 bg-white/20 rounded-lg mb-6">
-                <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
+            <div className="bg-[#2490eb] text-white p-6 sm:p-8 rounded-lg shadow-lg">
+              <div className="flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 bg-white/20 rounded-lg mb-4 sm:mb-6">
+                <svg className="w-6 h-6 sm:w-8 sm:h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold mb-4">Emergency Cases</h3>
-              <p className="text-gray-200 mb-6">Many desktop publishing packages and web page editors now use Lorem Ipsum as their default model text.</p>
+              <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4">Emergency Cases</h3>
+              <p className="text-gray-200 mb-4 sm:mb-6 text-sm sm:text-base">Many desktop publishing packages and web page editors now use Lorem Ipsum as their default model text.</p>
               <div className="flex items-center">
-                <svg className="w-6 h-6 text-white mr-3" fill="currentColor" viewBox="0 0 20 20">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white mr-2 sm:mr-3" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
                 </svg>
-                <span className="text-2xl font-bold">08 0425 16699
-                </span>
+                <span className="text-lg sm:text-2xl font-bold">08 0425 16699</span>
               </div>
             </div>
 
             {/* Doctors Timetable */}
-            <div className="bg-[#14457b] text-white p-8 rounded-lg shadow-lg">
-              <div className="flex items-center justify-center w-16 h-16 bg-white/20 rounded-lg mb-6">
-                <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
+            <div className="bg-[#14457b] text-white p-6 sm:p-8 rounded-lg shadow-lg">
+              <div className="flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 bg-white/20 rounded-lg mb-4 sm:mb-6">
+                <svg className="w-6 h-6 sm:w-8 sm:h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v1.382l-.894 1.788A2 2 0 000 8a2 2 0 102.382-.894L3 7.118V6a1 1 0 011-1h10a1 1 0 011 1v1.382l.894 1.788A2 2 0 0017 8a2 2 0 10-2.382-.894L14 7.118V6a2 2 0 00-2-2h-1V3a1 1 0 00-1-1H6z" clipRule="evenodd" />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold mb-4">Doctors Timetable</h3>
-              <p className="text-gray-200 mb-6">Many desktop publishing packages and web page editors now use Lorem Ipsum as their default model text.</p>
-              <button className="bg-[#2490eb] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#2490eb]/80 transition-colors">
+              <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4">Doctors Timetable</h3>
+              <p className="text-gray-200 mb-4 sm:mb-6 text-sm sm:text-base">Many desktop publishing packages and web page editors now use Lorem Ipsum as their default model text.</p>
+              <button className="bg-[#2490eb] text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold hover:bg-[#2490eb]/80 transition-colors text-xs sm:text-sm">
                 TIMETABLE +
               </button>
             </div>
 
             {/* Opening Hours */}
-            <div className="bg-[#2490eb] text-white p-8 rounded-lg shadow-lg">
-              <div className="flex items-center justify-center w-16 h-16 bg-white/20 rounded-lg mb-6">
-                <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
+            <div className="bg-[#2490eb] text-white p-6 sm:p-8 rounded-lg shadow-lg">
+              <div className="flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 bg-white/20 rounded-lg mb-4 sm:mb-6">
+                <svg className="w-6 h-6 sm:w-8 sm:h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold mb-4">Opening Hours</h3>
-              <div className="space-y-2 text-gray-200">
+              <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4">Opening Hours</h3>
+              <div className="space-y-1 sm:space-y-2 text-gray-200 text-xs sm:text-sm">
                 <div className="flex justify-between">
                   <span>Monday-Friday:</span>
                   <span>9:00 AM - 5:00 PM</span>
@@ -359,39 +315,39 @@ export default function Home() {
       </section>
 
       {/* Allergy & Clinical Immunology */}
-      <section className="bg-white py-20">
-        <div className="w-4/5 mx-auto px-4">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
+      <section className="bg-white py-16 sm:py-20">
+        <div className="w-4/5 mx-auto px-2 sm:px-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12 items-center">
             <div>
               <img
                 src="banner2.jpg"
                 alt="Indian Doctor"
-                className="rounded-lg shadow-xl"
+                className="rounded-lg shadow-xl w-full h-auto"
               />
             </div>
             <div>
-              <div className="inline-block mb-4">
-                <span className="bg-[#2490eb] text-white px-4 py-2 text-sm font-semibold uppercase tracking-wider">
+              <div className="inline-block mb-3 sm:mb-4">
+                <span className="bg-[#2490eb] text-white px-3 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm font-semibold uppercase tracking-wider">
                   ALLERGY & CLINICAL IMMUNOLOGY
                 </span>
               </div>
-              <h2 className="text-3xl font-bold mb-6">Allergy & Clinical Immunology</h2>
-              <p className="text-gray-700 mb-6">
+              <h2 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">Allergy & Clinical Immunology</h2>
+              <p className="text-gray-700 mb-4 sm:mb-6 text-sm sm:text-base">
                 An hypersensitive disorder of the immune system it happens when your body encounters allergen either by
               </p>
-              <div className="space-y-3">
+              <div className="space-y-2 sm:space-y-3">
                 {['Inhalation', 'Injection', 'Ingestion', 'Skin Contact'].map((item, index) => (
                   <div key={index} className="flex items-center">
-                    <svg className="w-5 h-5 text-[#2490eb] mr-3" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-[#2490eb] mr-2 sm:mr-3" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
-                    <span>{item}</span>
+                    <span className="text-sm sm:text-base">{item}</span>
                   </div>
                 ))}
               </div>
               <a 
                 href="/about"
-                className="inline-block bg-[#2490eb] text-white px-6 py-3 rounded-lg font-semibold mt-6 hover:bg-[#14457b] transition-colors"
+                className="inline-block bg-[#2490eb] text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold mt-4 sm:mt-6 hover:bg-[#14457b] transition-colors text-xs sm:text-sm"
               >
                 READ MORE +
               </a>
@@ -401,48 +357,123 @@ export default function Home() {
       </section>
 
       {/* Our Team */}
-      <section className="bg-white py-20">
-        <div className="w-4/5 mx-auto px-4">
-          <div className="text-center mb-16">
-            <div className="inline-block mb-4">
-              <span className="bg-[#2490eb] text-white px-4 py-2 text-sm font-semibold uppercase tracking-wider">
+      <section className="bg-white py-12 sm:py-16 md:py-20">
+        <div className="w-4/5 mx-auto px-2 sm:px-4">
+          <div className="text-center mb-8 sm:mb-12 md:mb-16">
+            <div className="inline-block mb-3 sm:mb-4">
+              <span className="bg-[#2490eb] text-white px-3 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm font-semibold uppercase tracking-wider">
                 OUR TEAM
               </span>
             </div>
-            <h2 className="text-3xl font-bold mb-4">Meet Our Allergy Specialists</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold mb-3 sm:mb-4">Meet Our Allergy Specialists</h2>
           </div>
 
-          {/* Slider Container with Side Navigation */}
-          <div className="flex items-center gap-4">
-            {/* Left Navigation Button */}
-            <button
-              className="bg-white shadow-lg rounded-full p-3 hover:bg-gray-100 transition-colors flex-shrink-0"
-              onClick={() => moveTeamSlider(-1)}
-            >
-              <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-
-            {/* Slider Container - Shows 3 doctors at a time */}
-            <div className="flex-1 overflow-hidden">
-              <div
-                className="flex transition-transform duration-300 ease-in-out"
-                style={{ transform: `translateX(-${currentTeamSlide * 100}%)` }}
+          {/* Mobile Slider - Shows 1 doctor at a time */}
+          <div className="block md:hidden">
+            <div className="flex items-center gap-2 sm:gap-4">
+              {/* Left Navigation Button */}
+              <button
+                className="bg-white shadow-lg rounded-full p-2 sm:p-3 hover:bg-gray-100 transition-colors flex-shrink-0"
+                onClick={() => moveTeamSlider(-1)}
               >
-                {/* Generate slides based on 4 doctors per slide */}
-                {Array.from({ length: Math.ceil(teamData.length / 4) }, (_, slideIndex) => (
-                  <div key={slideIndex} className="flex flex-shrink-0 w-full justify-center gap-6">
-                    {teamData.slice(slideIndex * 4, (slideIndex + 1) * 4).map((doctor, index) => (
-                      <div key={`${slideIndex}-${index}`}>
-                        {/* Card Container with smaller dimensions 280x420 */}
-                        <div 
-                          className="bg-white overflow-hidden transition-all duration-300 group shadow-lg"
-                          style={{width: '280px', height: '420px'}}
-                        >
-                          {/* Main container with image and social bar */}
-                          <div className="relative">
-                            {/* Image section with reduced dimensions 280x320 */}
+                <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+
+              {/* Mobile Slider Container */}
+              <div className="flex-1 overflow-hidden">
+                <div
+                  className="flex transition-transform duration-300 ease-in-out"
+                  style={{ transform: `translateX(-${currentTeamSlide * 100}%)` }}
+                >
+                  {teamData.map((doctor, index) => (
+                    <div key={index} className="flex-shrink-0 w-full flex justify-center">
+                      <div className="bg-white overflow-hidden transition-all duration-300 group shadow-lg rounded-lg max-w-xs w-full">
+                        {/* Image section */}
+                        <div className="relative overflow-hidden h-64 sm:h-72">
+                          <img
+                            src={doctor.image}
+                            alt={doctor.name}
+                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          />
+
+                          {/* Social Media Icons Bar */}
+                          <div className="absolute right-0 top-0 h-full w-10 sm:w-12 bg-[#2490eb] flex flex-col items-center justify-center space-y-2 sm:space-y-3 transform translate-x-full group-hover:translate-x-0 transition-transform duration-300">
+                            <button className="w-6 h-6 sm:w-7 sm:h-7 bg-white text-[#2490eb] rounded flex items-center justify-center hover:bg-gray-100 transition-colors">
+                              <span className="font-bold text-xs sm:text-sm">f</span>
+                            </button>
+                            <button className="w-6 h-6 sm:w-7 sm:h-7 bg-white text-[#2490eb] rounded flex items-center justify-center hover:bg-gray-100 transition-colors">
+                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z" />
+                              </svg>
+                            </button>
+                            <button className="w-6 h-6 sm:w-7 sm:h-7 bg-white text-[#2490eb] rounded flex items-center justify-center hover:bg-gray-100 transition-colors">
+                              <span className="font-bold text-xs">G+</span>
+                            </button>
+                          </div>
+                        </div>
+                        
+                        {/* Name section */}
+                        <div className="p-4 sm:p-6 text-center">
+                          <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-1 sm:mb-2">{doctor.name}</h3>
+                          <p className="text-[#2490eb] text-xs sm:text-sm uppercase font-medium leading-tight">{doctor.specialization}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Right Navigation Button */}
+              <button
+                className="bg-white shadow-lg rounded-full p-2 sm:p-3 hover:bg-gray-100 transition-colors flex-shrink-0"
+                onClick={() => moveTeamSlider(1)}
+              >
+                <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Mobile Pagination Dots */}
+            <div className="flex justify-center mt-6 sm:mt-8 space-x-2">
+              {teamData.map((_, index) => (
+                <div
+                  key={index}
+                  className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full ${currentTeamSlide === index ? 'bg-[#2490eb]' : 'bg-gray-300'} cursor-pointer hover:bg-[#2490eb]/70 transition-colors`}
+                  onClick={() => setCurrentTeamSlide(index)}
+                ></div>
+              ))}
+            </div>
+          </div>
+
+          {/* Desktop Slider - Shows multiple doctors */}
+          <div className="hidden md:block">
+            <div className="flex items-center gap-4">
+              {/* Left Navigation Button */}
+              <button
+                className="bg-white shadow-lg rounded-full p-3 hover:bg-gray-100 transition-colors flex-shrink-0"
+                onClick={() => moveTeamSlider(-1)}
+              >
+                <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+
+              {/* Desktop Slider Container */}
+              <div className="flex-1 overflow-hidden">
+                <div
+                  className="flex transition-transform duration-300 ease-in-out"
+                  style={{ transform: `translateX(-${currentTeamSlide * 100}%)` }}
+                >
+                  {/* Generate slides based on 3 doctors per slide */}
+                  {Array.from({ length: Math.ceil(teamData.length / 3) }, (_, slideIndex) => (
+                    <div key={slideIndex} className="flex flex-shrink-0 w-full justify-center gap-6">
+                      {teamData.slice(slideIndex * 3, (slideIndex + 1) * 3).map((doctor, index) => (
+                        <div key={`${slideIndex}-${index}`}>
+                          <div className="bg-white overflow-hidden transition-all duration-300 group shadow-lg rounded-lg" style={{width: '280px', height: '420px'}}>
+                            {/* Image section */}
                             <div className="relative overflow-hidden" style={{width: '280px', height: '320px'}}>
                               <img
                                 src={doctor.image}
@@ -450,7 +481,7 @@ export default function Home() {
                                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                               />
 
-                              {/* Social Media Icons Bar - smaller width */}
+                              {/* Social Media Icons Bar */}
                               <div className="absolute right-0 top-0 h-full w-12 bg-[#2490eb] flex flex-col items-center justify-center space-y-3 transform translate-x-full group-hover:translate-x-0 transition-transform duration-300">
                                 <button className="w-7 h-7 bg-white text-[#2490eb] rounded flex items-center justify-center hover:bg-gray-100 transition-colors">
                                   <span className="font-bold text-sm">f</span>
@@ -466,7 +497,7 @@ export default function Home() {
                               </div>
                             </div>
                             
-                            {/* Name section with smaller dimensions 250x80 */}
+                            {/* Name section */}
                             <div className="flex items-center justify-center" style={{width: '250px', height: '80px', margin: 'auto'}}>
                               <div className="text-center">
                                 <h3 className="text-base font-bold text-gray-900 mb-1" style={{fontSize: '16px', fontWeight: 'bold'}}>{doctor.name}</h3>
@@ -475,33 +506,33 @@ export default function Home() {
                             </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                ))}
+                      ))}
+                    </div>
+                  ))}
+                </div>
               </div>
+
+              {/* Right Navigation Button */}
+              <button
+                className="bg-white shadow-lg rounded-full p-3 hover:bg-gray-100 transition-colors flex-shrink-0"
+                onClick={() => moveTeamSlider(1)}
+              >
+                <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
             </div>
 
-            {/* Right Navigation Button */}
-            <button
-              className="bg-white shadow-lg rounded-full p-3 hover:bg-gray-100 transition-colors flex-shrink-0"
-              onClick={() => moveTeamSlider(1)}
-            >
-              <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          </div>
-
-          {/* Pagination Dots */}
-          <div className="flex justify-center mt-8 space-x-2">
-            {Array.from({ length: Math.ceil(teamData.length / 4) }, (_, slideIndex) => (
-              <div
-                key={slideIndex}
-                className={`w-3 h-3 rounded-full ${currentTeamSlide === slideIndex ? 'bg-blue-600' : 'bg-gray-300'} cursor-pointer hover:bg-blue-500 transition-colors`}
-                onClick={() => setCurrentTeamSlide(slideIndex)}
-              ></div>
-            ))}
+            {/* Desktop Pagination Dots */}
+            <div className="flex justify-center mt-8 space-x-2">
+              {Array.from({ length: Math.ceil(teamData.length / 3) }, (_, slideIndex) => (
+                <div
+                  key={slideIndex}
+                  className={`w-3 h-3 rounded-full ${currentTeamSlide === slideIndex ? 'bg-[#2490eb]' : 'bg-gray-300'} cursor-pointer hover:bg-[#2490eb]/70 transition-colors`}
+                  onClick={() => setCurrentTeamSlide(slideIndex)}
+                ></div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -607,52 +638,91 @@ export default function Home() {
       </section>
 
       {/* Testimonials */}
-      <section className="bg-white py-20">
-        <div className="w-4/5 mx-auto px-4">
-          <div className="text-center mb-16">
-            <div className="inline-block mb-4">
-              <span className="bg-[#2490eb] text-white px-4 py-2 text-sm font-semibold uppercase tracking-wider">
+      <section className="bg-white py-12 sm:py-16 md:py-20">
+        <div className="w-4/5 mx-auto px-2 sm:px-4">
+          <div className="text-center mb-8 sm:mb-12 md:mb-16">
+            <div className="inline-block mb-3 sm:mb-4">
+              <span className="bg-[#2490eb] text-white px-3 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm font-semibold uppercase tracking-wider">
                 OUR PATIENTS
               </span>
             </div>
-            <h2 className="text-3xl font-bold mb-4">Our Patients Feedback</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold mb-3 sm:mb-4">Our Patients Feedback</h2>
           </div>
           
-          {/* Testimonials Slider with Auto Scroll */}
-          <div className="relative overflow-hidden">
-            <div 
-              className="flex transition-transform duration-1000 ease-in-out"
-              style={{ transform: `translateX(-${currentTestimonial * 50}%)` }}
-            >
-              {testimonialsData.map((testimonial, index) => (
-                <div key={index} className="w-1/2 flex-shrink-0 px-4">
-                  <div className="bg-white border rounded-lg p-8 shadow-lg relative">
-                    <div className="absolute top-6 left-6 text-6xl text-[#2490eb] opacity-20">"</div>
-                    <div className="pt-8">
-                      <p className="text-gray-700 mb-6">{testimonial.quote}</p>
-                      <div className="flex items-center">
-                        
-                        <div>
-                          <h4 className="font-semibold">{testimonial.name}</h4>
-                          <p className="text-gray-600 text-sm">{testimonial.designation}</p>
+          {/* Mobile Testimonials Slider - Shows 1 testimonial */}
+          <div className="block md:hidden">
+            <div className="relative overflow-hidden">
+              <div 
+                className="flex transition-transform duration-1000 ease-in-out"
+                style={{ transform: `translateX(-${currentTestimonial * 100}%)` }}
+              >
+                {testimonialsData.map((testimonial, index) => (
+                  <div key={index} className="w-full flex-shrink-0 px-2">
+                    <div className="bg-white border rounded-lg p-4 sm:p-6 shadow-lg relative">
+                      <div className="absolute top-3 left-3 sm:top-4 sm:left-4 text-4xl sm:text-5xl text-[#2490eb] opacity-20">"</div>
+                      <div className="pt-4 sm:pt-6">
+                        <p className="text-gray-700 mb-4 sm:mb-6 text-sm sm:text-base leading-relaxed">{testimonial.quote}</p>
+                        <div className="flex items-center">
+                          <div>
+                            <h4 className="font-semibold text-sm sm:text-base">{testimonial.name}</h4>
+                            <p className="text-gray-600 text-xs sm:text-sm">{testimonial.designation}</p>
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
-                </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Mobile Pagination Dots */}
+            <div className="flex justify-center mt-6 sm:mt-8 space-x-2">
+              {testimonialsData.map((_, index) => (
+                <div 
+                  key={index} 
+                  className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full cursor-pointer transition-colors duration-300 ${currentTestimonial === index ? 'bg-[#2490eb]' : 'bg-gray-300'}`}
+                  onClick={() => setCurrentTestimonial(index)}
+                ></div>
               ))}
             </div>
           </div>
 
-          {/* Pagination Dots */}
-          <div className="flex justify-center mt-8 space-x-2">
-            {Array.from({ length: Math.ceil(testimonialsData.length / 2) }, (_, index) => (
+          {/* Desktop Testimonials Slider - Shows 2 testimonials */}
+          <div className="hidden md:block">
+            <div className="relative overflow-hidden">
               <div 
-                key={index} 
-                className={`w-3 h-3 rounded-full cursor-pointer transition-colors duration-300 ${currentTestimonial === index * 2 ? 'bg-[#2490eb]' : 'bg-gray-300'}`}
-                onClick={() => setCurrentTestimonial(index * 2)}
-              ></div>
-            ))}
+                className="flex transition-transform duration-1000 ease-in-out"
+                style={{ transform: `translateX(-${currentTestimonial * 50}%)` }}
+              >
+                {testimonialsData.map((testimonial, index) => (
+                  <div key={index} className="w-1/2 flex-shrink-0 px-4">
+                    <div className="bg-white border rounded-lg p-6 lg:p-8 shadow-lg relative">
+                      <div className="absolute top-4 left-4 lg:top-6 lg:left-6 text-5xl lg:text-6xl text-[#2490eb] opacity-20">"</div>
+                      <div className="pt-6 lg:pt-8">
+                        <p className="text-gray-700 mb-4 lg:mb-6 text-sm lg:text-base leading-relaxed">{testimonial.quote}</p>
+                        <div className="flex items-center">
+                          <div>
+                            <h4 className="font-semibold text-sm lg:text-base">{testimonial.name}</h4>
+                            <p className="text-gray-600 text-xs lg:text-sm">{testimonial.designation}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Desktop Pagination Dots */}
+            <div className="flex justify-center mt-8 space-x-2">
+              {Array.from({ length: Math.ceil(testimonialsData.length / 2) }, (_, index) => (
+                <div 
+                  key={index} 
+                  className={`w-3 h-3 rounded-full cursor-pointer transition-colors duration-300 ${currentTestimonial === index * 2 ? 'bg-[#2490eb]' : 'bg-gray-300'}`}
+                  onClick={() => setCurrentTestimonial(index * 2)}
+                ></div>
+              ))}
+            </div>
           </div>
         </div>
       </section>

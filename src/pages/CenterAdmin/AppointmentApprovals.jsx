@@ -601,11 +601,11 @@ const AppointmentApprovals = () => {
               {/* Desktop Table View */}
               <div className="hidden lg:block">
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-slate-200">
+                  <table className="min-w-[1000px] divide-y divide-slate-200">
                   <thead className="bg-gradient-to-r from-slate-50 to-blue-50">
                     <tr>
                       <th 
-                        className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider cursor-pointer hover:bg-blue-50 transition-colors"
+                        className="px-4 lg:px-6 py-3 lg:py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider cursor-pointer hover:bg-blue-50 transition-colors"
                         onClick={() => handleSort('patientName')}
                       >
                         <div className="flex items-center space-x-2">
@@ -618,7 +618,7 @@ const AppointmentApprovals = () => {
                         </div>
                       </th>
                       <th 
-                        className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider cursor-pointer hover:bg-blue-50 transition-colors"
+                        className="px-4 lg:px-6 py-3 lg:py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider cursor-pointer hover:bg-blue-50 transition-colors"
                         onClick={() => handleSort('preferredDate')}
                       >
                         <div className="flex items-center space-x-2">
@@ -630,14 +630,14 @@ const AppointmentApprovals = () => {
                           )}
                         </div>
                       </th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                      <th className="px-4 lg:px-6 py-3 lg:py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                         Contact
                       </th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                      <th className="px-4 lg:px-6 py-3 lg:py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                         Type
                       </th>
                       <th 
-                        className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider cursor-pointer hover:bg-blue-50 transition-colors"
+                        className="px-4 lg:px-6 py-3 lg:py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider cursor-pointer hover:bg-blue-50 transition-colors"
                         onClick={() => handleSort('status')}
                       >
                         <div className="flex items-center space-x-2">
@@ -649,7 +649,7 @@ const AppointmentApprovals = () => {
                           )}
                         </div>
                       </th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                      <th className="px-4 lg:px-6 py-3 lg:py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                         Actions
                       </th>
                     </tr>
@@ -657,7 +657,7 @@ const AppointmentApprovals = () => {
                   <tbody className="bg-white divide-y divide-slate-200">
                     {appointments.map((appointment) => (
                       <tr key={appointment._id} className="hover:bg-blue-50/30 transition-colors">
-                        <td className="px-6 py-5 whitespace-nowrap">
+                        <td className="px-4 lg:px-6 py-4 lg:py-5 whitespace-nowrap">
                           <div className="flex flex-col">
                             <div className="text-sm font-semibold text-slate-900">
                               {appointment.patientName}
@@ -670,7 +670,7 @@ const AppointmentApprovals = () => {
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-5 whitespace-nowrap">
+                        <td className="px-4 lg:px-6 py-4 lg:py-5 whitespace-nowrap">
                           <div className="flex flex-col">
                             <div className={`text-sm font-semibold ${getPriorityColor(appointment)}`}>
                               {appointment.confirmedDate ? formatDate(appointment.confirmedDate) : formatDate(appointment.preferredDate)}
@@ -690,7 +690,7 @@ const AppointmentApprovals = () => {
                             )}
                           </div>
                         </td>
-                        <td className="px-6 py-5 whitespace-nowrap">
+                        <td className="px-4 lg:px-6 py-4 lg:py-5 whitespace-nowrap">
                           <div className="flex flex-col">
                             <div className="text-sm text-slate-900 font-medium">
                               {appointment.patientPhone}
@@ -700,7 +700,7 @@ const AppointmentApprovals = () => {
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-5 whitespace-nowrap">
+                        <td className="px-4 lg:px-6 py-4 lg:py-5 whitespace-nowrap">
                           <div className="text-sm text-slate-900 font-medium capitalize">
                             {appointment.appointmentType}
                           </div>
@@ -708,12 +708,12 @@ const AppointmentApprovals = () => {
                             {appointment.contactMethod}
                           </div>
                         </td>
-                        <td className="px-6 py-5 whitespace-nowrap">
+                        <td className="px-4 lg:px-6 py-4 lg:py-5 whitespace-nowrap">
                           {appointment.status === 'pending' && (
                             <div className="flex items-center">
-                              <span className="px-4 py-2 text-sm font-bold rounded-lg bg-gradient-to-r from-yellow-100 to-amber-100 text-yellow-800 border-2 border-yellow-300 shadow-md animate-pulse">
+                              <span className="px-3 lg:px-4 py-1.5 lg:py-2 text-xs lg:text-sm font-bold rounded-lg bg-gradient-to-r from-yellow-100 to-amber-100 text-yellow-800 border-2 border-yellow-300 shadow-md animate-pulse">
                                 <div className="flex items-center">
-                                  <svg className="w-4 h-4 mr-2 animate-spin" fill="currentColor" viewBox="0 0 20 20">
+                                  <svg className="w-3 h-3 lg:w-4 lg:h-4 mr-1 lg:mr-2 animate-spin" fill="currentColor" viewBox="0 0 20 20">
                                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
                                   </svg>
                               ⏳ PENDING
@@ -723,9 +723,9 @@ const AppointmentApprovals = () => {
                           )}
                           {appointment.status === 'confirmed' && (
                             <div className="flex items-center">
-                              <span className="px-4 py-2 text-sm font-bold rounded-lg bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border-2 border-green-300 shadow-md">
+                              <span className="px-3 lg:px-4 py-1.5 lg:py-2 text-xs lg:text-sm font-bold rounded-lg bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border-2 border-green-300 shadow-md">
                                 <div className="flex items-center">
-                                  <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                  <svg className="w-3 h-3 lg:w-4 lg:h-4 mr-1 lg:mr-2" fill="currentColor" viewBox="0 0 20 20">
                                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                                   </svg>
                               ✅ APPROVED
@@ -735,9 +735,9 @@ const AppointmentApprovals = () => {
                           )}
                           {appointment.status === 'cancelled' && (
                             <div className="flex items-center">
-                              <span className="px-4 py-2 text-sm font-bold rounded-lg bg-gradient-to-r from-red-100 to-rose-100 text-red-800 border-2 border-red-300 shadow-md">
+                              <span className="px-3 lg:px-4 py-1.5 lg:py-2 text-xs lg:text-sm font-bold rounded-lg bg-gradient-to-r from-red-100 to-rose-100 text-red-800 border-2 border-red-300 shadow-md">
                                 <div className="flex items-center">
-                                  <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                  <svg className="w-3 h-3 lg:w-4 lg:h-4 mr-1 lg:mr-2" fill="currentColor" viewBox="0 0 20 20">
                                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                                   </svg>
                               ❌ CANCELLED
@@ -746,31 +746,31 @@ const AppointmentApprovals = () => {
                             </div>
                           )}
                         </td>
-                        <td className="px-6 py-5 whitespace-nowrap text-sm font-medium">
-                          <div className="flex space-x-2">
+                        <td className="px-4 lg:px-6 py-4 lg:py-5 whitespace-nowrap text-sm font-medium">
+                          <div className="flex flex-wrap gap-1 lg:gap-2">
                             {appointment.status === 'pending' && (
                               <>
                                 <button
                                   onClick={() => handleApprove(appointment._id)}
                                   disabled={updateLoading}
-                                  className="inline-flex items-center px-3 py-2 bg-green-600 text-white text-xs font-semibold rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md"
+                                  className="inline-flex items-center px-2 lg:px-3 py-1.5 lg:py-2 bg-green-600 text-white text-xs font-semibold rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md"
                                   title="Approve Appointment"
                                 >
                                   <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                   </svg>
-                                  Approve
+                                  <span className="hidden lg:inline">Approve</span>
                                 </button>
                                 <button
                                   onClick={() => handleReject(appointment._id)}
                                   disabled={updateLoading}
-                                  className="inline-flex items-center px-3 py-2 bg-red-600 text-white text-xs font-semibold rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md"
+                                  className="inline-flex items-center px-2 lg:px-3 py-1.5 lg:py-2 bg-red-600 text-white text-xs font-semibold rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md"
                                   title="Reject Appointment"
                                 >
                                   <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                   </svg>
-                                  Reject
+                                  <span className="hidden lg:inline">Reject</span>
                                 </button>
                               </>
                             )}
@@ -779,24 +779,25 @@ const AppointmentApprovals = () => {
                                 console.log('Edit button clicked for appointment:', appointment);
                                 openEditModal(appointment);
                               }}
-                              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-all duration-200 shadow-md hover:shadow-lg border-2 border-blue-500"
+                              className="inline-flex items-center px-3 lg:px-4 py-1.5 lg:py-2 bg-blue-600 text-white text-xs lg:text-sm font-semibold rounded-lg hover:bg-blue-700 transition-all duration-200 shadow-md hover:shadow-lg border-2 border-blue-500"
                               title="Edit Appointment"
                             >
-                              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <svg className="w-3 h-3 lg:w-4 lg:h-4 mr-1 lg:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                               </svg>
-                              Edit Appointment
+                              <span className="hidden lg:inline">Edit Appointment</span>
+                              <span className="lg:hidden">Edit</span>
                             </button>
                             <button
                               onClick={() => openModal(appointment)}
-                              className="inline-flex items-center px-3 py-2 bg-[#2490eb] text-white text-xs font-semibold rounded-lg hover:bg-[#14457b] transition-all duration-200 shadow-sm hover:shadow-md"
+                              className="inline-flex items-center px-2 lg:px-3 py-1.5 lg:py-2 bg-[#2490eb] text-white text-xs font-semibold rounded-lg hover:bg-[#14457b] transition-all duration-200 shadow-sm hover:shadow-md"
                               title="View Details"
                             >
                               <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                               </svg>
-                              View
+                              <span className="hidden lg:inline">View</span>
                             </button>
                           </div>
                         </td>
@@ -807,33 +808,35 @@ const AppointmentApprovals = () => {
               </div>
 
               {/* Pagination Controls */}
-              <div className="bg-gradient-to-r from-slate-50 to-blue-50 px-6 py-4 flex items-center justify-between border-t border-slate-200">
-                <div className="flex-1 flex justify-between sm:hidden">
+              <div className="bg-gradient-to-r from-slate-50 to-blue-50 px-3 sm:px-4 lg:px-6 py-3 sm:py-4 flex items-center justify-between border-t border-slate-200">
+                <div className="flex-1 flex justify-between lg:hidden">
                   <button
                     onClick={() => handlePageChange(currentPage - 1)}
                     disabled={currentPage === 1}
-                    className="inline-flex items-center px-4 py-2 bg-white border-2 border-slate-300 text-slate-700 text-sm font-semibold rounded-lg hover:bg-slate-50 hover:border-slate-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm"
+                    className="inline-flex items-center px-3 sm:px-4 py-2 bg-white border-2 border-slate-300 text-slate-700 text-xs sm:text-sm font-semibold rounded-lg hover:bg-slate-50 hover:border-slate-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm"
                   >
-                    <span className="mr-2">←</span>
-                    Previous
+                    <span className="mr-1 sm:mr-2">←</span>
+                    <span className="hidden sm:inline">Previous</span>
+                    <span className="sm:hidden">Prev</span>
                   </button>
                   <button
                     onClick={() => handlePageChange(currentPage + 1)}
                     disabled={currentPage === totalPages}
-                    className="inline-flex items-center px-4 py-2 bg-white border-2 border-slate-300 text-slate-700 text-sm font-semibold rounded-lg hover:bg-slate-50 hover:border-slate-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm"
+                    className="inline-flex items-center px-3 sm:px-4 py-2 bg-white border-2 border-slate-300 text-slate-700 text-xs sm:text-sm font-semibold rounded-lg hover:bg-slate-50 hover:border-slate-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm"
                   >
-                    Next
-                    <span className="ml-2">→</span>
+                    <span className="hidden sm:inline">Next</span>
+                    <span className="sm:hidden">Next</span>
+                    <span className="ml-1 sm:ml-2">→</span>
                   </button>
                 </div>
-                <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                  <div className="flex items-center space-x-6">
-                    <div className="flex items-center space-x-3">
+                <div className="hidden lg:flex-1 lg:flex lg:items-center lg:justify-between">
+                  <div className="flex items-center space-x-4 xl:space-x-6">
+                    <div className="flex items-center space-x-2 xl:space-x-3">
                       <label className="text-sm font-semibold text-slate-700">Show:</label>
                       <select
                         value={itemsPerPage}
                         onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
-                        className="border border-slate-300 rounded-lg px-3 py-2 text-sm font-medium bg-white hover:border-[#2490eb] focus:border-[#2490eb] focus:ring-2 focus:ring-blue-100 transition-all duration-200"
+                        className="border border-slate-300 rounded-lg px-2 xl:px-3 py-1.5 xl:py-2 text-sm font-medium bg-white hover:border-[#2490eb] focus:border-[#2490eb] focus:ring-2 focus:ring-blue-100 transition-all duration-200"
                       >
                         <option value={5}>5</option>
                         <option value={10}>10</option>
@@ -846,14 +849,14 @@ const AppointmentApprovals = () => {
                       Showing {startIndex + 1} to {Math.min(endIndex, sortedAppointments.length)} of {sortedAppointments.length} results
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-1 xl:space-x-2">
                     <button
                       onClick={() => handlePageChange(currentPage - 1)}
                       disabled={currentPage === 1}
-                      className="inline-flex items-center px-3 py-2 bg-white border-2 border-slate-300 text-slate-500 text-sm font-semibold rounded-lg hover:bg-slate-50 hover:text-slate-700 hover:border-slate-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm"
+                      className="inline-flex items-center px-2 xl:px-3 py-1.5 xl:py-2 bg-white border-2 border-slate-300 text-slate-500 text-sm font-semibold rounded-lg hover:bg-slate-50 hover:text-slate-700 hover:border-slate-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm"
                     >
                       <span className="mr-1">←</span>
-                      Prev
+                      <span className="hidden xl:inline">Prev</span>
                     </button>
                     
                     {/* Page Numbers */}
@@ -874,7 +877,7 @@ const AppointmentApprovals = () => {
                           <button
                             key={pageNum}
                             onClick={() => handlePageChange(pageNum)}
-                            className={`inline-flex items-center px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 shadow-sm ${
+                            className={`inline-flex items-center px-3 xl:px-4 py-1.5 xl:py-2 text-sm font-semibold rounded-lg transition-all duration-200 shadow-sm ${
                               currentPage === pageNum
                                 ? 'bg-[#2490eb] text-white shadow-lg hover:bg-[#14457b]'
                                 : 'bg-white border-2 border-slate-300 text-slate-500 hover:bg-slate-50 hover:text-slate-700 hover:border-slate-400'
@@ -889,13 +892,14 @@ const AppointmentApprovals = () => {
                     <button
                       onClick={() => handlePageChange(currentPage + 1)}
                       disabled={currentPage === totalPages}
-                      className="inline-flex items-center px-3 py-2 bg-white border-2 border-slate-300 text-slate-500 text-sm font-semibold rounded-lg hover:bg-slate-50 hover:text-slate-700 hover:border-slate-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm"
+                      className="inline-flex items-center px-2 xl:px-3 py-1.5 xl:py-2 bg-white border-2 border-slate-300 text-slate-500 text-sm font-semibold rounded-lg hover:bg-slate-50 hover:text-slate-700 hover:border-slate-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm"
                     >
-                      Next
+                      <span className="hidden xl:inline">Next</span>
                       <span className="ml-1">→</span>
                     </button>
                   </div>
                 </div>
+              </div>
               </div>
           </>
         )}
@@ -903,13 +907,13 @@ const AppointmentApprovals = () => {
 
         {/* Detailed Modal */}
         {showModal && selectedAppointment && (
-          <div className="fixed inset-0 bg-black bg-opacity-60 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
-            <div className="relative w-full max-w-6xl max-h-[90vh] overflow-y-auto bg-white rounded-2xl shadow-2xl border border-slate-200">
+          <div className="fixed inset-0 bg-black bg-opacity-60 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-2 sm:p-4">
+            <div className="relative w-full max-w-6xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto bg-white rounded-xl sm:rounded-2xl shadow-2xl border border-slate-200">
               {/* Modal Header */}
-              <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 rounded-t-2xl">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="sticky top-0 bg-white border-b border-slate-200 px-3 sm:px-4 lg:px-6 py-3 sm:py-4 rounded-t-xl sm:rounded-t-2xl">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
                   <div className="flex-1">
-                    <h3 className="text-xl sm:text-2xl font-bold text-slate-800 mb-2">
+                    <h3 className="text-lg sm:text-xl lg:text-2xl font-bold text-slate-800 mb-2">
                     Appointment Details - {selectedAppointment.patientName}
                   </h3>
                     {/* Status Highlight */}
@@ -957,14 +961,14 @@ const AppointmentApprovals = () => {
                 </div>
 
               {/* Modal Content */}
-              <div className="p-6">
+              <div className="p-3 sm:p-4 lg:p-6">
 
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
                   {/* Patient Information */}
-                  <div className="space-y-6">
-                    <div className="bg-gradient-to-br from-slate-50 to-blue-50 p-6 rounded-xl border border-slate-200">
-                      <h4 className="font-bold text-slate-800 mb-4 text-lg">Patient Information</h4>
-                      <div className="space-y-2 text-sm">
+                  <div className="space-y-4 sm:space-y-6">
+                    <div className="bg-gradient-to-br from-slate-50 to-blue-50 p-3 sm:p-4 lg:p-6 rounded-xl border border-slate-200">
+                      <h4 className="font-bold text-slate-800 mb-3 sm:mb-4 text-base sm:text-lg">Patient Information</h4>
+                      <div className="space-y-2 text-xs sm:text-sm">
                         <p><strong className="text-slate-700">Name:</strong> <span className="text-slate-600">{selectedAppointment.patientName}</span></p>
                         <p><strong className="text-slate-700">Age:</strong> <span className="text-slate-600">{selectedAppointment.patientAge} years</span></p>
                         <p><strong className="text-slate-700">Gender:</strong> <span className="text-slate-600">{selectedAppointment.patientGender}</span></p>
@@ -974,52 +978,52 @@ const AppointmentApprovals = () => {
                       </div>
                     </div>
 
-                    <div className="bg-gradient-to-br from-slate-50 to-blue-50 p-6 rounded-xl border border-slate-200">
-                      <h4 className="font-bold text-slate-800 mb-4 text-lg">Appointment Details</h4>
+                    <div className="bg-gradient-to-br from-slate-50 to-blue-50 p-3 sm:p-4 lg:p-6 rounded-xl border border-slate-200">
+                      <h4 className="font-bold text-slate-800 mb-3 sm:mb-4 text-base sm:text-lg">Appointment Details</h4>
                       
                       {/* Status Banner - Enhanced */}
-                      <div className="mb-6">
+                      <div className="mb-4 sm:mb-6">
                         {selectedAppointment.status === 'pending' && (
-                          <div className="p-4 bg-gradient-to-r from-yellow-50 to-amber-50 border-2 border-yellow-300 rounded-xl shadow-lg">
+                          <div className="p-3 sm:p-4 bg-gradient-to-r from-yellow-50 to-amber-50 border-2 border-yellow-300 rounded-xl shadow-lg">
                             <div className="flex items-center">
-                              <div className="w-12 h-12 bg-gradient-to-r from-yellow-100 to-amber-100 rounded-xl flex items-center justify-center mr-4 animate-pulse">
-                                <svg className="w-6 h-6 text-yellow-600 animate-spin" fill="currentColor" viewBox="0 0 20 20">
+                              <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-gradient-to-r from-yellow-100 to-amber-100 rounded-xl flex items-center justify-center mr-3 sm:mr-4 animate-pulse">
+                                <svg className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-yellow-600 animate-spin" fill="currentColor" viewBox="0 0 20 20">
                                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
                                 </svg>
                               </div>
                               <div>
-                                <h5 className="text-yellow-800 font-bold text-lg mb-1">⏳ Appointment Pending Approval</h5>
-                                <p className="text-yellow-700 text-sm">This appointment is currently under review by our medical staff. A receptionist will contact the patient within 24 hours to confirm the appointment details.</p>
+                                <h5 className="text-yellow-800 font-bold text-sm sm:text-base lg:text-lg mb-1">⏳ Appointment Pending Approval</h5>
+                                <p className="text-yellow-700 text-xs sm:text-sm">This appointment is currently under review by our medical staff. A receptionist will contact the patient within 24 hours to confirm the appointment details.</p>
                               </div>
                             </div>
                           </div>
                         )}
                         {selectedAppointment.status === 'confirmed' && (
-                          <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-xl shadow-lg">
+                          <div className="p-3 sm:p-4 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-xl shadow-lg">
                             <div className="flex items-center">
-                              <div className="w-12 h-12 bg-gradient-to-r from-green-100 to-emerald-100 rounded-xl flex items-center justify-center mr-4">
-                                <svg className="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                              <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-gradient-to-r from-green-100 to-emerald-100 rounded-xl flex items-center justify-center mr-3 sm:mr-4">
+                                <svg className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
                                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                                 </svg>
                               </div>
                               <div>
-                                <h5 className="text-green-800 font-bold text-lg mb-1">✅ Appointment Confirmed</h5>
-                                <p className="text-green-700 text-sm">This appointment has been confirmed. The patient has been notified and should arrive 15 minutes early.</p>
+                                <h5 className="text-green-800 font-bold text-sm sm:text-base lg:text-lg mb-1">✅ Appointment Confirmed</h5>
+                                <p className="text-green-700 text-xs sm:text-sm">This appointment has been confirmed. The patient has been notified and should arrive 15 minutes early.</p>
                               </div>
                             </div>
                           </div>
                         )}
                         {selectedAppointment.status === 'cancelled' && (
-                          <div className="p-4 bg-gradient-to-r from-red-50 to-rose-50 border-2 border-red-300 rounded-xl shadow-lg">
+                          <div className="p-3 sm:p-4 bg-gradient-to-r from-red-50 to-rose-50 border-2 border-red-300 rounded-xl shadow-lg">
                             <div className="flex items-center">
-                              <div className="w-12 h-12 bg-gradient-to-r from-red-100 to-rose-100 rounded-xl flex items-center justify-center mr-4">
-                                <svg className="w-6 h-6 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                              <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-gradient-to-r from-red-100 to-rose-100 rounded-xl flex items-center justify-center mr-3 sm:mr-4">
+                                <svg className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-red-600" fill="currentColor" viewBox="0 0 20 20">
                                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                                 </svg>
                               </div>
                               <div>
-                                <h5 className="text-red-800 font-bold text-lg mb-1">❌ Appointment Cancelled</h5>
-                                <p className="text-red-700 text-sm">This appointment has been cancelled. The patient has been notified and can contact the center to reschedule.</p>
+                                <h5 className="text-red-800 font-bold text-sm sm:text-base lg:text-lg mb-1">❌ Appointment Cancelled</h5>
+                                <p className="text-red-700 text-xs sm:text-sm">This appointment has been cancelled. The patient has been notified and can contact the center to reschedule.</p>
                               </div>
                             </div>
                           </div>
@@ -1027,71 +1031,71 @@ const AppointmentApprovals = () => {
                       </div>
 
                     {/* Schedule Information */}
-                    <div className="space-y-6">
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-lg">
-                          <div className="flex items-center mb-4">
-                            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                              <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="space-y-4 sm:space-y-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                        <div className="bg-white p-3 sm:p-4 lg:p-6 rounded-xl border border-slate-200 shadow-lg">
+                          <div className="flex items-center mb-3 sm:mb-4">
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-2 sm:mr-3">
+                              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                               </svg>
                             </div>
-                            <h5 className="text-lg font-bold text-slate-800">Preferred Schedule</h5>
+                            <h5 className="text-base sm:text-lg font-bold text-slate-800">Preferred Schedule</h5>
                           </div>
-                          <div className="space-y-4">
-                            <div className="py-3 px-4 bg-slate-50 rounded-lg">
+                          <div className="space-y-3 sm:space-y-4">
+                            <div className="py-2 sm:py-3 px-3 sm:px-4 bg-slate-50 rounded-lg">
                               <div className="flex justify-between items-start mb-1">
-                                <span className="text-sm font-medium text-slate-600">Date</span>
+                                <span className="text-xs sm:text-sm font-medium text-slate-600">Date</span>
                               </div>
-                              <div className="text-sm font-bold text-slate-800 break-words">{formatDate(selectedAppointment.preferredDate)}</div>
+                              <div className="text-xs sm:text-sm font-bold text-slate-800 break-words">{formatDate(selectedAppointment.preferredDate)}</div>
                             </div>
-                            <div className="py-3 px-4 bg-slate-50 rounded-lg">
+                            <div className="py-2 sm:py-3 px-3 sm:px-4 bg-slate-50 rounded-lg">
                               <div className="flex justify-between items-start mb-1">
-                                <span className="text-sm font-medium text-slate-600">Time</span>
+                                <span className="text-xs sm:text-sm font-medium text-slate-600">Time</span>
                               </div>
-                              <div className="text-sm font-bold text-slate-800">{selectedAppointment.preferredTime}</div>
+                              <div className="text-xs sm:text-sm font-bold text-slate-800">{selectedAppointment.preferredTime}</div>
                             </div>
                           </div>
                         </div>
                         
-                        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-lg">
+                        <div className="bg-white p-3 sm:p-4 lg:p-6 rounded-xl border border-slate-200 shadow-lg">
                           {selectedAppointment.confirmedDate ? (
                             <>
-                              <div className="flex items-center mb-4">
-                                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3">
-                                  <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <div className="flex items-center mb-3 sm:mb-4">
+                                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-100 rounded-lg flex items-center justify-center mr-2 sm:mr-3">
+                                  <svg className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                   </svg>
                                 </div>
-                                <h5 className="text-lg font-bold text-green-800">Confirmed Schedule</h5>
+                                <h5 className="text-base sm:text-lg font-bold text-green-800">Confirmed Schedule</h5>
                               </div>
-                              <div className="space-y-4">
-                                <div className="py-3 px-4 bg-green-50 rounded-lg">
+                              <div className="space-y-3 sm:space-y-4">
+                                <div className="py-2 sm:py-3 px-3 sm:px-4 bg-green-50 rounded-lg">
                                   <div className="flex justify-between items-start mb-1">
-                                    <span className="text-sm font-medium text-green-600">Date</span>
+                                    <span className="text-xs sm:text-sm font-medium text-green-600">Date</span>
                                   </div>
-                                  <div className="text-sm font-bold text-green-800 break-words">{formatDate(selectedAppointment.confirmedDate)}</div>
+                                  <div className="text-xs sm:text-sm font-bold text-green-800 break-words">{formatDate(selectedAppointment.confirmedDate)}</div>
                                 </div>
-                                <div className="py-3 px-4 bg-green-50 rounded-lg">
+                                <div className="py-2 sm:py-3 px-3 sm:px-4 bg-green-50 rounded-lg">
                                   <div className="flex justify-between items-start mb-1">
-                                    <span className="text-sm font-medium text-green-600">Time</span>
+                                    <span className="text-xs sm:text-sm font-medium text-green-600">Time</span>
                                   </div>
-                                  <div className="text-sm font-bold text-green-800">{selectedAppointment.confirmedTime}</div>
+                                  <div className="text-xs sm:text-sm font-bold text-green-800">{selectedAppointment.confirmedTime}</div>
                                 </div>
                               </div>
                             </>
                           ) : (
                             <>
-                              <div className="flex items-center mb-4">
-                                <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center mr-3">
-                                  <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <div className="flex items-center mb-3 sm:mb-4">
+                                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-yellow-100 rounded-lg flex items-center justify-center mr-2 sm:mr-3">
+                                  <svg className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                   </svg>
                                 </div>
-                                <h5 className="text-lg font-bold text-yellow-800">Confirmation Status</h5>
+                                <h5 className="text-base sm:text-lg font-bold text-yellow-800">Confirmation Status</h5>
                               </div>
-                              <div className="py-3 px-4 bg-yellow-50 rounded-lg">
-                                <p className="text-yellow-700 text-sm font-medium">⏳ Awaiting confirmation</p>
+                              <div className="py-2 sm:py-3 px-3 sm:px-4 bg-yellow-50 rounded-lg">
+                                <p className="text-yellow-700 text-xs sm:text-sm font-medium">⏳ Awaiting confirmation</p>
                               </div>
                             </>
                           )}
@@ -1099,60 +1103,60 @@ const AppointmentApprovals = () => {
                       </div>
 
                       {/* Additional Details */}
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-lg">
-                          <div className="flex items-center mb-4">
-                            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
-                              <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                        <div className="bg-white p-3 sm:p-4 lg:p-6 rounded-xl border border-slate-200 shadow-lg">
+                          <div className="flex items-center mb-3 sm:mb-4">
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 rounded-lg flex items-center justify-center mr-2 sm:mr-3">
+                              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                               </svg>
                             </div>
-                            <h5 className="text-lg font-bold text-slate-800">Appointment Details</h5>
+                            <h5 className="text-base sm:text-lg font-bold text-slate-800">Appointment Details</h5>
                           </div>
-                          <div className="space-y-4">
-                            <div className="py-3 px-4 bg-slate-50 rounded-lg">
+                          <div className="space-y-3 sm:space-y-4">
+                            <div className="py-2 sm:py-3 px-3 sm:px-4 bg-slate-50 rounded-lg">
                               <div className="flex justify-between items-start mb-1">
-                                <span className="text-sm font-medium text-slate-600">Type</span>
+                                <span className="text-xs sm:text-sm font-medium text-slate-600">Type</span>
                               </div>
-                              <div className="text-sm font-bold text-slate-800 capitalize">{selectedAppointment.appointmentType}</div>
+                              <div className="text-xs sm:text-sm font-bold text-slate-800 capitalize">{selectedAppointment.appointmentType}</div>
                             </div>
-                            <div className="py-3 px-4 bg-slate-50 rounded-lg">
+                            <div className="py-2 sm:py-3 px-3 sm:px-4 bg-slate-50 rounded-lg">
                               <div className="flex justify-between items-start mb-1">
-                                <span className="text-sm font-medium text-slate-600">Contact Method</span>
+                                <span className="text-xs sm:text-sm font-medium text-slate-600">Contact Method</span>
                               </div>
-                              <div className="text-sm font-bold text-slate-800 capitalize">{selectedAppointment.contactMethod}</div>
+                              <div className="text-xs sm:text-sm font-bold text-slate-800 capitalize">{selectedAppointment.contactMethod}</div>
                             </div>
-                            <div className="py-3 px-4 bg-slate-50 rounded-lg">
+                            <div className="py-2 sm:py-3 px-3 sm:px-4 bg-slate-50 rounded-lg">
                               <div className="flex justify-between items-start mb-1">
-                                <span className="text-sm font-medium text-slate-600">Confirmation Code</span>
+                                <span className="text-xs sm:text-sm font-medium text-slate-600">Confirmation Code</span>
                               </div>
-                              <div className="text-sm font-bold text-[#2490eb] font-mono">{selectedAppointment.confirmationCode}</div>
+                              <div className="text-xs sm:text-sm font-bold text-[#2490eb] font-mono">{selectedAppointment.confirmationCode}</div>
                             </div>
                           </div>
                         </div>
                         
-                        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-lg">
-                          <div className="flex items-center mb-4">
-                            <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center mr-3">
-                              <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="bg-white p-3 sm:p-4 lg:p-6 rounded-xl border border-slate-200 shadow-lg">
+                          <div className="flex items-center mb-3 sm:mb-4">
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-indigo-100 rounded-lg flex items-center justify-center mr-2 sm:mr-3">
+                              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                               </svg>
                             </div>
-                            <h5 className="text-lg font-bold text-slate-800">Timeline</h5>
+                            <h5 className="text-base sm:text-lg font-bold text-slate-800">Timeline</h5>
                           </div>
-                          <div className="space-y-4">
-                            <div className="py-3 px-4 bg-slate-50 rounded-lg">
+                          <div className="space-y-3 sm:space-y-4">
+                            <div className="py-2 sm:py-3 px-3 sm:px-4 bg-slate-50 rounded-lg">
                               <div className="flex justify-between items-start mb-1">
-                                <span className="text-sm font-medium text-slate-600">Recorded On</span>
+                                <span className="text-xs sm:text-sm font-medium text-slate-600">Recorded On</span>
                               </div>
-                              <div className="text-sm font-bold text-slate-800 break-words">{formatDateTime(selectedAppointment.bookedAt || selectedAppointment.createdAt)}</div>
+                              <div className="text-xs sm:text-sm font-bold text-slate-800 break-words">{formatDateTime(selectedAppointment.bookedAt || selectedAppointment.createdAt)}</div>
                             </div>
                         {selectedAppointment.status === 'confirmed' && selectedAppointment.confirmedAt && (
-                              <div className="py-3 px-4 bg-green-50 rounded-lg">
+                              <div className="py-2 sm:py-3 px-3 sm:px-4 bg-green-50 rounded-lg">
                                 <div className="flex justify-between items-start mb-1">
-                                  <span className="text-sm font-medium text-green-600">Confirmed On</span>
+                                  <span className="text-xs sm:text-sm font-medium text-green-600">Confirmed On</span>
                                 </div>
-                                <div className="text-sm font-bold text-green-800 break-words">{formatDateTime(selectedAppointment.confirmedAt)}</div>
+                                <div className="text-xs sm:text-sm font-bold text-green-800 break-words">{formatDateTime(selectedAppointment.confirmedAt)}</div>
                               </div>
                             )}
                           </div>
@@ -1163,53 +1167,53 @@ const AppointmentApprovals = () => {
                   </div>
 
                   {/* Medical Information */}
-                  <div className="space-y-6">
-                    <div className="bg-gradient-to-br from-slate-50 to-blue-50 p-6 rounded-xl border border-slate-200">
-                      <h4 className="font-bold text-slate-800 mb-4 text-lg">Medical Information</h4>
-                      <div className="space-y-4">
-                        <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
-                          <h5 className="font-semibold text-slate-700 mb-3 flex items-center">
-                            <svg className="w-4 h-4 mr-2 text-[#2490eb]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="space-y-4 sm:space-y-6">
+                    <div className="bg-gradient-to-br from-slate-50 to-blue-50 p-3 sm:p-4 lg:p-6 rounded-xl border border-slate-200">
+                      <h4 className="font-bold text-slate-800 mb-3 sm:mb-4 text-base sm:text-lg">Medical Information</h4>
+                      <div className="space-y-3 sm:space-y-4">
+                        <div className="bg-white p-3 sm:p-4 rounded-lg border border-slate-200 shadow-sm">
+                          <h5 className="font-semibold text-slate-700 mb-2 sm:mb-3 flex items-center text-sm sm:text-base">
+                            <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-2 text-[#2490eb]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
                             Reason for Visit
                           </h5>
-                          <p className="text-slate-600 bg-slate-50 p-3 rounded-lg border border-slate-200 text-sm leading-relaxed">{selectedAppointment.reasonForVisit}</p>
+                          <p className="text-slate-600 bg-slate-50 p-2 sm:p-3 rounded-lg border border-slate-200 text-xs sm:text-sm leading-relaxed">{selectedAppointment.reasonForVisit}</p>
                         </div>
                         
                         {selectedAppointment.symptoms && (
-                          <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
-                            <h5 className="font-semibold text-slate-700 mb-3 flex items-center">
-                              <svg className="w-4 h-4 mr-2 text-[#2490eb]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <div className="bg-white p-3 sm:p-4 rounded-lg border border-slate-200 shadow-sm">
+                            <h5 className="font-semibold text-slate-700 mb-2 sm:mb-3 flex items-center text-sm sm:text-base">
+                              <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-2 text-[#2490eb]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                               </svg>
                               Symptoms
                             </h5>
-                            <p className="text-slate-600 bg-slate-50 p-3 rounded-lg border border-slate-200 text-sm leading-relaxed">{selectedAppointment.symptoms}</p>
+                            <p className="text-slate-600 bg-slate-50 p-2 sm:p-3 rounded-lg border border-slate-200 text-xs sm:text-sm leading-relaxed">{selectedAppointment.symptoms}</p>
                           </div>
                         )}
                         
                         {selectedAppointment.previousHistory && (
-                          <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
-                            <h5 className="font-semibold text-slate-700 mb-3 flex items-center">
-                              <svg className="w-4 h-4 mr-2 text-[#2490eb]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <div className="bg-white p-3 sm:p-4 rounded-lg border border-slate-200 shadow-sm">
+                            <h5 className="font-semibold text-slate-700 mb-2 sm:mb-3 flex items-center text-sm sm:text-base">
+                              <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-2 text-[#2490eb]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                               </svg>
                               Medical History
                             </h5>
-                            <p className="text-slate-600 bg-slate-50 p-3 rounded-lg border border-slate-200 text-sm leading-relaxed">{selectedAppointment.previousHistory}</p>
+                            <p className="text-slate-600 bg-slate-50 p-2 sm:p-3 rounded-lg border border-slate-200 text-xs sm:text-sm leading-relaxed">{selectedAppointment.previousHistory}</p>
                           </div>
                         )}
                         
                         {selectedAppointment.notes && (
-                          <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
-                            <h5 className="font-semibold text-slate-700 mb-3 flex items-center">
-                              <svg className="w-4 h-4 mr-2 text-[#2490eb]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <div className="bg-white p-3 sm:p-4 rounded-lg border border-slate-200 shadow-sm">
+                            <h5 className="font-semibold text-slate-700 mb-2 sm:mb-3 flex items-center text-sm sm:text-base">
+                              <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-2 text-[#2490eb]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                               </svg>
                               Additional Notes
                             </h5>
-                            <p className="text-slate-600 bg-slate-50 p-3 rounded-lg border border-slate-200 text-sm leading-relaxed">{selectedAppointment.notes}</p>
+                            <p className="text-slate-600 bg-slate-50 p-2 sm:p-3 rounded-lg border border-slate-200 text-xs sm:text-sm leading-relaxed">{selectedAppointment.notes}</p>
                           </div>
                         )}
                       </div>
@@ -1218,15 +1222,15 @@ const AppointmentApprovals = () => {
                 </div>
 
                 {/* Action Buttons */}
-                <div className="mt-8 flex flex-col sm:flex-row justify-end gap-4">
+                <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row justify-end gap-3 sm:gap-4">
                   {selectedAppointment.status === 'pending' && (
                     <>
                       <button
                         onClick={() => handleApprove(selectedAppointment._id)}
                         disabled={updateLoading}
-                        className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold transition-all duration-200 shadow-lg hover:shadow-xl"
+                        className="w-full sm:w-auto inline-flex items-center justify-center px-4 sm:px-6 py-2.5 sm:py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold transition-all duration-200 shadow-lg hover:shadow-xl text-sm sm:text-base"
                       >
-                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
                         Approve Appointment
@@ -1234,9 +1238,9 @@ const AppointmentApprovals = () => {
                       <button
                         onClick={() => handleReject(selectedAppointment._id)}
                         disabled={updateLoading}
-                        className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold transition-all duration-200 shadow-lg hover:shadow-xl"
+                        className="w-full sm:w-auto inline-flex items-center justify-center px-4 sm:px-6 py-2.5 sm:py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold transition-all duration-200 shadow-lg hover:shadow-xl text-sm sm:text-base"
                       >
-                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
                         Reject Appointment
@@ -1245,9 +1249,9 @@ const AppointmentApprovals = () => {
                   )}
                   <button
                     onClick={closeModal}
-                    className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 border-2 border-slate-300 text-slate-700 rounded-xl hover:bg-slate-50 hover:border-slate-400 font-semibold transition-all duration-200"
+                    className="w-full sm:w-auto inline-flex items-center justify-center px-4 sm:px-6 py-2.5 sm:py-3 border-2 border-slate-300 text-slate-700 rounded-xl hover:bg-slate-50 hover:border-slate-400 font-semibold transition-all duration-200 text-sm sm:text-base"
                   >
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                     Close
@@ -1261,25 +1265,25 @@ const AppointmentApprovals = () => {
         {/* Edit Appointment Modal */}
         {showEditModal && selectedAppointment && (
           <div className="fixed inset-0 bg-slate-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-            <div className="relative top-10 mx-auto p-5 border w-11/12 max-w-2xl shadow-2xl rounded-xl bg-white border-slate-200">
+            <div className="relative top-4 sm:top-10 mx-auto p-3 sm:p-5 border w-11/12 max-w-2xl shadow-2xl rounded-xl bg-white border-slate-200">
               <div className="mt-3">
-                <div className="flex justify-between items-start mb-6">
-                  <h3 className="text-2xl font-bold text-slate-800">
+                <div className="flex justify-between items-start mb-4 sm:mb-6">
+                  <h3 className="text-lg sm:text-xl lg:text-2xl font-bold text-slate-800">
                     Edit Appointment - {selectedAppointment.patientName}
                   </h3>
                   <button
                     onClick={closeEditModal}
                     className="text-slate-400 hover:text-slate-600 transition-colors p-2 rounded-lg hover:bg-slate-100"
                   >
-                    <span className="text-3xl">&times;</span>
+                    <span className="text-2xl sm:text-3xl">&times;</span>
                   </button>
                 </div>
 
-                <div className="space-y-6">
+                <div className="space-y-4 sm:space-y-6">
                   {/* Current Appointment Info */}
-                  <div className="bg-gradient-to-br from-slate-50 to-blue-50 p-6 rounded-xl border border-slate-200">
-                    <h4 className="font-bold text-slate-800 mb-4 text-lg">Current Appointment Details</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div className="bg-gradient-to-br from-slate-50 to-blue-50 p-3 sm:p-4 lg:p-6 rounded-xl border border-slate-200">
+                    <h4 className="font-bold text-slate-800 mb-3 sm:mb-4 text-base sm:text-lg">Current Appointment Details</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
                       <div>
                         <strong className="text-slate-700">Patient:</strong> 
                         <span className="text-slate-600 ml-2">{selectedAppointment.patientName}</span>
@@ -1300,12 +1304,12 @@ const AppointmentApprovals = () => {
                   </div>
 
                   {/* Edit Form */}
-                  <div className="bg-gradient-to-br from-slate-50 to-blue-50 p-6 rounded-xl border border-slate-200">
-                    <h4 className="font-bold text-slate-800 mb-4 text-lg">Schedule Final Appointment</h4>
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-gradient-to-br from-slate-50 to-blue-50 p-3 sm:p-4 lg:p-6 rounded-xl border border-slate-200">
+                    <h4 className="font-bold text-slate-800 mb-3 sm:mb-4 text-base sm:text-lg">Schedule Final Appointment</h4>
+                    <div className="space-y-3 sm:space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                         <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
                             Confirmed Date *
                           </label>
                           <input
@@ -1314,19 +1318,19 @@ const AppointmentApprovals = () => {
                             value={editFormData.confirmedDate}
                             onChange={handleEditInputChange}
                             min={new Date().toISOString().split('T')[0]}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2490eb] focus:border-[#2490eb] bg-white"
+                            className="w-full px-2 sm:px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2490eb] focus:border-[#2490eb] bg-white text-xs sm:text-sm"
                             required
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
                             Confirmed Time *
                           </label>
                           <select
                             name="confirmedTime"
                             value={editFormData.confirmedTime}
                             onChange={handleEditInputChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2490eb] focus:border-[#2490eb] bg-white"
+                            className="w-full px-2 sm:px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2490eb] focus:border-[#2490eb] bg-white text-xs sm:text-sm"
                             required
                           >
                             <option value="">Select Time</option>
@@ -1337,7 +1341,7 @@ const AppointmentApprovals = () => {
                         </div>
                       </div>
                       <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
                           Notes (Optional)
                         </label>
                         <textarea
@@ -1345,7 +1349,7 @@ const AppointmentApprovals = () => {
                           value={editFormData.notes}
                           onChange={handleEditInputChange}
                           rows="3"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2490eb] focus:border-transparent"
+                          className="w-full px-2 sm:px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2490eb] focus:border-transparent text-xs sm:text-sm"
                           placeholder="Add any notes about the appointment scheduling..."
                         />
                       </div>
@@ -1353,16 +1357,16 @@ const AppointmentApprovals = () => {
                   </div>
 
                   {/* Important Notice */}
-                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 sm:p-4">
                     <div className="flex items-start">
                       <div className="flex-shrink-0">
-                        <svg className="w-5 h-5 text-amber-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <svg className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                         </svg>
                       </div>
                       <div className="ml-3">
-                        <h3 className="text-sm font-semibold text-amber-800 mb-1">Important Notice</h3>
-                        <p className="text-sm text-amber-700">
+                        <h3 className="text-xs sm:text-sm font-semibold text-amber-800 mb-1">Important Notice</h3>
+                        <p className="text-xs sm:text-sm text-amber-700">
                           This will confirm the final appointment date and time based on doctor availability. 
                           The patient will be notified of the confirmed schedule.
                         </p>
@@ -1372,26 +1376,26 @@ const AppointmentApprovals = () => {
                 </div>
 
                 {/* Action Buttons */}
-                <div className="mt-8 flex justify-end space-x-4">
+                <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row justify-end gap-3 sm:gap-4">
                   <button
                     onClick={closeEditModal}
-                    className="inline-flex items-center px-6 py-3 border-2 border-slate-300 text-slate-700 rounded-xl hover:bg-slate-50 hover:border-slate-400 font-semibold transition-all duration-200"
+                    className="w-full sm:w-auto inline-flex items-center justify-center px-4 sm:px-6 py-2.5 sm:py-3 border-2 border-slate-300 text-slate-700 rounded-xl hover:bg-slate-50 hover:border-slate-400 font-semibold transition-all duration-200 text-sm sm:text-base"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleUpdateAppointment}
                     disabled={editLoading}
-                    className="inline-flex items-center px-6 py-3 bg-[#2490eb] text-white rounded-xl hover:bg-[#14457b] disabled:opacity-50 disabled:cursor-not-allowed font-semibold transition-all duration-200 shadow-lg hover:shadow-xl"
+                    className="w-full sm:w-auto inline-flex items-center justify-center px-4 sm:px-6 py-2.5 sm:py-3 bg-[#2490eb] text-white rounded-xl hover:bg-[#14457b] disabled:opacity-50 disabled:cursor-not-allowed font-semibold transition-all duration-200 shadow-lg hover:shadow-xl text-sm sm:text-base"
                   >
                     {editLoading ? (
                       <>
-                        <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        <div className="inline-block animate-spin rounded-full h-3 h-4 w-3 w-4 border-b-2 border-white mr-2"></div>
                         Updating...
                       </>
                     ) : (
                       <>
-                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
                         Confirm Appointment

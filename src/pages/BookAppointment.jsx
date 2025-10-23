@@ -6,7 +6,7 @@ import {
   bookAppointment 
 } from '../services/api';
 import HomeHeader from '../components/HomeHeader';
-
+import TopHeader from '../components/TopHeader';
 const BookAppointment = () => {
   const [step, setStep] = useState(1);
   const [centers, setCenters] = useState([]);
@@ -201,15 +201,17 @@ const BookAppointment = () => {
   };
 
   const renderStep1 = () => (
-    <div className="font-sans bg-gray-50 text-slate-800">
+    <div className="min-h-screen bg-gray-50 font-sans text-slate-800">
+     <TopHeader />
+
       {/* Hero Section */}
-      <section className="relative pt-32 pb-12">
-        <div className="w-4/5 mx-auto px-4">
-          <div className="text-center mb-8">
+      <section className="relative pt-20 sm:pt-22 mt-10">
+        <div className="w-4/5 mx-auto px-2 sm:px-4">
+          <div className="text-center mb-6 sm:mb-8">
             {/* Clinic Badge */}
-            <div className="inline-block mb-4">
+            <div className="inline-block mb-3 sm:mb-4 mt-8 sm:mt-10">
               <div
-                className="bg-[#e0f2fe] text-[#2490eb] px-4 py-2 rounded-lg text-sm font-semibold uppercase tracking-wider"
+                className="bg-[#e0f2fe] text-[#2490eb] px-3 sm:px-4 py-1 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold uppercase tracking-wider"
                 style={{ fontFamily: 'Quicksand, sans-serif' }}
               >
                 BOOK YOUR APPOINTMENT
@@ -218,7 +220,7 @@ const BookAppointment = () => {
 
             {/* Main Heading */}
             <h1
-              className="text-3xl md:text-4xl font-bold leading-tight text-[#18100f] mb-4"
+              className="text-2xl sm:text-3xl md:text-4xl font-bold leading-tight text-[#18100f] mb-3 sm:mb-4"
               style={{ fontFamily: 'Quicksand, sans-serif', textTransform: 'capitalize' }}
             >
               Choose Your<br />
@@ -227,7 +229,7 @@ const BookAppointment = () => {
 
             {/* Description */}
             <p
-              className="text-[#666666] text-base leading-relaxed max-w-xl mx-auto"
+              className="text-[#666666] text-sm sm:text-base leading-relaxed max-w-xl mx-auto px-2"
               style={{ fontFamily: 'Quicksand, sans-serif' }}
             >
               Select from our network of specialized allergy centers. Find the most convenient location for your consultation.
@@ -235,16 +237,16 @@ const BookAppointment = () => {
           </div>
 
           {/* Search and Filter */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
-            <div className="flex flex-col md:flex-row gap-4 mb-4">
+          <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6 mb-6 sm:mb-8">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-3 sm:mb-4">
               <div className="flex-1">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
                   Search Centers
                 </label>
                 <input
                   type="text"
                   placeholder="Search by center name, location, or address..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2490eb] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2490eb] focus:border-transparent text-sm sm:text-base"
                   onChange={handleSearchCenters}
                 />
               </div>
@@ -253,8 +255,8 @@ const BookAppointment = () => {
                   type="button"
                   onClick={handleNearbySearch}
                   disabled={!userLocation || loading}
-                  className="px-4 py-2 bg-[#2490eb] hover:bg-[#14457b] text-white font-semibold uppercase rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-                  style={{ fontFamily: 'Quicksand, sans-serif', fontSize: '12px', fontWeight: '600' }}
+                  className="w-full sm:w-auto px-4 py-2 bg-[#2490eb] hover:bg-[#14457b] text-white font-semibold uppercase rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm text-xs sm:text-sm"
+                  style={{ fontFamily: 'Quicksand, sans-serif', fontWeight: '600' }}
                 >
                   {loading ? 'Searching...' : 'Find Nearby'}
                 </button>
@@ -262,8 +264,8 @@ const BookAppointment = () => {
             </div>
             
             {userLocation && (
-              <div className="bg-[#e0f2fe] p-3 rounded-lg">
-                <p className="text-[#2490eb] font-medium text-sm">
+              <div className="bg-[#e0f2fe] p-2 sm:p-3 rounded-lg">
+                <p className="text-[#2490eb] font-medium text-xs sm:text-sm">
                   📍 Location detected: {userLocation.latitude.toFixed(4)}, {userLocation.longitude.toFixed(4)}
                 </p>
               </div>
@@ -271,55 +273,55 @@ const BookAppointment = () => {
           </div>
 
           {/* Centers Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {filteredCenters.map((center) => (
               <div
                 key={center._id}
-                className="bg-white rounded-lg border border-gray-200 p-6 hover:border-[#2490eb] transition-all duration-300 cursor-pointer group"
+                className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6 hover:border-[#2490eb] transition-all duration-300 cursor-pointer group"
               >
-                <div className="text-center mb-4">
-                  <div className="w-12 h-12 bg-[#e0f2fe] rounded-full flex items-center justify-center mx-auto mb-3 group-hover:bg-[#2490eb] transition-colors">
-                    <svg className="w-6 h-6 text-[#2490eb] group-hover:text-white transition-colors" fill="currentColor" viewBox="0 0 20 20">
+                <div className="text-center mb-3 sm:mb-4">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-[#e0f2fe] rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3 group-hover:bg-[#2490eb] transition-colors">
+                    <svg className="w-5 h-5 sm:w-6 sm:h-6 text-[#2490eb] group-hover:text-white transition-colors" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                     </svg>
                   </div>
-                  <h3 className="text-lg font-bold text-gray-800 mb-2">{center.name}</h3>
+                  <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-1 sm:mb-2">{center.name}</h3>
                 </div>
                 
-                <div className="space-y-2 text-gray-600 mb-4 text-sm">
+                <div className="space-y-1 sm:space-y-2 text-gray-600 mb-3 sm:mb-4 text-xs sm:text-sm">
                   <div className="flex items-start">
-                    <svg className="w-4 h-4 text-[#2490eb] mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="w-3 h-3 sm:w-4 sm:h-4 text-[#2490eb] mr-1 sm:mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                     </svg>
-                    <span className="text-xs">{center.location}</span>
+                    <span className="text-xs sm:text-xs">{center.location}</span>
                   </div>
                   <div className="flex items-start">
-                    <svg className="w-4 h-4 text-[#2490eb] mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="w-3 h-3 sm:w-4 sm:h-4 text-[#2490eb] mr-1 sm:mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-6a1 1 0 00-1-1H9a1 1 0 00-1 1v6a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clipRule="evenodd" />
                     </svg>
-                    <span className="text-xs">{center.address}</span>
+                    <span className="text-xs sm:text-xs">{center.address}</span>
                   </div>
                   <div className="flex items-start">
-                    <svg className="w-4 h-4 text-[#2490eb] mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="w-3 h-3 sm:w-4 sm:h-4 text-[#2490eb] mr-1 sm:mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
                       <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
                     </svg>
-                    <span className="text-xs">{center.email}</span>
+                    <span className="text-xs sm:text-xs">{center.email}</span>
                   </div>
                   {center.phone && (
                     <div className="flex items-start">
-                      <svg className="w-4 h-4 text-[#2490eb] mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <svg className="w-3 h-3 sm:w-4 sm:h-4 text-[#2490eb] mr-1 sm:mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
                       </svg>
-                      <span className="text-xs">{center.phone}</span>
+                      <span className="text-xs sm:text-xs">{center.phone}</span>
                     </div>
                   )}
                 </div>
                 
                 <button
                   onClick={() => handleCenterSelect(center)}
-                  className="w-full bg-[#2490eb] hover:bg-[#14457b] text-white font-semibold uppercase py-2 px-4 rounded-lg transition-all duration-300 shadow-sm"
-                  style={{ fontFamily: 'Quicksand, sans-serif', fontSize: '12px', fontWeight: '600' }}
+                  className="w-full bg-[#2490eb] hover:bg-[#14457b] text-white font-semibold uppercase py-2 px-3 sm:px-4 rounded-lg transition-all duration-300 shadow-sm text-xs sm:text-sm"
+                  style={{ fontFamily: 'Quicksand, sans-serif', fontWeight: '600' }}
                 >
                   Select This Center
                 </button>
@@ -344,13 +346,15 @@ const BookAppointment = () => {
 
   const renderStep2 = () => (
     <div className="font-sans bg-gray-50 text-slate-800">
-      <section className="relative pt-32 pb-12">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-8">
+     
+     <TopHeader />
+      <section className="relative pt-20 sm:pt-32 pb-8 sm:pb-12">
+        <div className="w-4/5 mx-auto px-2 sm:px-4">
+          <div className="text-center mb-6 sm:mb-8">
             {/* Clinic Badge */}
-            <div className="inline-block mb-4">
+            <div className="inline-block mb-3 sm:mb-4">
               <div
-                className="bg-[#e0f2fe] text-[#2490eb] px-4 py-2 rounded-lg text-sm font-semibold uppercase tracking-wider"
+                className="bg-[#e0f2fe] text-[#2490eb] px-3 sm:px-4 py-1 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold uppercase tracking-wider"
                 style={{ fontFamily: 'Quicksand, sans-serif' }}
               >
                 APPOINTMENT DETAILS
@@ -359,7 +363,7 @@ const BookAppointment = () => {
 
             {/* Main Heading */}
             <h1
-              className="text-3xl md:text-4xl font-bold leading-tight text-[#18100f] mb-4"
+              className="text-2xl sm:text-3xl md:text-4xl font-bold leading-tight text-[#18100f] mb-3 sm:mb-4"
               style={{ fontFamily: 'Quicksand, sans-serif', textTransform: 'capitalize' }}
             >
               Complete Your<br />
@@ -367,64 +371,64 @@ const BookAppointment = () => {
             </h1>
 
             {/* Selected Center Info */}
-            <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6 max-w-xl mx-auto">
-              <h3 className="font-bold text-[#2490eb] text-base mb-1">Selected Center</h3>
-              <p className="text-gray-700 font-semibold text-sm">{selectedCenter?.name}</p>
-              <p className="text-gray-600 text-sm">{selectedCenter?.location}</p>
+            <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4 mb-4 sm:mb-6 max-w-xl mx-auto">
+              <h3 className="font-bold text-[#2490eb] text-sm sm:text-base mb-1">Selected Center</h3>
+              <p className="text-gray-700 font-semibold text-xs sm:text-sm">{selectedCenter?.name}</p>
+              <p className="text-gray-600 text-xs sm:text-sm">{selectedCenter?.location}</p>
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Main Form Layout - Landscape */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+            {/* Main Form Layout - Responsive */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
               {/* Left Column - Patient Information */}
-              <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <div className="flex items-center mb-4">
-                  <div className="w-10 h-10 bg-[#e0f2fe] rounded-lg flex items-center justify-center mr-3">
-                    <svg className="w-5 h-5 text-[#2490eb]" fill="currentColor" viewBox="0 0 20 20">
+              <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+                <div className="flex items-center mb-3 sm:mb-4">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-[#e0f2fe] rounded-lg flex items-center justify-center mr-2 sm:mr-3">
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-[#2490eb]" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
                     </svg>
                   </div>
-                  <h2 className="text-xl font-bold text-gray-800">Patient Information</h2>
+                  <h2 className="text-lg sm:text-xl font-bold text-gray-800">Patient Information</h2>
                 </div>
                 
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-3 sm:space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1">Full Name *</label>
+                      <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">Full Name *</label>
                       <input
                         type="text"
                         name="patientName"
                         value={formData.patientName}
                         onChange={handleInputChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2490eb] focus:border-[#2490eb] bg-white"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2490eb] focus:border-[#2490eb] bg-white text-sm sm:text-base"
                         required
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1">Email Address *</label>
+                      <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">Email Address *</label>
                       <input
                         type="email"
                         name="patientEmail"
                         value={formData.patientEmail}
                         onChange={handleInputChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2490eb] focus:border-[#2490eb] bg-white"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2490eb] focus:border-[#2490eb] bg-white text-sm sm:text-base"
                         required
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1">Phone Number *</label>
+                      <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">Phone Number *</label>
                       <input
                         type="tel"
                         name="patientPhone"
                         value={formData.patientPhone}
                         onChange={handleInputChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2490eb] focus:border-[#2490eb] bg-white"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2490eb] focus:border-[#2490eb] bg-white text-sm sm:text-base"
                         required
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1">Age *</label>
+                      <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">Age *</label>
                       <input
                         type="number"
                         name="patientAge"
@@ -432,18 +436,18 @@ const BookAppointment = () => {
                         onChange={handleInputChange}
                         min="1"
                         max="120"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2490eb] focus:border-[#2490eb] bg-white"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2490eb] focus:border-[#2490eb] bg-white text-sm sm:text-base"
                         required
                       />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">Gender *</label>
+                    <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">Gender *</label>
                     <select
                       name="patientGender"
                       value={formData.patientGender}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2490eb] focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2490eb] focus:border-transparent text-sm sm:text-base"
                       required
                     >
                       <option value="">Select Gender</option>
@@ -453,13 +457,13 @@ const BookAppointment = () => {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">Address *</label>
+                    <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">Address *</label>
                     <textarea
                       name="patientAddress"
                       value={formData.patientAddress}
                       onChange={handleInputChange}
                       rows="2"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2490eb] focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2490eb] focus:border-transparent text-sm sm:text-base"
                       required
                     />
                   </div>
@@ -620,7 +624,6 @@ const BookAppointment = () => {
               </div>
             </div>
 
-
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
@@ -648,20 +651,20 @@ const BookAppointment = () => {
 
   const renderStep3 = () => (
     <div className="font-sans bg-gray-50 text-slate-800">
-      <section className="relative pt-32 pb-12">
-        <div className="max-w-2xl mx-auto px-4 text-center">
+      <section className="relative pt-20 sm:pt-32 pb-8 sm:pb-12">
+        <div className="w-4/5 mx-auto px-2 sm:px-4 text-center">
           {/* Success Icon */}
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <svg className="w-10 h-10 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
+            <svg className="w-8 h-8 sm:w-10 sm:h-10 text-green-600" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
             </svg>
           </div>
 
           {/* Success Message */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
-            <div className="inline-block mb-4">
+          <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6 mb-4 sm:mb-6">
+            <div className="inline-block mb-3 sm:mb-4">
               <div
-                className="bg-green-100 text-green-800 px-4 py-2 rounded-lg text-sm font-semibold uppercase tracking-wider"
+                className="bg-green-100 text-green-800 px-3 sm:px-4 py-1 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold uppercase tracking-wider"
                 style={{ fontFamily: 'Quicksand, sans-serif' }}
               >
                 APPOINTMENT CONFIRMED
@@ -669,16 +672,16 @@ const BookAppointment = () => {
             </div>
             
             <h1
-              className="text-3xl md:text-4xl font-bold leading-tight text-[#18100f] mb-4"
+              className="text-2xl sm:text-3xl md:text-4xl font-bold leading-tight text-[#18100f] mb-3 sm:mb-4"
               style={{ fontFamily: 'Quicksand, sans-serif', textTransform: 'capitalize' }}
             >
               Appointment Booked<br />
               <span className="text-green-600">Successfully!</span>
             </h1>
             
-            <div className="bg-[#e0f2fe] rounded-lg p-4 mb-6 text-left max-w-xl mx-auto">
-              <h2 className="text-lg font-bold text-[#2490eb] mb-3">Appointment Details</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-gray-700 text-sm">
+            <div className="bg-[#e0f2fe] rounded-lg p-3 sm:p-4 mb-4 sm:mb-6 text-left max-w-xl mx-auto">
+              <h2 className="text-base sm:text-lg font-bold text-[#2490eb] mb-2 sm:mb-3">Appointment Details</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 text-gray-700 text-xs sm:text-sm">
                 <div>
                   <p><strong>Confirmation Code:</strong></p>
                   <p className="font-mono text-[#2490eb] text-base font-bold">{formData.confirmationCode}</p>
@@ -762,15 +765,15 @@ const BookAppointment = () => {
                     }
                   });
                 }}
-                className="px-6 py-3 bg-[#2490eb] hover:bg-[#14457b] text-white font-semibold uppercase rounded-lg transition-all duration-300"
-                style={{ fontFamily: 'Quicksand, sans-serif', fontSize: '14px', fontWeight: '600' }}
+                className="px-4 sm:px-6 py-2 sm:py-3 bg-[#2490eb] hover:bg-[#14457b] text-white font-semibold uppercase rounded-lg transition-all duration-300 text-xs sm:text-sm"
+                style={{ fontFamily: 'Quicksand, sans-serif', fontWeight: '600' }}
               >
                 Book Another Appointment
               </button>
               <button
                 onClick={() => window.location.href = '/'}
-                className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold transition-all duration-300"
-                style={{ fontFamily: 'Quicksand, sans-serif', fontSize: '14px', fontWeight: '600' }}
+                className="px-4 sm:px-6 py-2 sm:py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold transition-all duration-300 text-xs sm:text-sm"
+                style={{ fontFamily: 'Quicksand, sans-serif', fontWeight: '600' }}
               >
                 Return to Homepage
               </button>
@@ -784,7 +787,7 @@ const BookAppointment = () => {
   return (
     <div className="min-h-screen">
       <HomeHeader />
-      <div className="pt-32">
+      <div className="font-sans bg-gray-50 text-slate-800 mt-10">
         {step === 1 && renderStep1()}
         {step === 2 && renderStep2()}
         {step === 3 && renderStep3()}

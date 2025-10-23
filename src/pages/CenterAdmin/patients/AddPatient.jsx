@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { fetchAllDoctors } from "../../../features/doctor/doctorThunks";
 import { getCenterById } from "../../../features/center/centerThunks";
 import API from "../../../services/api";
-import { Users, ArrowLeft, User, Mail, Phone, MapPin, Building, AlertCircle, Calendar, CheckCircle } from 'lucide-react';
+import { Users, ArrowLeft, User, Mail, Phone, MapPin, Building, AlertCircle } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { validatePatientForm, hasFormErrors } from "../../../utils/formValidation";
 const AddPatient = () => {
@@ -36,12 +36,6 @@ const AddPatient = () => {
   });
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
-  
-  // Autocomplete states
-  const [nameSuggestions, setNameSuggestions] = useState([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [searchLoading, setSearchLoading] = useState(false);
-  const [foundAppointment, setFoundAppointment] = useState(null);
 
   // Get center ID from user
   const getCenterId = () => {
@@ -61,52 +55,6 @@ const AddPatient = () => {
     if (user.center && user.center._id) return user.center._id;
     
     return null;
-  };
-
-  // Search appointments by patient name
-  const handleNameSearch = async (searchValue) => {
-    if (searchValue.length < 2) {
-      setNameSuggestions([]);
-      setShowSuggestions(false);
-      return;
-    }
-
-    setSearchLoading(true);
-    try {
-      const centerId = getCenterId();
-      const response = await API.get('/patient-appointments/search', {
-        params: { name: searchValue, centerId }
-      });
-      
-      if (response.data.success && response.data.data.length > 0) {
-        setNameSuggestions(response.data.data);
-        setShowSuggestions(true);
-      } else {
-        setNameSuggestions([]);
-        setShowSuggestions(false);
-      }
-    } catch (error) {
-      console.error('Error searching appointments:', error);
-      setNameSuggestions([]);
-      setShowSuggestions(false);
-    } finally {
-      setSearchLoading(false);
-    }
-  };
-
-  // Handle suggestion selection
-  const handleSelectSuggestion = (appointment) => {
-    setFoundAppointment(appointment);
-    setFormData({
-      ...formData,
-      name: appointment.patientName,
-      age: appointment.patientAge,
-      gender: appointment.patientGender,
-      contact: appointment.patientPhone,
-      email: appointment.patientEmail,
-      address: appointment.patientAddress
-    });
-    setShowSuggestions(false);
   };
 
   useEffect(() => {
@@ -213,11 +161,6 @@ const AddPatient = () => {
     const newFormData = { ...formData, [name]: value };
     setFormData(newFormData);
     
-    // If name field is being changed, search for appointments
-    if (name === 'name') {
-      handleNameSearch(value);
-    }
-    
     // Mark field as touched
     setTouched({ ...touched, [name]: true });
     
@@ -254,17 +197,7 @@ const AddPatient = () => {
       return; // Don't submit if there are validation errors
     }
     
-    // Prepare patient data with appointment information if found
-    const patientData = {
-      ...formData,
-      // Add appointment reference if found
-      ...(foundAppointment && {
-        appointmentId: foundAppointment._id,
-        appointmentConfirmed: true
-      })
-    };
-    
-    dispatch(createPatient(patientData));
+    dispatch(createPatient(formData));
   };
 
   useEffect(() => {
@@ -304,62 +237,6 @@ const AddPatient = () => {
             <p className="text-slate-600 mt-1 text-xs">
               Fill in the details to register a new patient
             </p>
-            
-            {/* Found Appointment Notification */}
-            {foundAppointment && (
-              <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-4">
-                <div className="flex items-center mb-3">
-                  <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                  <span className="text-green-700 font-semibold text-sm">Existing Appointment Found!</span>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                  <div>
-                    <span className="font-medium text-slate-700">Patient:</span>
-                    <span className="ml-2 text-slate-600">{foundAppointment.patientName}</span>
-                  </div>
-                  <div>
-                    <span className="font-medium text-slate-700">Phone:</span>
-                    <span className="ml-2 text-slate-600">{foundAppointment.patientPhone}</span>
-                  </div>
-                  <div>
-                    <span className="font-medium text-slate-700">Appointment Date:</span>
-                    <span className="ml-2 text-slate-600">
-                      {foundAppointment.confirmedDate 
-                        ? new Date(foundAppointment.confirmedDate).toLocaleDateString()
-                        : new Date(foundAppointment.preferredDate).toLocaleDateString()
-                      }
-                    </span>
-                  </div>
-                  <div>
-                    <span className="font-medium text-slate-700">Appointment Time:</span>
-                    <span className="ml-2 text-slate-600">
-                      {foundAppointment.confirmedTime || foundAppointment.preferredTime}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="font-medium text-slate-700">Status:</span>
-                    <span className={`ml-2 px-2 py-1 rounded-full text-xs font-semibold ${
-                      foundAppointment.status === 'confirmed' 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {foundAppointment.status.toUpperCase()}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="font-medium text-slate-700">Confirmation Code:</span>
-                    <span className="ml-2 text-blue-600 font-mono font-semibold">{foundAppointment.confirmationCode}</span>
-                  </div>
-                </div>
-                
-                <div className="mt-3 p-3 bg-green-100 rounded-lg border border-green-300">
-                  <p className="text-green-800 font-semibold text-xs">
-                    ✅ Patient details have been auto-filled from the existing appointment. You can now assign a doctor and add the patient.
-                  </p>
-                </div>
-              </div>
-            )}
           </div>
 
           <form onSubmit={handleSubmit} className="p-6">
@@ -368,7 +245,7 @@ const AddPatient = () => {
               <div className="space-y-4">
                 <h3 className="text-sm font-medium text-slate-800 mb-4">Personal Information</h3>
                 
-                <div className="relative">
+                <div>
                   <label className="block text-xs font-medium text-slate-700 mb-2">
                     Patient Name *
                   </label>
@@ -377,89 +254,20 @@ const AddPatient = () => {
                     name="name"
                     value={formData.name}
                     onChange={handleChange}
-                    onBlur={(e) => {
-                      setTimeout(() => setShowSuggestions(false), 200);
-                      handleBlur(e);
-                    }}
-                    onFocus={() => {
-                      if (formData.name.length >= 2 && nameSuggestions.length > 0) {
-                        setShowSuggestions(true);
-                      }
-                    }}
+                    onBlur={handleBlur}
                     placeholder="Enter patient name"
                     className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-xs ${
                       touched.name && errors.name 
                         ? 'border-red-300 bg-red-50' 
-                        : foundAppointment
-                        ? 'border-slate-200 bg-slate-50 cursor-not-allowed'
                         : 'border-slate-200'
                     }`}
                     required
-                    readOnly={foundAppointment}
-                    autoComplete="off"
                   />
-                  {searchLoading && (
-                    <div className="absolute right-3 top-8">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
-                    </div>
-                  )}
                   {touched.name && errors.name && (
                     <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
                       <AlertCircle className="h-3 w-3" />
                       {errors.name}
                     </p>
-                  )}
-                  
-                  {/* Suggestions Dropdown */}
-                  {showSuggestions && nameSuggestions.length > 0 && (
-                    <div className="absolute z-50 w-full mt-1 bg-white border border-blue-200 rounded-lg shadow-lg max-h-80 overflow-y-auto">
-                      <div className="p-2 bg-blue-50 border-b border-blue-100">
-                        <p className="text-xs font-semibold text-blue-700">Found {nameSuggestions.length} appointment(s)</p>
-                      </div>
-                      {nameSuggestions.map((appointment) => (
-                        <button
-                          key={appointment._id}
-                          type="button"
-                          onClick={() => handleSelectSuggestion(appointment)}
-                          className="w-full text-left p-3 hover:bg-blue-50 transition-colors border-b border-slate-100 last:border-b-0"
-                        >
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="font-semibold text-sm text-slate-800 flex items-center gap-2">
-                                <User className="h-4 w-4 text-blue-500" />
-                                {appointment.patientName}
-                                <span className={`text-xs px-2 py-0.5 rounded-full ${
-                                  appointment.status === 'confirmed' 
-                                    ? 'bg-green-100 text-green-700' 
-                                    : 'bg-yellow-100 text-yellow-700'
-                                }`}>
-                                  {appointment.status}
-                                </span>
-                              </div>
-                              <div className="mt-1 space-y-1">
-                                <div className="flex items-center gap-2 text-xs text-slate-600">
-                                  <Phone className="h-3 w-3" />
-                                  {appointment.patientPhone}
-                                </div>
-                                <div className="flex items-center gap-2 text-xs text-slate-600">
-                                  <Calendar className="h-3 w-3" />
-                                  {appointment.confirmedDate 
-                                    ? new Date(appointment.confirmedDate).toLocaleDateString() 
-                                    : new Date(appointment.preferredDate).toLocaleDateString()
-                                  } at {appointment.confirmedTime || appointment.preferredTime}
-                                </div>
-                                <div className="flex items-center gap-2 text-xs text-blue-600 font-medium">
-                                  <span>Code: {appointment.confirmationCode}</span>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="ml-2">
-                              <CheckCircle className="h-5 w-5 text-blue-500" />
-                            </div>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
                   )}
                 </div>
 
@@ -708,12 +516,12 @@ const AddPatient = () => {
                 {loading ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    {foundAppointment ? 'Adding Patient from Appointment...' : 'Adding Patient...'}
+                    Adding Patient...
                   </>
                 ) : (
                   <>
                     <Users className="h-4 w-4" />
-                    {foundAppointment ? 'Add Patient from Appointment' : 'Add Patient'}
+                    Add Patient
                   </>
                 )}
               </button>

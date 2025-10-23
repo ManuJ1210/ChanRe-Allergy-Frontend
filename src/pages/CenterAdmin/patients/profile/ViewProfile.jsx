@@ -187,26 +187,26 @@ const ViewProfile = () => {
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-2 sm:p-3 md:p-6">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-          <div className="mb-6 sm:mb-8">
+          <div className="mb-4 sm:mb-6 lg:mb-8">
               <button
                               onClick={() => navigate('/dashboard/CenterAdmin/patients/PatientList')}
-              className="flex items-center text-slate-600 hover:text-slate-800 mb-4 transition-colors text-xs"
+              className="flex items-center text-slate-600 hover:text-slate-800 mb-3 sm:mb-4 transition-colors text-xs sm:text-sm"
               >
-              <ArrowLeft className="h-4 w-4 mr-2" />
+              <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
               Back to Patients List
               </button>
           </div>
 
           {/* Patient Header */}
-          <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-4 sm:p-6 mb-6 sm:mb-8">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sm:gap-6">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 w-full md:w-auto">
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-blue-100 flex items-center justify-center">
-                  <User className="h-8 w-8 sm:h-10 sm:w-10 text-blue-500" />
+          <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-3 sm:p-4 lg:p-6 mb-4 sm:mb-6 lg:mb-8">
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 sm:gap-4 lg:gap-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 lg:gap-6 w-full lg:w-auto">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 rounded-full bg-blue-100 flex items-center justify-center">
+                  <User className="h-6 w-6 sm:h-8 sm:w-8 lg:h-10 lg:w-10 text-blue-500" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h1 className="text-md font-bold text-slate-800 mb-2">{patient?.name || 'Patient Name'}</h1>
-                                      <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 text-slate-600 text-xs">
+                  <h1 className="text-base sm:text-lg lg:text-xl font-bold text-slate-800 mb-2">{patient?.name || 'Patient Name'}</h1>
+                                      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 lg:gap-4 text-slate-600 text-xs sm:text-sm">
                       {patient?.gender && (
                         <span className="flex items-center gap-1">
                           <UserCheck className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -240,19 +240,19 @@ const ViewProfile = () => {
                     </div>
                 </div>
             </div>
-              <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto mt-4 md:mt-0">
+              <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto mt-3 lg:mt-0">
                 <button
                   onClick={() => navigate(`/dashboard/CenterAdmin/patients/EditPatient/${patient?._id}`)}
-                  className="bg-blue-500 hover:bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 justify-center text-xs"
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 justify-center text-xs sm:text-sm"
                 >
-                  <Edit className="h-4 w-4" />
+                  <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
                   Edit Patient
                 </button>
                 <button
                   onClick={() => setShowDeleteConfirm(true)}
-                  className="bg-red-500 hover:bg-red-600 text-white px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 justify-center text-xs"
+                  className="bg-red-500 hover:bg-red-600 text-white px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 justify-center text-xs sm:text-sm"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                   Delete Patient
                 </button>
               </div>
@@ -262,12 +262,12 @@ const ViewProfile = () => {
 
 
           {/* Tabs */}
-          <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-2 mb-6 sm:mb-8">
+          <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-2 sm:p-3 mb-4 sm:mb-6 lg:mb-8">
             <div className="flex flex-col sm:flex-row gap-2">
               {TABS.map((tab) => (
                 <button
                   key={tab}
-                  className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-medium transition-colors flex-1 text-xs ${
+                  className={`px-3 sm:px-4 lg:px-6 py-2 sm:py-3 rounded-lg font-medium transition-colors flex-1 text-xs sm:text-sm ${
                     activeTab === tab
                       ? "bg-blue-500 text-white"
                       : "text-slate-600 hover:text-slate-800 hover:bg-slate-50"
@@ -282,59 +282,59 @@ const ViewProfile = () => {
 
           {/* Tab Content */}
           {activeTab === "Overview" && (
-            <div className="space-y-6 sm:space-y-8">
+            <div className="space-y-4 sm:space-y-6 lg:space-y-8">
               {/* Patient Details Card */}
               <div className="bg-white rounded-xl shadow-sm border border-blue-100">
-                <div className="p-4 sm:p-6 border-b border-blue-100">
-                  <h2 className="text-sm font-semibold text-slate-800 flex items-center">
+                <div className="p-3 sm:p-4 lg:p-6 border-b border-blue-100">
+                  <h2 className="text-sm sm:text-base font-semibold text-slate-800 flex items-center">
                     <User className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-blue-500" />
                     Patient Details
             </h2>
-                  <p className="text-slate-600 mt-1 text-xs">
+                  <p className="text-slate-600 mt-1 text-xs sm:text-sm">
                     Complete patient information and contact details
                   </p>
                 </div>
-                <div className="p-4 sm:p-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                <div className="p-3 sm:p-4 lg:p-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                     <div className="space-y-3 sm:space-y-4">
                       <div>
                         <label className="block text-xs font-medium text-slate-500 mb-1">Full Name</label>
-                        <p className="text-slate-800 font-medium text-xs">{patient.name || 'N/A'}</p>
+                        <p className="text-slate-800 font-medium text-xs sm:text-sm">{patient.name || 'N/A'}</p>
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-slate-500 mb-1">Mobile</label>
-                        <p className="text-slate-800 text-xs">
+                        <p className="text-slate-800 text-xs sm:text-sm">
                           {typeof patient.phone === 'string' ? patient.phone :
                            typeof patient.contact === 'string' ? patient.contact : 'N/A'}
                         </p>
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-slate-500 mb-1">Email</label>
-                        <p className="text-slate-800 text-xs">{typeof patient.email === 'string' ? patient.email : 'N/A'}</p>
+                        <p className="text-slate-800 text-xs sm:text-sm">{typeof patient.email === 'string' ? patient.email : 'N/A'}</p>
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-slate-500 mb-1">Location</label>
-                        <p className="text-slate-800 text-xs">{typeof patient.address === 'string' ? patient.address : 'N/A'}</p>
+                        <p className="text-slate-800 text-xs sm:text-sm">{typeof patient.address === 'string' ? patient.address : 'N/A'}</p>
                       </div>
                     </div>
                     <div className="space-y-3 sm:space-y-4">
                       <div>
                         <label className="block text-xs font-medium text-slate-500 mb-1">Assigned Doctor</label>
-                        <p className="text-slate-800 text-xs">
+                        <p className="text-slate-800 text-xs sm:text-sm">
                           {patient.assignedDoctor?.name || 'Not assigned'}
                         </p>
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-slate-500 mb-1">Gender</label>
-                        <p className="text-slate-800 capitalize text-xs">{patient.gender || 'N/A'}</p>
+                        <p className="text-slate-800 capitalize text-xs sm:text-sm">{patient.gender || 'N/A'}</p>
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-slate-500 mb-1">Age</label>
-                        <p className="text-slate-800 text-xs">{patient.age ? `${patient.age} years` : 'N/A'}</p>
+                        <p className="text-slate-800 text-xs sm:text-sm">{patient.age ? `${patient.age} years` : 'N/A'}</p>
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-slate-500 mb-1">Center</label>
-                        <p className="text-slate-800 text-xs">
+                        <p className="text-slate-800 text-xs sm:text-sm">
                           {patient.centerId?.name ||
                            (typeof patient.centerCode === 'string' ? patient.centerCode : 'N/A')}
                         </p>
@@ -346,73 +346,73 @@ const ViewProfile = () => {
 
               {/* Investigations */}
               <div className="bg-white rounded-xl shadow-sm border border-blue-100">
-                <div className="p-4 sm:p-6 border-b border-blue-100">
-                  <h2 className="text-sm font-semibold text-slate-800 flex items-center">
+                <div className="p-3 sm:p-4 lg:p-6 border-b border-blue-100">
+                  <h2 className="text-sm sm:text-base font-semibold text-slate-800 flex items-center">
                     <Activity className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-blue-500" />
                     Investigations
                   </h2>
-                  <p className="text-slate-600 mt-1 text-xs">
+                  <p className="text-slate-600 mt-1 text-xs sm:text-sm">
                     Laboratory test results and medical investigations
                   </p>
                 </div>
-                <div className="p-4 sm:p-6">
+                <div className="p-3 sm:p-4 lg:p-6">
                   
                   
 
                   <div className="overflow-x-auto">
-                    <table className="w-full">
+                    <table className="w-full min-w-[1200px]">
                       <thead>
                         <tr className="bg-slate-50 border-b border-slate-200">
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Date</th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">CBC</th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Hb</th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">TC</th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">DC</th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">N</th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">E</th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">L</th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">M</th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Platelets</th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">ESR</th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Serum Creatinine</th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Serum IgE</th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">C3, C4</th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">ANA</th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Urine</th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Allergy Panel</th>
+                          <th className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Date</th>
+                          <th className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">CBC</th>
+                          <th className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Hb</th>
+                          <th className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">TC</th>
+                          <th className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">DC</th>
+                          <th className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">N</th>
+                          <th className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">E</th>
+                          <th className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">L</th>
+                          <th className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">M</th>
+                          <th className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Platelets</th>
+                          <th className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">ESR</th>
+                          <th className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Serum Creatinine</th>
+                          <th className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Serum IgE</th>
+                          <th className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">C3, C4</th>
+                          <th className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">ANA</th>
+                          <th className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Urine</th>
+                          <th className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Allergy Panel</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-200">
                         {processedTests && processedTests.length > 0 ? (
                           processedTests.map((test, idx) => (
                             <tr key={test._id || idx} className="hover:bg-slate-50 transition-colors">
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-600">
+                              <td className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-xs text-slate-600">
                                 {test.date ? new Date(test.date).toLocaleDateString() : 
                                  test.createdAt ? new Date(test.createdAt).toLocaleDateString() : 
                                  'N/A'}
                               </td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.CBC || ''}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.Hb || ''}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.TC || ''}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.DC || ''}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.Neutrophils || ''}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.Eosinophil || ''}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.Lymphocytes || ''}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.Monocytes || ''}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.Platelets || ''}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.ESR || ''}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.SerumCreatinine || ''}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.SerumIgELevels || ''}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.C3C4Levels || ''}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.ANA_IF || ''}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.UrineRoutine || ''}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.AllergyPanel || ''}</td>
+                              <td className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.CBC || ''}</td>
+                              <td className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.Hb || ''}</td>
+                              <td className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.TC || ''}</td>
+                              <td className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.DC || ''}</td>
+                              <td className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.Neutrophils || ''}</td>
+                              <td className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.Eosinophil || ''}</td>
+                              <td className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.Lymphocytes || ''}</td>
+                              <td className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.Monocytes || ''}</td>
+                              <td className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.Platelets || ''}</td>
+                              <td className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.ESR || ''}</td>
+                              <td className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.SerumCreatinine || ''}</td>
+                              <td className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.SerumIgELevels || ''}</td>
+                              <td className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.C3C4Levels || ''}</td>
+                              <td className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.ANA_IF || ''}</td>
+                              <td className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.UrineRoutine || ''}</td>
+                              <td className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-xs text-slate-800">{test.AllergyPanel || ''}</td>
                             </tr>
                           ))
                         ) : (
                           <tr>
                             <td colSpan={17} className="px-4 py-8 text-center text-slate-500">
-                              <Activity className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                              <Activity className="h-8 w-8 sm:h-12 sm:w-12 text-slate-400 mx-auto mb-4" />
                               <p className="text-xs sm:text-sm">No investigations found</p>
                             </td>
                           </tr>
@@ -425,55 +425,55 @@ const ViewProfile = () => {
 
               {/* Medications */}
               <div className="bg-white rounded-xl shadow-sm border border-blue-100">
-                <div className="p-4 sm:p-6 border-b border-blue-100">
-                  <h2 className="text-sm font-semibold text-slate-800 flex items-center">
+                <div className="p-3 sm:p-4 lg:p-6 border-b border-blue-100">
+                  <h2 className="text-sm sm:text-base font-semibold text-slate-800 flex items-center">
                     <Pill className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-blue-500" />
                     Medications
                   </h2>
-                  <p className="text-slate-600 mt-1 text-xs">
+                  <p className="text-slate-600 mt-1 text-xs sm:text-sm">
                     Current and past medications prescribed
                   </p>
                 </div>
-                <div className="p-4 sm:p-6">
+                <div className="p-3 sm:p-4 lg:p-6">
                   {medLoading ? (
-                    <div className="text-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
-                      <p className="text-slate-600 text-xs">Loading medications...</p>
+                    <div className="text-center py-6 sm:py-8">
+                      <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                      <p className="text-slate-600 text-xs sm:text-sm">Loading medications...</p>
                     </div>
                   ) : medError ? (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                      <p className="text-red-600 text-xs">{medError}</p>
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4">
+                      <p className="text-red-600 text-xs sm:text-sm">{medError}</p>
                     </div>
                   ) : medications.length === 0 ? (
-                    <div className="text-center py-8">
-                      <Pill className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                      <p className="text-slate-500 text-xs">No medications found</p>
+                    <div className="text-center py-6 sm:py-8">
+                      <Pill className="h-8 w-8 sm:h-12 sm:w-12 text-slate-400 mx-auto mb-4" />
+                      <p className="text-slate-500 text-xs sm:text-sm">No medications found</p>
                     </div>
                   ) : (
                     <div className="overflow-x-auto">
-                      <table className="w-full">
+                      <table className="w-full min-w-[800px]">
                         <thead>
                           <tr className="bg-slate-50 border-b border-slate-200">
-                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Drug Name</th>
-                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Dose</th>
-                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Duration</th>
-                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Frequency</th>
-                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Prescribed By</th>
-                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Adverse Effect</th>
+                            <th className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Drug Name</th>
+                            <th className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Dose</th>
+                            <th className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Duration</th>
+                            <th className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Frequency</th>
+                            <th className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Prescribed By</th>
+                            <th className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Adverse Effect</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200">
                           {medications.map((med, idx) => (
                             <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs font-medium text-slate-800">{med.drugName}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-600">{med.dose}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-600">{med.duration}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-600">{med.frequency || 'N/A'}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-600">
+                              <td className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-xs font-medium text-slate-800">{med.drugName}</td>
+                              <td className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-xs text-slate-600">{med.dose}</td>
+                              <td className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-xs text-slate-600">{med.duration}</td>
+                              <td className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-xs text-slate-600">{med.frequency || 'N/A'}</td>
+                              <td className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-xs text-slate-600">
                                 {typeof med.prescribedBy === 'string' ? med.prescribedBy : 
                                  typeof med.prescribedBy === 'object' && med.prescribedBy?.name ? med.prescribedBy.name : 'N/A'}
                               </td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-600">{med.adverseEvent || 'N/A'}</td>
+                              <td className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-xs text-slate-600">{med.adverseEvent || 'N/A'}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -486,43 +486,43 @@ const ViewProfile = () => {
             </div>
           )}
           {activeTab === "Follow Up" && (
-            <div className="space-y-6 sm:space-y-8">
+            <div className="space-y-4 sm:space-y-6 lg:space-y-8">
               {/* Allergic Rhinitis */}
               <div className="bg-white rounded-xl shadow-sm border border-blue-100">
-                <div className="p-4 sm:p-6 border-b border-blue-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <h2 className="text-sm font-semibold text-slate-800">Allergic Rhinitis</h2>
+                <div className="p-3 sm:p-4 lg:p-6 border-b border-blue-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
+                  <h2 className="text-sm sm:text-base font-semibold text-slate-800">Allergic Rhinitis</h2>
                   <button
                                                 onClick={() => navigate(`/dashboard/CenterAdmin/patients/FollowUp/AddAllergicRhinitis/${patient._id}`)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-xs w-full sm:w-auto"
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-xs sm:text-sm w-full sm:w-auto"
                   >
                     Add Follow Up
                   </button>
                 </div>
-                <div className="p-4 sm:p-6">
+                <div className="p-3 sm:p-4 lg:p-6">
                   <div className="overflow-x-auto">
-                    <table className="w-full">
+                    <table className="w-full min-w-[600px]">
                       <thead>
                         <tr className="bg-slate-50 border-b border-slate-200">
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Patient Name</th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Age</th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Center Code</th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Contact</th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Updated Date</th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Action</th>
+                          <th className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Patient Name</th>
+                          <th className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Age</th>
+                          <th className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Center Code</th>
+                          <th className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Contact</th>
+                          <th className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Updated Date</th>
+                          <th className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Action</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-200">
                         {allergicRhinitis && allergicRhinitis.length > 0 ? (
                           allergicRhinitis.map((rhinitis, idx) => (
                             <tr key={rhinitis._id || idx} className="hover:bg-slate-50 transition-colors">
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{patient.name}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{patient.age}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{patient.centerCode || 'N/A'}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">{patient.phone || 'N/A'}</td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">
+                              <td className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-xs text-slate-800">{patient.name}</td>
+                              <td className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-xs text-slate-800">{patient.age}</td>
+                              <td className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-xs text-slate-800">{patient.centerCode || 'N/A'}</td>
+                              <td className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-xs text-slate-800">{patient.phone || 'N/A'}</td>
+                              <td className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-xs text-slate-800">
                                 {rhinitis.updatedAt ? new Date(rhinitis.updatedAt).toLocaleDateString() : 'N/A'}
                               </td>
-                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs text-slate-800">
+                              <td className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-xs text-slate-800">
                                 <button
                                   onClick={() => navigate(`/dashboard/CenterAdmin/patients/FollowUp/ViewAllergicRhinitis/${rhinitis._id}`)}
                                   className="text-blue-600 hover:text-blue-900 font-medium"
@@ -534,9 +534,9 @@ const ViewProfile = () => {
                           ))
                         ) : (
                           <tr>
-                            <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
-                              <FileText className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                              <p className="text-xs">No allergic rhinitis records found</p>
+                            <td colSpan={6} className="px-4 py-6 sm:py-8 text-center text-slate-500">
+                              <FileText className="h-8 w-8 sm:h-12 sm:w-12 text-slate-400 mx-auto mb-4" />
+                              <p className="text-xs sm:text-sm">No allergic rhinitis records found</p>
                             </td>
                           </tr>
                         )}
