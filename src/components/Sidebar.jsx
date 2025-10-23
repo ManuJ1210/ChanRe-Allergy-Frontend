@@ -56,7 +56,7 @@ export default function Sidebar(props) {
         </button>
         <div className="p-5 border-b border-blue-100">
           <h2 className="text-lg font-extrabold tracking-wide text-blue-500">
-            Chanre<span className="text-blue-400">Allergy</span>
+            ChanRe<span className="text-blue-400">Allergy</span>
           </h2>
           <p className="text-xs text-slate-400 mt-1 capitalize">
             {role ? `${role} Panel` : 'User Panel'}
@@ -104,7 +104,7 @@ export default function Sidebar(props) {
                 links={[
                   { to: "/dashboard/superadmin/lab/labstafflist", label: "Lab Staff List" },
                   { to: "/dashboard/superadmin/lab/addlabstaff", label: "Add Lab Staff" },
-                  { to: "/dashboard/superadmin/lab/labreports", label: "Lab Reports" },
+                
                 ]}
                 currentPath={location.pathname}
               />
