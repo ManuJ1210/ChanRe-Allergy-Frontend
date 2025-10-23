@@ -150,7 +150,14 @@ export const validateDoctorForm = (formData) => {
   const errors = {};
   
   errors.name = validateName(formData.name);
-  errors.mobile = validatePhone(formData.mobile);
+  
+  // Handle both 'mobile' and 'phone' field names
+  if (formData.mobile !== undefined) {
+    errors.mobile = validatePhone(formData.mobile);
+  } else if (formData.phone !== undefined) {
+    errors.phone = validatePhone(formData.phone);
+  }
+  
   errors.email = validateEmail(formData.email);
   errors.username = validateUsername(formData.username);
   errors.password = validatePassword(formData.password);
