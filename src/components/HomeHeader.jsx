@@ -12,35 +12,35 @@ export default function HomeHeader() {
         <>
         <div className="font-sans bg-gradient-to-br from-slate-50 to-blue-50 text-slate-800" style={{marginBlock: '0'}}>
          
-       <header className="bg-white/95 backdrop-blur-md shadow-lg border-b border-blue-100 fixed left-0 right-0 z-50 m-0 p-0 transition-all duration-300" style={{top: '0px', marginTop: '0', borderTop: 'none'}}>
-        <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 lg:py-6 flex justify-between items-center">
+       <header className="bg-white/95 backdrop-blur-md shadow-lg border-b border-blue-100 fixed left-0 right-0 z-50 py-5 m-0 p-0 transition-all duration-300" style={{top: '0px', marginTop: '0', borderTop: 'none'}}>
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 flex justify-between items-center h-[90px]">
           <Link to="/" className="group">
             <img src="logo.png" alt="ChanRe Allergy Clinic" className="h-4 sm:h-5 md:h-6 lg:h-8 xl:h-10 object-contain transition-transform duration-300 group-hover:scale-105" />
           </Link>
           {/* Desktop Navigation */}
-          <nav className="space-x-2 sm:space-x-3 md:space-x-4 lg:space-x-6 text-xs sm:text-sm md:text-base font-semibold text-slate-700 hidden md:block">
-            <Link to="/" className="hover:text-[#2490eb] transition-all duration-300 hover:scale-105 relative group">
+          <nav className="space-x-2 sm:space-x-3 md:space-x-4 lg:space-x-6 text-xs sm:text-sm md:text-base font-semibold text-slate-700 hidden md:flex items-center justify-center h-full">
+            <Link to="/" className="hover:text-[#2490eb] transition-all duration-300 hover:scale-105 relative group flex items-center">
               <span className="relative z-10">Home</span>
               <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-cyan-500/10 rounded-lg scale-0 group-hover:scale-100 transition-transform duration-300"></div>
             </Link>
-            <Link to="/About" className="hover:text-[#2490eb] transition-all duration-300 hover:scale-105 relative group">
+            <Link to="/About" className="hover:text-[#2490eb] transition-all duration-300 hover:scale-105 relative group flex items-center">
               <span className="relative z-10">About</span>
               <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-cyan-500/10 rounded-lg scale-0 group-hover:scale-100 transition-transform duration-300"></div>
             </Link>
-            <Link to="/Contact" className="hover:text-[#2490eb] transition-all duration-300 hover:scale-105 relative group">
+            <Link to="/Contact" className="hover:text-[#2490eb] transition-all duration-300 hover:scale-105 relative group flex items-center">
               <span className="relative z-10">Contact</span>
               <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-cyan-500/10 rounded-lg scale-0 group-hover:scale-100 transition-transform duration-300"></div>
             </Link>
-            <Link to="/book-appointment" className="hover:text-[#2490eb] transition-all duration-300 hover:scale-105 relative group">
+            <Link to="/book-appointment" className="hover:text-[#2490eb] transition-all duration-300 hover:scale-105 relative group flex items-center">
               <span className="relative z-10">Book Appointment</span>
               <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-cyan-500/10 rounded-lg scale-0 group-hover:scale-100 transition-transform duration-300"></div>
             </Link>
-            <Link to="/check-appointment" className="hover:text-[#2490eb] transition-all duration-300 hover:scale-105 relative group">
+            <Link to="/check-appointment" className="hover:text-[#2490eb] transition-all duration-300 hover:scale-105 relative group flex items-center">
               <span className="relative z-10">Check Status</span>
               <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-cyan-500/10 rounded-lg scale-0 group-hover:scale-100 transition-transform duration-300"></div>
             </Link>
             <Link to="/login">
-              <button className="inline-block bg-gradient-to-r from-[#2490eb] to-[#14457b] hover:from-[#14457b] hover:to-[#2490eb] text-white font-semibold px-2 sm:px-3 md:px-4 lg:px-5 py-1 sm:py-1.5 md:py-2 rounded-lg transition-all duration-300 text-xs sm:text-sm shadow-md hover:shadow-lg hover:scale-105 transform">
+              <button className="inline-block bg-gradient-to-r from-[#2490eb] to-[#14457b] hover:from-[#14457b] hover:to-[#2490eb] text-white font-semibold px-2 sm:px-3 md:px-4 lg:px-5 py-1 sm:py-1.5 md:py-2 rounded-lg transition-all duration-300 text-xs sm:text-sm shadow-md hover:shadow-lg hover:scale-105 transform flex items-center">
                 Login
               </button>
             </Link>
