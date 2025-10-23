@@ -7,7 +7,7 @@ import {
   ArrowLeft, User, Phone, Calendar, MapPin, Activity, Pill, FileText, Eye, Edit, Plus, AlertCircle, Mail, UserCheck, Trash2
 } from 'lucide-react';
 
-const TABS = ["Overview", "Follow Up", "Prescription", "History"];
+const TABS = ["Overview", "Follow Up", "Prescription", "History", "Medications"];
 
 const ViewProfile = () => {
   const { id } = useParams();
@@ -954,6 +954,100 @@ const ViewProfile = () => {
                     </div>
                   )}
                 </div>
+              </div>
+            </div>
+          )}
+          {activeTab === "Medications" && (
+            <div className="bg-white rounded-xl shadow-sm border border-blue-100">
+              <div className="p-4 sm:p-6 border-b border-blue-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <h2 className="text-sm font-semibold text-slate-800 flex items-center">
+                    <Pill className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-blue-500" />
+                    Medications
+                  </h2>
+                  <p className="text-slate-600 mt-1 text-xs">Current and past medications prescribed to the patient</p>
+                </div>
+                <button
+                  onClick={() => navigate(`/dashboard/CenterAdmin/patients/profile/AddMedications/${patient._id}`)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-xs w-full sm:w-auto flex items-center justify-center gap-2"
+                >
+                  <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
+                  Add Medication
+                </button>
+              </div>
+              <div className="p-4 sm:p-6">
+                {medLoading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                    <p className="text-slate-600 text-xs">Loading medications...</p>
+                  </div>
+                ) : medError ? (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <p className="text-red-600 text-xs">{medError}</p>
+                  </div>
+                ) : (medications || []).length === 0 ? (
+                  <div className="text-center py-8">
+                    <Pill className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                    <p className="text-slate-500 text-xs mb-4">No medications found</p>
+                    <button
+                      onClick={() => navigate(`/dashboard/CenterAdmin/patients/profile/AddMedications/${patient._id}`)}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors text-xs"
+                    >
+                      Add First Medication
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {medications.map((med, idx) => (
+                      <div key={idx} className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-4 border border-slate-200 hover:border-blue-300 transition-all duration-200">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Pill className="h-4 w-4 text-blue-500" />
+                              <h3 className="font-semibold text-slate-800 text-sm">{med.drugName}</h3>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                              <div>
+                                <span className="text-slate-600">Dosage:</span>
+                                <span className="ml-2 text-slate-800 font-medium">{med.dose}</span>
+                              </div>
+                              <div>
+                                <span className="text-slate-600">Frequency:</span>
+                                <span className="ml-2 text-slate-800 font-medium">{med.frequency}</span>
+                              </div>
+                              <div>
+                                <span className="text-slate-600">Duration:</span>
+                                <span className="ml-2 text-slate-800 font-medium">{med.duration}</span>
+                              </div>
+                              <div>
+                                <span className="text-slate-600">Prescribed By:</span>
+                                <span className="ml-2 text-slate-800 font-medium">{med.prescribedBy}</span>
+                              </div>
+                              <div>
+                                <span className="text-slate-600">Prescribed Date:</span>
+                                <span className="ml-2 text-slate-800 font-medium">
+                                  {med.prescribedDate ? new Date(med.prescribedDate).toLocaleDateString() : 'N/A'}
+                                </span>
+                              </div>
+                            </div>
+                            {med.instructions && (
+                              <div className="mt-2">
+                                <span className="text-slate-600 text-xs">Instructions:</span>
+                                <p className="text-slate-800 text-xs mt-1">{med.instructions}</p>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-slate-500 text-xs">
+                              {med.prescribedDate ? new Date(med.prescribedDate).toLocaleDateString() : 
+                               med.createdAt ? new Date(med.createdAt).toLocaleDateString() : 'N/A'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}

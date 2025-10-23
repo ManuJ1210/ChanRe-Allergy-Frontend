@@ -69,23 +69,24 @@ const AddReceptionist = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    const updatedFormData = { ...formData, [name]: value };
+    setFormData(updatedFormData);
     
     // Mark field as touched
     setTouched({ ...touched, [name]: true });
     
-    // Validate the field
-    const validationErrors = validateReceptionistForm({ ...formData, [name]: value });
-    setErrors({ ...errors, [name]: validationErrors[name] });
+    // Validate the entire form with updated data
+    const validationErrors = validateReceptionistForm(updatedFormData);
+    setErrors(validationErrors);
   };
 
   const handleBlur = (e) => {
     const { name } = e.target;
     setTouched({ ...touched, [name]: true });
     
-    // Validate the field
+    // Validate the entire form
     const validationErrors = validateReceptionistForm(formData);
-    setErrors({ ...errors, [name]: validationErrors[name] });
+    setErrors(validationErrors);
   };
 
   const handleSubmit = async (e) => {
