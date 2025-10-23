@@ -199,66 +199,46 @@ const ViewGPE = () => {
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Weight, Height, BMI Row */}
-                {(latestRecord.weight || latestRecord.height || latestRecord.bmi) && (
-                  <div className="md:col-span-2">
-                    <div className="grid grid-cols-3 gap-4">
-                      {latestRecord.weight && (
-                        <div>
-                          <label className="block text-xs font-medium text-gray-500">Weight (kg)</label>
-                          <p className="text-gray-900 font-medium text-xs">{latestRecord.weight}</p>
-                        </div>
-                      )}
-                      {latestRecord.height && (
-                        <div>
-                          <label className="block text-xs font-medium text-gray-500">Height (cm)</label>
-                          <p className="text-gray-900 font-medium text-xs">{latestRecord.height}</p>
-                        </div>
-                      )}
-                      {latestRecord.bmi && (
-                        <div>
-                          <label className="block text-xs font-medium text-gray-500">BMI</label>
-                          <p className="text-blue-600 font-semibold text-xs">{latestRecord.bmi}</p>
-                        </div>
-                      )}
+                <div className="md:col-span-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500">Weight (kg)</label>
+                      <p className="text-gray-900 font-medium text-xs">{latestRecord.weight || 'Not recorded'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500">Height (cm)</label>
+                      <p className="text-gray-900 font-medium text-xs">{latestRecord.height || 'Not recorded'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500">BMI</label>
+                      <p className="text-blue-600 font-semibold text-xs">{latestRecord.bmi || 'Not calculated'}</p>
                     </div>
                   </div>
-                )}
-                {latestRecord.pulse && (
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500">Pulse</label>
-                    <p className="text-gray-900 font-medium text-xs">{latestRecord.pulse}</p>
-                  </div>
-                )}
-                {latestRecord.bp && (
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500">Bp</label>
-                    <p className="text-gray-900 font-medium text-xs">{latestRecord.bp}</p>
-                  </div>
-                )}
-                {latestRecord.rr && (
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500">RR</label>
-                    <p className="text-gray-900 font-medium text-xs">{latestRecord.rr}</p>
-                  </div>
-                )}
-                {latestRecord.temp && (
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500">Temp</label>
-                    <p className="text-gray-900 font-medium text-xs">{latestRecord.temp}</p>
-                  </div>
-                )}
-                {latestRecord.spo2 && (
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500">SPO2%</label>
-                    <p className="text-gray-900 font-medium text-xs">{latestRecord.spo2}</p>
-                  </div>
-                )}
-                {latestRecord.entExamination && (
-                  <div className="md:col-span-2">
-                    <label className="block text-xs font-medium text-gray-500">ENT Examination</label>
-                    <p className="text-gray-900 font-medium text-xs">{latestRecord.entExamination}</p>
-                  </div>
-                )}
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500">Pulse</label>
+                  <p className="text-gray-900 font-medium text-xs">{latestRecord.pulse || 'Not recorded'}</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500">Bp</label>
+                  <p className="text-gray-900 font-medium text-xs">{latestRecord.bp || 'Not recorded'}</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500">RR</label>
+                  <p className="text-gray-900 font-medium text-xs">{latestRecord.rr || 'Not recorded'}</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500">Temp</label>
+                  <p className="text-gray-900 font-medium text-xs">{latestRecord.temp || 'Not recorded'}</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500">SPO2%</label>
+                  <p className="text-gray-900 font-medium text-xs">{latestRecord.spo2 || 'Not recorded'}</p>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-medium text-gray-500">ENT Examination</label>
+                  <p className="text-gray-900 font-medium text-xs">{latestRecord.entExamination || 'Not recorded'}</p>
+                </div>
               </div>
             </div>
 
@@ -269,54 +249,38 @@ const ViewGPE = () => {
                 Systematic Examination
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {latestRecord.cns && (
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500">CNS</label>
-                    <p className="text-gray-900 font-medium text-xs">{latestRecord.cns}</p>
-                  </div>
-                )}
-                {latestRecord.cvs && (
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500">CVS</label>
-                    <p className="text-gray-900 font-medium text-xs">{latestRecord.cvs}</p>
-                  </div>
-                )}
-                {latestRecord.rs && (
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500">RS</label>
-                    <p className="text-gray-900 font-medium text-xs">{latestRecord.rs}</p>
-                  </div>
-                )}
-                {latestRecord.pa && (
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500">P/A</label>
-                    <p className="text-gray-900 font-medium text-xs">{latestRecord.pa}</p>
-                  </div>
-                )}
-                {latestRecord.drugAdverseNotion && (
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500">Drug Adverse Notion</label>
-                    <p className="text-gray-900 font-medium text-xs">{latestRecord.drugAdverseNotion}</p>
-                  </div>
-                )}
-                {latestRecord.drugCompliance && (
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500">Drug Compliance</label>
-                    <p className="text-gray-900 font-medium text-xs">{latestRecord.drugCompliance}</p>
-                  </div>
-                )}
-                {latestRecord.adviseFollowUp && (
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500">Advise to be followed up till next visit</label>
-                    <p className="text-gray-900 font-medium text-xs">{latestRecord.adviseFollowUp}</p>
-                  </div>
-                )}
-                {latestRecord.otherMedications && (
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500">Other Medications</label>
-                    <p className="text-gray-900 font-medium text-xs">{latestRecord.otherMedications}</p>
-                  </div>
-                )}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500">CNS</label>
+                  <p className="text-gray-900 font-medium text-xs">{latestRecord.cns || 'Not recorded'}</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500">CVS</label>
+                  <p className="text-gray-900 font-medium text-xs">{latestRecord.cvs || 'Not recorded'}</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500">RS</label>
+                  <p className="text-gray-900 font-medium text-xs">{latestRecord.rs || 'Not recorded'}</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500">P/A</label>
+                  <p className="text-gray-900 font-medium text-xs">{latestRecord.pa || 'Not recorded'}</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500">Drug Adverse Notion</label>
+                  <p className="text-gray-900 font-medium text-xs">{latestRecord.drugAdverseNotion || 'Not recorded'}</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500">Drug Compliance</label>
+                  <p className="text-gray-900 font-medium text-xs">{latestRecord.drugCompliance || 'Not recorded'}</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500">Advise to be followed up till next visit</label>
+                  <p className="text-gray-900 font-medium text-xs">{latestRecord.adviseFollowUp || 'Not recorded'}</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500">Other Medications</label>
+                  <p className="text-gray-900 font-medium text-xs">{latestRecord.otherMedications || 'Not recorded'}</p>
+                </div>
               </div>
             </div>
 
