@@ -107,14 +107,34 @@ const LoginHistory = () => {
     }
     
     if (window.confirm(`Are you sure you want to delete ${selectedRecords.length} selected login history records?`)) {
+      setDeleting(true);
       try {
-        await API.delete('/login-history/bulk', { data: { ids: selectedRecords } });
-        toast.success(`Deleted ${selectedRecords.length} login history records`);
+        console.log('Deleting records:', selectedRecords);
+        
+        // Try POST method first (more reliable for bulk operations)
+        let response;
+        try {
+          response = await API.post('/login-history/bulk-delete', { 
+            ids: selectedRecords 
+          });
+        } catch (postError) {
+          console.log('POST method failed, trying DELETE:', postError);
+          // Fallback to DELETE method
+          response = await API.delete('/login-history/bulk', { 
+            data: { ids: selectedRecords } 
+          });
+        }
+        
+        console.log('Bulk delete response:', response.data);
+        toast.success(`Deleted ${response.data.deletedCount || selectedRecords.length} login history records`);
         setSelectedRecords([]);
         setSelectAll(false);
         fetchLoginHistory(); // Refresh the list
       } catch (error) {
-        toast.error('Failed to bulk delete records');
+        console.error('Bulk delete error:', error);
+        toast.error(`Failed to bulk delete records: ${error.response?.data?.message || error.message}`);
+      } finally {
+        setDeleting(false);
       }
     }
   };
@@ -261,9 +281,10 @@ const LoginHistory = () => {
                 {selectedRecords.length > 0 && (
                   <button
                     onClick={handleBulkDelete}
-                    className="px-3 sm:px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm font-medium"
+                    disabled={deleting}
+                    className="px-3 sm:px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
                   >
-                    Delete Selected ({selectedRecords.length})
+                    {deleting ? 'Deleting...' : `Delete Selected (${selectedRecords.length})`}
                   </button>
                 )}
                 <button
