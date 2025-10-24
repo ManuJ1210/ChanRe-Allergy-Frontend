@@ -1237,6 +1237,7 @@ function ReceptionistBilling() {
                             ultraSafeRender(req.status) === 'Pending' ? 'bg-gray-50 text-gray-700 border-gray-300' :
                             ultraSafeRender(req.status) === 'Billing_Pending' ? 'bg-yellow-50 text-yellow-700 border-yellow-300' :
                             ultraSafeRender(req.status) === 'Billing_Generated' && ultraSafeRender(req.billing?.status) === 'payment_received' ? 'bg-orange-50 text-orange-700 border-orange-300' :
+                            ultraSafeRender(req.status) === 'Billing_Generated' && ultraSafeRender(req.billing?.status) === 'partially_paid' ? 'bg-purple-50 text-purple-700 border-purple-300' :
                             ultraSafeRender(req.status) === 'Billing_Generated' && req.billing?.paidAmount && req.billing.paidAmount > 0 && req.billing.paidAmount < req.billing.amount ? 'bg-purple-50 text-purple-700 border-purple-300' :
                             ultraSafeRender(req.status) === 'Billing_Generated' && ultraSafeRender(req.billing?.status) === 'cancelled' ? 'bg-red-50 text-red-700 border-red-300' :
                             ultraSafeRender(req.status) === 'Billing_Generated' && ultraSafeRender(req.billing?.status) === 'refunded' ? 'bg-pink-50 text-pink-700 border-pink-300' :
@@ -1248,6 +1249,8 @@ function ReceptionistBilling() {
                           }`}>
                             {ultraSafeRender(req.status) === 'Billing_Generated' && ultraSafeRender(req.billing?.status) === 'payment_received' 
                               ? 'Payment Received' 
+                              : ultraSafeRender(req.status) === 'Billing_Generated' && ultraSafeRender(req.billing?.status) === 'partially_paid'
+                              ? 'Partially Paid'
                               : ultraSafeRender(req.status) === 'Billing_Generated' && req.billing?.paidAmount && req.billing.paidAmount > 0 && req.billing.paidAmount < req.billing.amount
                               ? 'Partially Paid'
                               : ultraSafeRender(req.status) === 'Billing_Generated' && ultraSafeRender(req.billing?.status) === 'cancelled'
