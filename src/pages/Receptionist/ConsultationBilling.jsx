@@ -40,7 +40,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import API from '../../services/api';
-import { getPatientAppointment } from '../../services/api';
+import { getPatientAppointment, getPatientPaymentHistory } from '../../services/api';
 
 export default function ConsultationBilling() {
   const dispatch = useDispatch();
@@ -230,6 +230,28 @@ export default function ConsultationBilling() {
   // Invoice data for InvoiceDisplay component
   const [invoiceData, setInvoiceData] = useState(null);
 
+  // Payment history state
+  const [paymentHistory, setPaymentHistory] = useState([]);
+  const [loadingPaymentHistory, setLoadingPaymentHistory] = useState(false);
+
+  // Function to fetch payment history for a patient
+  const fetchPaymentHistory = async (patientId) => {
+    if (!patientId) return;
+    
+    setLoadingPaymentHistory(true);
+    try {
+      const response = await getPatientPaymentHistory(patientId);
+      if (response.success) {
+        setPaymentHistory(response.paymentLogs || []);
+      }
+    } catch (error) {
+      console.error('Error fetching payment history:', error);
+      setPaymentHistory([]);
+    } finally {
+      setLoadingPaymentHistory(false);
+    }
+  };
+
   useEffect(() => {
     dispatch(fetchReceptionistPatients());
     fetchCenterInfo(); // Fetch center information when component mounts
@@ -311,9 +333,30 @@ export default function ConsultationBilling() {
       return { status: 'Bill Cancelled', color: 'text-red-600 bg-red-100', icon: <Ban className="h-4 w-4" /> };
     }
 
-    // Check if any bills have refunds
-    const hasRefundedBills = patient.billing.some(bill => bill.status === 'refunded');
-    const hasPartiallyRefundedBills = patient.billing.some(bill => bill.status === 'partially_refunded');
+    // Enhanced refund status checking - check both status and refund amounts
+    let hasRefundedBills = false;
+    let hasPartiallyRefundedBills = false;
+    
+    // Check each bill for refunds
+    for (const bill of patient.billing) {
+      if (bill.refunds && bill.refunds.length > 0) {
+        const totalAmount = bill.amount || 0;
+        const refundedAmount = bill.refunds.reduce((sum, refund) => sum + (refund.amount || 0), 0);
+        
+        if (refundedAmount >= totalAmount) {
+          hasRefundedBills = true;
+        } else if (refundedAmount > 0) {
+          hasPartiallyRefundedBills = true;
+        }
+      } else {
+        // Fallback to status-based checking
+        if (bill.status === 'refunded') {
+          hasRefundedBills = true;
+        } else if (bill.status === 'partially_refunded') {
+          hasPartiallyRefundedBills = true;
+        }
+      }
+    }
     
     if (hasRefundedBills && !hasPartiallyRefundedBills) {
       return { status: 'Refunded', color: 'text-orange-600 bg-orange-100', icon: <RotateCcw className="h-4 w-4" /> };
@@ -2043,6 +2086,24 @@ export default function ConsultationBilling() {
                                     <div className="text-slate-500">
                                       Paid: ₹{totalPaid.toLocaleString()}
                                     </div>
+                                    {(() => {
+                                      // Calculate total refunded amount from all bills
+                                      const totalRefunded = patient.billing.reduce((sum, bill) => {
+                                        if (bill.refunds && bill.refunds.length > 0) {
+                                          return sum + bill.refunds.reduce((refundSum, refund) => refundSum + (refund.amount || 0), 0);
+                                        }
+                                        return sum + (bill.refundAmount || 0);
+                                      }, 0);
+                                      
+                                      if (totalRefunded > 0) {
+                                        return (
+                                          <div className="text-purple-600 font-medium">
+                                            Refunded: ₹{totalRefunded.toLocaleString()}
+                                          </div>
+                                        );
+                                      }
+                                      return null;
+                                    })()}
                                     {totalAmount > totalPaid && (
                                       <div className="text-orange-600 font-medium">
                                         Due: ₹{(totalAmount - totalPaid).toLocaleString()}
@@ -2105,7 +2166,9 @@ export default function ConsultationBilling() {
                                       const invoiceData = prepareInvoiceData(patient);
                                       if (invoiceData) {
                                         setInvoiceData(invoiceData);
-                                      setShowInvoicePreviewModal(true);
+                                        setShowInvoicePreviewModal(true);
+                                        // Fetch payment history for this patient
+                                        fetchPaymentHistory(patient._id);
                                       } else {
                                         toast.error('Unable to generate invoice data');
                                       }
@@ -3151,101 +3214,56 @@ export default function ConsultationBilling() {
                     </div>
                   </div>
 
-                  {/* Payment History Table */}
-                  {selectedPatient.billing && selectedPatient.billing.some(bill => (bill.paidAmount || 0) > 0 || bill.status === 'cancelled' || bill.status === 'refunded') && (
+
+                  {/* Payment History */}
+                  {paymentHistory.length > 0 && (
                     <div className="mb-6">
                       <h4 className="text-sm font-semibold text-slate-800 mb-3">Payment History</h4>
-                      <table className="min-w-full border-collapse border border-slate-300">
-                        <thead>
-                          <tr className="bg-slate-100">
-                            <th className="border border-slate-300 px-3 py-2 text-left text-xs font-medium text-slate-700 uppercase">Date</th>
-                            <th className="border border-slate-300 px-3 py-2 text-left text-xs font-medium text-slate-700 uppercase">Service</th>
-                            <th className="border border-slate-300 px-3 py-2 text-right text-xs font-medium text-slate-700 uppercase">Amount</th>
-                            <th className="border border-slate-300 px-3 py-2 text-right text-xs font-medium text-slate-700 uppercase">Paid</th>
-                            <th className="border border-slate-300 px-3 py-2 text-center text-xs font-medium text-slate-700 uppercase">Payment Method</th>
-                            <th className="border border-slate-300 px-3 py-2 text-right text-xs font-medium text-slate-700 uppercase">Refunded</th>
-                            <th className="border border-slate-300 px-3 py-2 text-right text-xs font-medium text-slate-700 uppercase">Balance</th>
-                            <th className="border border-slate-300 px-3 py-2 text-center text-xs font-medium text-slate-700 uppercase">Status</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {selectedPatient.billing.map((bill, index) => {
-                            const billAmount = bill.amount || 0;
-                            const paidAmount = bill.paidAmount || 0;
-                            const refundedAmount = bill.refundAmount || 0;
-                            const balance = billAmount - paidAmount;
-                            const isFullyPaid = paidAmount >= billAmount;
-                            const isPartiallyPaid = paidAmount > 0 && paidAmount < billAmount;
-                            let statusText, statusColor;
-                            
-                            if (bill.status === 'cancelled') {
-                              statusText = 'Cancelled';
-                              statusColor = 'text-red-600';
-                            } else if (bill.status === 'refunded') {
-                              statusText = 'Refunded';
-                              statusColor = 'text-orange-600';
-                            } else if (bill.status === 'partially_refunded') {
-                              statusText = 'Partially Refunded';
-                              statusColor = 'text-yellow-600';
-                            } else if (isFullyPaid) {
-                              statusText = 'Paid';
-                              statusColor = 'text-green-600';
-                            } else if (isPartiallyPaid) {
-                              statusText = 'Partial';
-                              statusColor = 'text-orange-600';
-                            } else {
-                              statusText = 'Unpaid';
-                              statusColor = 'text-red-600';
-                            }
-                            
-                            return (
-                              <tr key={index}>
-                                <td className="border border-slate-300 px-3 py-2 text-xs">
-                                  {bill.paidAt ? new Date(bill.paidAt).toLocaleDateString('en-GB') : 
-                                   bill.cancelledAt ? new Date(bill.cancelledAt).toLocaleDateString('en-GB') :
-                                   bill.refundedAt ? new Date(bill.refundedAt).toLocaleDateString('en-GB') : '-'}
-                                </td>
-                                <td className="border border-slate-300 px-3 py-2 text-xs">
-                                  {bill.description || bill.type}
-                                </td>
-                                <td className="border border-slate-300 px-3 py-2 text-right text-xs">
-                                  ₹{billAmount.toFixed(2)}
-                                </td>
-                                <td className="border border-slate-300 px-3 py-2 text-right text-xs">
-                                  ₹{paidAmount.toFixed(2)}
-                                </td>
-                                <td className="border border-slate-300 px-3 py-2 text-center text-xs">
-                                  {bill.paymentMethod ? (
-                                    <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
-                                      {bill.paymentMethod.charAt(0).toUpperCase() + bill.paymentMethod.slice(1)}
-                                    </span>
-                                  ) : (
-                                    <span className="text-slate-400">-</span>
-                                  )}
-                                </td>
-                                <td className="border border-slate-300 px-3 py-2 text-right text-xs">
-                                  ₹{refundedAmount.toFixed(2)}
-                                </td>
-                                <td className="border border-slate-300 px-3 py-2 text-right text-xs">
-                                  ₹{balance.toFixed(2)}
-                                </td>
-                                <td className="border border-slate-300 px-3 py-2 text-center text-xs">
-                                  <span className={`font-medium ${statusColor}`}>
-                                    {statusText}
-                                  </span>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
+                      <div className="space-y-2">
+                        {paymentHistory
+                          .filter(payment => payment.status === 'completed')
+                          .map((payment, index) => (
+                            <div key={index} className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-200">
+                              <div className="flex items-center space-x-3">
+                                <div className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-medium">
+                                  {index + 1}
+                                </div>
+                                <div>
+                                  <div className="text-sm font-medium text-slate-800">₹{payment.amount.toFixed(2)}</div>
+                                  <div className="text-xs text-slate-500">
+                                    {new Date(payment.createdAt).toLocaleDateString('en-GB')} at {new Date(payment.createdAt).toLocaleTimeString('en-GB')}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-xs text-slate-500">#{index + 1}</div>
+                                <div className="text-xs text-slate-400">
+                                  {payment.paymentMethod ? payment.paymentMethod.charAt(0).toUpperCase() + payment.paymentMethod.slice(1) : 'Cash'}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
                     </div>
                   )}
 
                   {/* Payment Summary */}
                   {(() => {
-                    const totalPaid = selectedPatient.billing?.reduce((sum, bill) => sum + (bill.paidAmount || 0), 0) || 0;
-                    const totalRefunded = selectedPatient.billing?.reduce((sum, bill) => sum + (bill.refundAmount || 0), 0) || 0;
+                    // Calculate totals from payment history
+                    const totalPaidFromHistory = paymentHistory
+                      .filter(payment => payment.status === 'completed')
+                      .reduce((sum, payment) => sum + (payment.amount || 0), 0);
+                    
+                    const totalRefundedFromHistory = paymentHistory
+                      .reduce((sum, payment) => sum + (payment.refund?.refundedAmount || 0), 0);
+                    
+                    // Fallback to billing data if no payment history
+                    const totalPaid = paymentHistory.length > 0 ? totalPaidFromHistory : 
+                      selectedPatient.billing?.reduce((sum, bill) => sum + (bill.paidAmount || 0), 0) || 0;
+                    
+                    const totalRefunded = paymentHistory.length > 0 ? totalRefundedFromHistory :
+                      selectedPatient.billing?.reduce((sum, bill) => sum + (bill.refundAmount || 0), 0) || 0;
+                    
                     const hasCancelledBills = selectedPatient.billing?.some(bill => bill.status === 'cancelled');
                     const hasRefundedBills = selectedPatient.billing?.some(bill => bill.status === 'refunded');
                     const totalAmount = invoiceData.totals.total;
@@ -3316,6 +3334,7 @@ export default function ConsultationBilling() {
                     }
                     return null;
                   })()}
+
 
                   {/* Generation Details - Compact for A4 */}
                   <div className="grid grid-cols-2 gap-4 mb-4">

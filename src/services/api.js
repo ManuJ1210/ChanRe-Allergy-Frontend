@@ -257,4 +257,25 @@ export const searchAppointmentsByPatientName = async (name, centerId) => {
   }
 };
 
+// Payment History API functions
+export const getPatientPaymentHistory = async (patientId) => {
+  try {
+    const response = await API.get(`/payment-logs/patient/${patientId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching patient payment history:', error);
+    throw error;
+  }
+};
+
+export const getPaymentLogsForCenter = async (params = {}) => {
+  try {
+    const response = await API.get('/payment-logs/center', { params });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching payment logs for center:', error);
+    throw error;
+  }
+};
+
 export default API;
