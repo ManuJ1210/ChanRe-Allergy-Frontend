@@ -95,11 +95,10 @@ export default function ConsultationBilling() {
     // If patient has populated appointmentId, use that
     if (patient.appointmentId && typeof patient.appointmentId === 'object') {
       return {
-        type: 'online',
+        type: patient.appointmentId.appointmentType,
         date: patient.appointmentId.confirmedDate || patient.appointmentId.preferredDate,
         time: patient.appointmentId.confirmedTime || patient.appointmentId.preferredTime,
         status: patient.appointmentId.status,
-        type: patient.appointmentId.appointmentType,
         code: patient.appointmentId.confirmationCode,
         reason: patient.appointmentId.reasonForVisit,
         symptoms: patient.appointmentId.symptoms,
